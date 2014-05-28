@@ -1,5 +1,14 @@
 #include"acpbl.h"
 
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <string.h> /* memset */
+#include <stdlib.h> /* malloc */
+#include <pthread.h>
+#include <infiniband/verbs.h>
+
 /* define size */
 #define MAX_RM_SIZE     255U
 #define MAX_CQ_SIZE       1U
@@ -19,20 +28,20 @@
 
 #define TAG_SM  0xff
 /* define command type*/
-#define FIN  15U
-#define COPY 1U
+#define NOCMD     0U
+#define COPY      1U
+#define FIN      15U
 
 /* define STATUSs */
-#define COMPLETED 0U
-#define UNISSUED  1U
-#define ISSUED    2U
-#define FINISHED  3U
-#define GET_WAIT  4U
-#define GET_COMP  5U
+#define COMPLETED     0U
+#define UNISSUED      1U
+#define ISSUED        2U
+#define FINISHED      3U
+#define GETED_RRM     4U
 
 /* ACP constants */
-#define ACP_GA_NULL      0xffffffffffffffffLLU /* 0LLU ? */
-#define ACP_ATKEY_NULL   0xffffffffffffffffLLU /* 0LLU ? */
+#define ACP_GA_NULL      0xffffffffffffffffLLU 
+#define ACP_ATKEY_NULL   0xffffffffffffffffLLU 
 #define ACP_HANDLE_ALL   0xffffffffffffffffLLU
 #define ACP_HANDLE_NULL  0x0LLU
 
@@ -85,12 +94,11 @@ static struct ibv_cq *cq;/* CQ handle */
 static int acp_myrank = -1; /* my rank on acp lib*/
 static int acp_numprocs = -1; /* # of process on acp lib */
 static acp_size_t acp_smsize = -1; /* the size of starter memory on acp lib */
-static char *sm;/* starter memory address*/
+static char *sysmem;/* starter memory address*/
 static SMI *smi_tb;/* starter memory info table */
 static CMD cmdq[MAX_CMDQ_ENTRY];/* comand queue */
-static int head = 0;/* the head of command queue */
-static int tail = 0;/* the tail of command queue */
-static int chdl = 1;/* latest issued handle number */
+static acp_handle_t head = 1;/* the head of command queue */
+static acp_handle_t tail = 1;/* the tail of command queue */
 
 struct ibv_mr *lmrtb[MAX_RM_SIZE];/* local ibv_mr table */ 
 RM *lrmtb;/* Local addr/rkey info table */
@@ -102,9 +110,11 @@ pthread_t comm_thread_id;/* communcation thread ID */
 int acp_sync(void){
   int i;/* general index */
   char dummy1, dummy2;/* dummy buffer */
-  int nprocs;/* # of processes */ 
+  //int nprocs;/* # of processes */ 
+  int myrank;/* my rank ID */
   
   fprintf(stdout, "internal sync\n");
+  /*
   nprocs = acp_procs();
   if(nprocs <= 0){
     return -1;
@@ -115,6 +125,19 @@ int acp_sync(void){
       recv(sock_accept, &dummy2, sizeof(char), 0);
     }
   }
+ 
+  */
+  myrank = acp_rank();
+  if(myrank == 0){
+    write(sock_connect, &dummy2, sizeof(char));
+    recv(sock_accept, &dummy1, sizeof(char), 0);
+  }
+  else{
+    recv(sock_accept, &dummy2, sizeof(char), 0);
+    write(sock_connect, &dummy1, sizeof(char));
+  }
+
+
   fprintf(stdout, "internal sync fin\n");
   
   return 0;
@@ -181,13 +204,13 @@ uint64_t query_offset(acp_ga_t ga){
 acp_ga_t acp_query_starter_ga(int rank){
   
   acp_ga_t ga;
-  uint64_t offset = 0;
   uint32_t gmtag = TAG_SM;
   uint32_t color = 0;
   
+  ga = ACP_GA_NULL;
   ga = ((uint64_t)rank << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
     + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
-    + ((uint64_t)gmtag << OFFSET_BITS) + offset;
+    + ((uint64_t)gmtag << OFFSET_BITS);
   
   fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
   
@@ -199,10 +222,11 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
   acp_ga_t ga;
   uint64_t offset = 0;
   uint32_t gmtag = 0;
-  uint32_t color = 0;
+  uint32_t color = 0;/* constants */
   int keyrank;
   int myrank;
 
+  ga = ACP_GA_NULL;
   /* get my rank */
   myrank = acp_rank();
   /* rank of atkey */
@@ -286,7 +310,7 @@ acp_atkey_t acp_register_memory(void* addr, acp_size_t size, int color){
   else{
     /* set gmtag */
     gmtag = i;
-    key = ((uint64_t)acp_myrank << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+    key = ((uint64_t)acp_rank() << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
       + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
       + ((uint64_t)gmtag << OFFSET_BITS)
       + offset;
@@ -318,7 +342,7 @@ void *acp_query_address(acp_ga_t ga){
   if(rank == acp_myrank){
     /* ga tag is TAG_SM,  */
     if(gmtag == TAG_SM){
-      base_addr = sm;
+      base_addr = sysmem;
     }
     else{
       if(lrmtb[gmtag].size != 0){
@@ -344,32 +368,36 @@ void *acp_query_address(acp_ga_t ga){
 acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, acp_size_t size, acp_handle_t order){
   
   acp_handle_t hdl; /* handle of copy */
-  int myrank;/* my rank*/
-
+  acp_handle_t tail4c;/* tail of cmdq */
+  int myrank;/* my rank */
+  CMD *pcmdq;/* pointer of cmdq */
+  
   fprintf(stdout, "internal acp_copy\n");
 
   /* if queue is full, return ACP_HANDLE_NULL */
-  if(head - (tail + 1) % MAX_CMDQ_ENTRY == 0){
+  if(tail - head == MAX_CMDQ_ENTRY - 1){
     return ACP_HANDLE_NULL;
   }
   
   /* check my rank */
   myrank = acp_rank();
+  tail4c = tail % MAX_CMDQ_ENTRY;
+  pcmdq = &cmdq[tail4c];
+
   /* make a command, and enqueue command Queue. */ 
-  cmdq[tail].rank = myrank;
-  cmdq[tail].type = COPY;
-  cmdq[tail].ohdl = order;
-  hdl = chdl;
-  cmdq[tail].hdl = hdl;
-  fprintf(stdout, "cmdq[%d].hdl = %d\n", tail, cmdq[tail].hdl);
-  chdl++;
-  cmdq[tail].stat = UNISSUED;
-  cmdq[tail].gasrc = src;
-  cmdq[tail].gadst = dst;
-  cmdq[tail].size = size;
+  pcmdq->rank = myrank;
+  pcmdq->type = COPY;
+  pcmdq->ohdl = order;
+  pcmdq->stat = UNISSUED;
+  pcmdq->gasrc = src;
+  pcmdq->gadst = dst;
+  pcmdq->size = size;
+  hdl = tail;
+  pcmdq->hdl = hdl;
+  fprintf(stdout, "tail %ld cmdq[%d].hdl = %d\n", tail, tail4c, pcmdq->hdl);
   
   /* update tail */
-  tail = (tail + 1)% MAX_CMDQ_ENTRY;
+  tail++;
   
   fprintf(stdout, "internal acp_copy fin\n");
   
@@ -378,52 +406,42 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, acp_size_t size, acp_handle_t 
 
 void acp_complete(acp_handle_t handle){
   
-  int index;/* index of cmdq */
-  int head_hdl; /* handle of head of cmdq */
+  acp_handle_t index;/* index of cmdq */
+  acp_handle_t head_hdl; /* handle of head of cmdq */
+  
   
   fprintf(stdout, "internal acp_complete\n"); 
-  
-  /* if disable handle, return */
-  if(handle == ACP_HANDLE_NULL){
-    return;
-  }
   
   /* if cmdq have no command, return */
   if(head == tail){
     return;
   }
+
+  /* if disable handle, return */
+  if(handle == ACP_HANDLE_NULL){
+    return;
+  }
+  /* if handle is ACP_HANDLE_ALL, 
+     wait complete all issued copy */
+  if(handle == ACP_HANDLE_ALL){
+    handle = tail;
+  }
   /* set head to index */
   index = head;
-  /* get hanlde of head of cmdq */
-  head_hdl = cmdq[head].hdl; 
-  if(handle < head_hdl){
+  
+  /* check */
+  if(handle < head){
     fprintf(stdout, "handle is alway finished\n");
     return;
   }
 
-  fprintf(stdout, "head = %d tail = %d index = %d head_hdl = %d handle = %d\n", 
-	  head, tail, index, head_hdl, handle);
+  fprintf(stdout, 
+	  "head = %ld tail = %ld index = %ld handle = %ld\n", 
+	  head, tail, index, handle);
   
   /* check status of handle if it is COMPLETED or not.*/
-  while(1){
-    if(cmdq[index].hdl < handle){
-      if(COMPLETED == cmdq[index].stat){
-	index = (index + 1) % MAX_CMDQ_ENTRY;
-	fprintf(stdout, "head = %d tail = %d index = %d head_hdl = %d handle = %d\n", 
-	       head, tail, index, head_hdl, handle);
-      }
-    }
-    else{
-      if(COMPLETED == cmdq[index].stat){
-	head = (index + 1) % MAX_CMDQ_ENTRY;
-	break;
-      }
-    }
-    /* fprintf(stdout, 
-       "head = %d tail = %d index = %d, head_hdl = %d handle = %d type %d stat %d\n", 
-       head, tail, index, head_hdl, handle, cmdq[index].type, cmdq[index].stat);*/
-  }
-  
+  while(head <= handle);
+            
   fprintf(stdout, "internal acp_complete fin\n"); 
   
   return;
@@ -443,7 +461,7 @@ int getlrm(acp_handle_t handle, int torank){
   /* prepare the scatter/gather entry */
   memset(&sge, 0, sizeof(sge));
   /* if local tag point to starter memory */
-  sge.addr = (uintptr_t)sm + acp_smsize + sizeof(RM) * MAX_RM_SIZE;
+  sge.addr = (uintptr_t)sysmem + acp_smsize + sizeof(RM) * MAX_RM_SIZE;
   sge.lkey = res.mr->lkey;
   
   /* set message size */
@@ -461,12 +479,9 @@ int getlrm(acp_handle_t handle, int torank){
 
   /* Set Get opcode in send work request */
   sr.opcode = IBV_WR_RDMA_READ;
-  /* Set send flag in send work request */
-  sr.send_flags = IBV_SEND_SIGNALED;
   
-  remote_offset = acp_smsize;
   /* Set remote address and rkey in send work request */
-  sr.wr.rdma.remote_addr = smi_tb[torank].addr + remote_offset;
+  sr.wr.rdma.remote_addr = smi_tb[torank].addr + acp_smsize;
   sr.wr.rdma.rkey = smi_tb[torank].rkey;
   
   /* post send by ibv_post_send */
@@ -481,7 +496,10 @@ int getlrm(acp_handle_t handle, int torank){
 }
 
 
-int icopy(acp_handle_t handle, acp_ga_t dst, acp_ga_t src, acp_size_t size, int index)
+int icopy(acp_handle_t handle, 
+	  int dstrank, int dstgmtag, uint64_t dstoffset, 
+	  int srcrank, int srcgmtag, uint64_t srcoffset,
+	  acp_size_t size)
 {
   struct ibv_sge sge; /* scatter/gather entry */
   struct ibv_send_wr sr; /* send work reuqest */
@@ -490,28 +508,19 @@ int icopy(acp_handle_t handle, acp_ga_t dst, acp_ga_t src, acp_size_t size, int 
   int torank = -1; /* remote rank */
   int rc; /* return code */
   
-  int srcrank, dstrank; /* srouce rank, and destination rank */
-  uint64_t srcoffset, dstoffset;/* soruce and destination offset*/
   uint64_t local_offset, remote_offset;/* local and remote offset */
-  uint32_t srcgmtag, dstgmtag; /* soruce and destination offset*/
   uint32_t local_gmtag, remote_gmtag;/* local and remote GMA tag */
   int myrank;/* my rank id */
   
   /* get my rank*/
   myrank = acp_rank();
   fprintf(stdout, "internal icopy\n");
-  /* get srouce rank, global tag and offset */
-  srcrank = acp_query_rank(src);
-  srcgmtag = query_gmtag(src);
-  srcoffset = query_offset(src);
-  /* get destination rank, global tag and offset */
-  dstrank = acp_query_rank(dst);  
-  dstgmtag = query_gmtag(dst);
-  dstoffset = query_offset(dst);
 
   /* print ga rank, index, offset */
-  fprintf(stdout, "mr %d src %lx sr %x st %x so %lx dst %lx dr %x dt %x do %lx\n", 
-	  myrank, src, srcrank, srcgmtag, srcoffset, dst, dstrank, dstgmtag, dstoffset);
+  fprintf(stdout, 
+	  "mr %d sr %x st %x so %lx dr %x dt %x do %lx\n", 
+	  myrank, srcrank, srcgmtag, srcoffset, 
+	  dstrank, dstgmtag, dstoffset);
   
   /* set local/remote tag, local/remote offset and remote rank */
   if(myrank == srcrank){
@@ -530,21 +539,11 @@ int icopy(acp_handle_t handle, acp_ga_t dst, acp_ga_t src, acp_size_t size, int 
   }
   fprintf(stdout, "target rank %d\n", torank);
   
-  if(myrank == srcrank && myrank == dstrank){
-    void *srcaddr, *dstaddr;
-    srcaddr = acp_query_address(src);
-    dstaddr = acp_query_address(dst);
-    fprintf(stdout, "dadr %p sadr %p\n", dstaddr, srcaddr);
-    memcpy(dstaddr, srcaddr, size);
-    cmdq[index].stat = COMPLETED;
-    return 0;
-  }
-  
   /* prepare the scatter/gather entry */
   memset(&sge, 0, sizeof(sge));
   /* if local tag point to starter memory */
   if(local_gmtag == TAG_SM){
-    sge.addr = (uintptr_t)sm + local_offset;
+    sge.addr = (uintptr_t)sysmem + local_offset;
     sge.lkey = res.mr->lkey;
   }
   else{
@@ -559,6 +558,7 @@ int icopy(acp_handle_t handle, acp_ga_t dst, acp_ga_t src, acp_size_t size, int 
       return rc;
     }
   }
+  
   /* set message size */
   sge.length = size;
   fprintf(stdout, "copy len %d\n", sge.length);
@@ -580,9 +580,6 @@ int icopy(acp_handle_t handle, acp_ga_t dst, acp_ga_t src, acp_size_t size, int 
   else if(myrank == dstrank){
     sr.opcode = IBV_WR_RDMA_READ;
   }
-  /* Set send flag in send work request */
-  sr.send_flags = IBV_SEND_SIGNALED;
-  
   /* Set remote address and rkey in send work request */
   /* using starter memory */
   if( remote_gmtag == TAG_SM){
@@ -618,12 +615,21 @@ void *comm_thread_func(void *dm){
   
   int i; /* general index */
   int rc; /* return code for cq */
+  
   struct ibv_wc wc; /* work completion for poll_cq*/
-  int index; /* cmdq index */
-  char prevstatcomp = 1; /* previous cmdq handle status*/
   char chcomp_fcqe = 0; /* complete to change status from CQE */
   int myrank; /* my rank id */
+  acp_handle_t idx, idx4c;/* CMDQ index */
+  acp_handle_t index, index4c;/* handle index */
   
+  /* icopy and getlrm */
+  acp_ga_t src, dst;/* src and dst ga */
+  acp_size_t size;/* data size */
+  int torank, dstrank, srcrank;/* target rank, dstga rank, srcga rank*/
+  int totag, dsttag, srctag;/* target tag, dst tag, src tag */
+  uint64_t dstoffset, srcoffset;/* dst offset, src offset */
+
+
   /* get my rank id */
   myrank = acp_rank();
   
@@ -635,182 +641,60 @@ void *comm_thread_func(void *dm){
       fprintf(stderr, "Fail poll cq\n");
       exit(-1);
     }
-    /* if(rc == 1)fprintf(stdout, "poll ct %d, wc.wr_id %d\n", rc, wc.wr_id);*/
+    /* if(rc == 1){
+       fprintf(stdout, "poll ct %d, wc.wr_id %d\n", rc, wc.wr_id);
+       }
+    */
     if(rc > 0){
       index = head;
       chcomp_fcqe = 0;
-      prevstatcomp = 1;
       /* fprintf(stdout, "wr_id %ld\n", wc.wr_id);*/
       if(wc.status == IBV_WC_SUCCESS){
-	while(1){
+	/* when ibv_poll_cq is SUCCESS,
+	   if cmdq index toutch tail and 
+	   change at least one command by CQE, break;*/
+	while(index < tail || chcomp_fcqe == 0){
 	  /* check which handle command complete. */
-	  if(cmdq[index].hdl == wc.wr_id){
-	    switch(cmdq[index].stat){
+	  idx = index % MAX_CMDQ_ENTRY;
+	  if(cmdq[idx].hdl == wc.wr_id){
+	    switch(cmdq[idx].stat){
 	    case ISSUED: /* issueing gma command */
-	      cmdq[index].stat = FINISHED;
+	      cmdq[idx].stat = FINISHED;
 	      /* if index is head, set COMPLETED status */
 	      if(index == head){
-		cmdq[index].stat = COMPLETED;
-		/* set TRUE to flag of previous status completion  */
-		prevstatcomp = 1;
+		cmdq[idx].stat = COMPLETED;
+		head ++;
 	      }
-	      /* set TRUE to flag of changing status by CEQ */
-	      chcomp_fcqe = 1;
-	      break;
-	    case GET_WAIT:/* waiting for get rkey table */
-	      cmdq[index].stat = GET_COMP;
-	      /* set TRUE to flag of changing status by CEQ */
-	      chcomp_fcqe = 1;
-	      /* set FALSE to flag of previous completion status */
-	      prevstatcomp = 0;
-	      break;
-	    default:
-	      /* ignore except handle of acp_copy  */
-	      break;
-	    }
-	  }
-	  /* check command completion */
-	  else if(prevstatcomp == 1){
-	    if(cmdq[index].stat == FINISHED){
-	      cmdq[index].stat = COMPLETED;
-	    }
-	    else{
-	      /* cmdq has a incomplete command until a command tail */
-	      prevstatcomp = 0;
-	    }
-	  }
-	  /* next cmd queue */
-	  index = (index + 1 ) % MAX_CMDQ_ENTRY;
-	  /* when ibv_poll_cq is SUCCESS,
-	     if cmdq index toutch tail and change at least one command by CQE, 
-	     break;*/
-	  if(index == tail && chcomp_fcqe == 1) break;
-	}
-      }
-      else {
-	fprintf(stderr, "wc is not SUCESS when check CQ %ld\n", wc.status);
-	exit(-1);
-      }
-    }
-    /* CHECK COMMAND QUEUE section */
-    /* if cmdq is empty, continue */
-    if(head == tail){
-      continue;
-    }
-    /* cmdq is not empty */
-    else{
-      index = head;
-      while(1){
-	fprintf(stdout, 
-		"head %d tail %d, cmdq[%d].stat %d\n", 
-		head, tail, index, cmdq[index].stat);
-	/* check if comand is complete or not. */
-	if(cmdq[index].stat != COMPLETED){
-	  /* check command type */
-	  /* command type is FIN */
-	  if(cmdq[index].type == FIN){
-	    fprintf(stdout, "CMD FIN\n");
-	    return 0;
-	  }
-	  /* command type is COPY */
-	  else if(cmdq[index].type == COPY){
-	    if(cmdq[index].stat == UNISSUED){
-	      
-	      acp_ga_t src, dst;
-	      acp_size_t size;
-	      int torank, dstrank, srcrank;
-	      int totag, dsttag, srctag;
-	      
-	      fprintf(stdout, "CMD COPY issued\n");
-	      src = cmdq[index].gasrc;
-	      dst = cmdq[index].gadst;
-	      size = cmdq[index].size;
-	      /* get rank and tag of src ga */
-	      srcrank = acp_query_rank(src);
-	      srctag = query_gmtag(src);
-	      /* get rank and tag of dst ga */
-	      dstrank = acp_query_rank(dst);
-	      dsttag = query_gmtag(dst);
-	      
-	      /* local copy */
-	      if(myrank == dstrank && myrank == srcrank){
-		torank = dstrank;
-	      }
-	      /* get */
-	      else if(myrank == dstrank){
-		totag = srctag;
-		torank = srcrank;
-	      }
-	      /* put */
-	      else if (myrank == srcrank){
-		totag = dsttag;
-		torank = dstrank;
-	      }
+	      /* if after cmdq status is FINISHED,  
+		 chang COMPLETE and update head to new index 
+		 which have a COMPLETE status. */
+	      idx4c = head % MAX_CMDQ_ENTRY;
 
-	      /* chekc tag */
-	      /* if tag point stater memory */
-	      if(totag == TAG_SM){
-		icopy(cmdq[index].hdl, dst, src, size, index);
-		if(cmdq[index].stat != COMPLETED){
-		  cmdq[index].stat = ISSUED;
-		}
-	      }
-	      /* if tag point globl memory */
-	      else{
-		/* if have a remote rm table of target rank */
-		if(rrmtb[torank] != NULL){
+	      while(head <= tail){
+		/* if status FINISED */
+		if(cmdq[idx4c].stat == FINISHED){
+		  cmdq[idx4c].stat = COMPLETED;
+		  head++;
+		  idx4c++;
 		  fprintf(stdout, 
-			  "CMD COPY have a rrmtb. rank %d torank %d, totag %d \n",
-			  myrank, torank, totag);
-		  /* if tag entry is active */
-		  if(rrmtb[torank][totag].size != 0){
-		    fprintf(stdout, 
-			    "CMD COPY have a entry rank %d torank %d, totag %d\n",
-			    myrank, torank, totag);
-		    icopy(cmdq[index].hdl, dst, src, size, index);
-		    if(cmdq[index].stat != COMPLETED){
-		      cmdq[index].stat = ISSUED;
-		    }
-		  }
-		  /* if tag entry is non active */
-		  else{
-		    fprintf(stdout, 
-			    "CMD COPY no entry.  rank %d torank %d, totag %d\n",
-			    myrank, torank, totag);
-		    getlrm(cmdq[index].hdl, torank);
-		    cmdq[index].stat = GET_WAIT;
-		  }
+			  "chcomp update idx4c %ld head %ld tail %ld\n", 
+			  idx4c, head, tail);
 		}
-		/* if do not have rm table of target rank */
+		/* if status is not FINISED, break */
 		else{
-		  /* if target rank is not myrank */
-		  if(torank != myrank){
-		    fprintf(stdout, 
-			    "CMD COPY no rrmtb.  rank %d torank %d, totag %d\n",
-			    myrank, torank, totag);
-		    getlrm(cmdq[index].hdl, torank);
-		    cmdq[index].stat = GET_WAIT;
-		  }
-		  /* if target rank is myrank (local copy) */
-		  else{
-		    icopy(cmdq[index].hdl, dst, src, size, index);
-		    if(cmdq[index].stat != COMPLETED){
-		      cmdq[index].stat = ISSUED;
-		    }
-		  }
+		  break;
 		}
 	      }
-	      /* command issue, break*/
+	      /* set TRUE to flag of changing status by CEQ */
+	      chcomp_fcqe = 1;
 	      break;
-	    }
-	    /* command status is GET_COMP */
-	    else if(cmdq[index].stat == GET_COMP){
-	      int torank, dstrank, srcrank;
-	    
-	      printf("CMD COPY GET RMtb\n");
+	    case GETED_RRM:/* waiting for get rkey table */
+	      fprintf(stdout, "CMD COPY GET RMtb\n");
 	      /* get logical address src and dst */
-	      srcrank = acp_query_rank(cmdq[index].gasrc);
-	      dstrank = acp_query_rank(cmdq[index].gadst);
+	      src = cmdq[idx].gasrc;
+	      dst = cmdq[idx].gadst;
+	      srcrank = acp_query_rank(src);
+	      dstrank = acp_query_rank(dst);
 	      
 	      /* set target rank */
 	      if(myrank == dstrank){
@@ -827,16 +711,155 @@ void *comm_thread_func(void *dm){
 		rrmtb[torank][i].rkey = recv_lrmtb[i].rkey;
 		rrmtb[torank][i].addr = recv_lrmtb[i].addr;
 		rrmtb[torank][i].size = recv_lrmtb[i].size;
-		fprintf(stdout, "torank %d tag %d size %d\n", torank, i, rrmtb[torank][i].size);
+		fprintf(stdout, 
+			"torank %d tag %d size %d\n", 
+			torank, i, rrmtb[torank][i].size);
 	      }
-	      /* set command status UNISSUDE */
-	      cmdq[index].stat = UNISSUED;
+	      srcoffset = query_offset(src);
+	      srctag = query_gmtag(src);
+	      dstoffset = query_offset(dst);
+	      dsttag = query_gmtag(dst);
+	      size = cmdq[idx].size;
+	      
+	      /* issued copy */
+	      icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+	      
+	      /* set command status ISSUED */
+	      cmdq[idx].stat = ISSUED;
+
+	      /* set TRUE to flag of changing status by CEQ */
+	      chcomp_fcqe = 1;
+	      
+	      break;
+	    default:
+	      /* ignore except handle of acp_copy  */
+	      break;
+	    }
+	  }
+	  /* update index for next cmd queue */
+	  index ++;
+	  fprintf(stdout, "qp section update index %ld\n", index);
+	}
+      }
+      else {
+	fprintf(stderr, 
+		"wc %d is not SUCESS when check CQ %ld\n", 
+		wc.wr_id, wc.status);
+	exit(-1);
+      }
+    }
+    /* CHECK COMMAND QUEUE section */
+    /* if cmdq is empty, continue */
+    if(head == tail){
+      /* fprintf(stdout, "head %ld ,tail %ld\n", head, tail);*/
+      continue;
+    }
+    /* cmdq is not empty */
+    else{
+      index = head;
+      while(index < tail){
+	idx = index % MAX_CMDQ_ENTRY;
+	fprintf(stdout, 
+		"head %ld tail %ld cmdq[%ld].stat %d\n", 
+		head, tail, index, cmdq[idx].stat);
+	/* check if comand is complete or not. */
+	if(cmdq[idx].stat != COMPLETED){
+	  /* check command type */
+	  /* command type is FIN */
+	  if(cmdq[idx].type == FIN){
+	    fprintf(stdout, "CMD FIN\n");
+	    return 0;
+	  }
+	  /* command type is COPY */
+	  else if(cmdq[idx].type == COPY){
+	    if(cmdq[idx].stat == UNISSUED){
+	      
+	      fprintf(stdout, "CMD COPY issued\n");
+	      src = cmdq[idx].gasrc;
+	      dst = cmdq[idx].gadst;
+	      size = cmdq[idx].size;
+	      /* get rank and tag of src ga */
+	      srcrank = acp_query_rank(src);
+	      srctag = query_gmtag(src);
+	      srcoffset = query_offset(src);
+	      /* get rank and tag of dst ga */
+	      dstrank = acp_query_rank(dst);
+	      dsttag = query_gmtag(dst);
+	      dstoffset = query_offset(dst);
+	      
+	      /* local copy */
+	      if(myrank == srcrank && myrank == dstrank){
+		void *srcaddr, *dstaddr;
+		srcaddr = acp_query_address(src);
+		dstaddr = acp_query_address(dst);
+		fprintf(stdout, "dadr %p sadr %p\n", dstaddr, srcaddr);
+		memcpy(dstaddr, srcaddr, size);
+		cmdq[idx].stat = FINISHED;
+		break;
+	      }
+
+	      /* get */
+	      else if(myrank == dstrank){
+		totag = srctag;
+		torank = srcrank;
+	      }
+	      /* put */
+	      else if (myrank == srcrank){
+		totag = dsttag;
+		torank = dstrank;
+	      }
+
+	      /* chekc tag */
+	      /* if tag point stater memory */
+	      if(totag == TAG_SM){
+		icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+		cmdq[idx].stat = ISSUED;
+	      }
+	      /* if tag point globl memory */
+	      else{
+		/* if have a remote rm table of target rank */
+		if(rrmtb[torank] != NULL){
+		  fprintf(stdout, 
+			  "CMD COPY have a rrmtb. rank %d torank %d, totag %d \n",
+			  myrank, torank, totag);
+		  /* if tag entry is active */
+		  if(rrmtb[torank][totag].size != 0){
+		    fprintf(stdout, 
+			    "CMD COPY have a entry rank %d torank %d, totag %d\n",
+			    myrank, torank, totag);
+		    icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+		    cmdq[idx].stat = ISSUED;
+		  }
+		  /* if tag entry is non active */
+		  else{
+		    fprintf(stdout, 
+			    "CMD COPY no entry.  rank %d torank %d, totag %d\n",
+			    myrank, torank, totag);
+		    getlrm(cmdq[idx].hdl, torank);
+		    cmdq[idx].stat = GETED_RRM;
+		  }
+		}
+		/* if do not have rm table of target rank */
+		else{
+		  /* if target rank is not myrank */
+		  if(torank != myrank){
+		    fprintf(stdout, 
+			    "CMD COPY no rrmtb.  rank %d torank %d, totag %d\n",
+			    myrank, torank, totag);
+		    getlrm(cmdq[idx].hdl, torank);
+		    cmdq[idx].stat = GETED_RRM;
+		  }
+		}
+	      }
+	      /* command issue, break*/
 	      break;
 	    }
 	  }
 	}
-	index = (index + 1) % MAX_CMDQ_ENTRY;
-	if(index == tail) break;
+	index ++;
+	fprintf(stdout, 
+		"cmdq section update index %ld\n", 
+		index);
       }
     }
   }
@@ -883,7 +906,7 @@ int acp_init(int *argc, char ***argv){
   int flags;/* flag of modify queue pair */
     
   if(*argc < 7) return -1;
-
+  
   acp_myrank = strtol((*argv)[1], NULL, 0);
   acp_numprocs = strtol((*argv)[2], NULL, 0);
   acp_smsize = strtol((*argv)[3], NULL, 0);
@@ -898,27 +921,27 @@ int acp_init(int *argc, char ***argv){
 	  my_port, dst_port, dst_addr);
   
   /* allocate the starter memory adn register memory */
-  int smsize;
-  smsize = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2;
-  sm = (char *) malloc(smsize);
-  if (!sm ){
+  int syssize;
+  syssize = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2;
+  sysmem = (char *) malloc(syssize);
+  if (!sysmem ){
     fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n", 
-	    smsize);
+	    syssize);
     rc = -1;
     goto exit;
   }
   /* initalize starter memory, local RM table, recv RM table */
-  memset(sm, 0 , smsize);
+  memset(sysmem, 0 , syssize);
   /* initalize CMD queue, set COMPLETED status, set not FIN type */
   memset(cmdq, 0, sizeof(CMD)*MAX_CMDQ_ENTRY);
   /* initalize local register memory */
-  lrmtb = (RM *) &sm[acp_smsize];
+  lrmtb = (RM *) (sysmem + acp_smsize);
   for(i = 0;i < MAX_RM_SIZE;i++){
     /* entry non active */
     lrmtb[i].size = 0;
   }
   /* initalize recv local register memory */
-  recv_lrmtb = (RM *) (sm + acp_smsize + sizeof(RM) * MAX_RM_SIZE);
+  recv_lrmtb = (RM *) (sysmem + acp_smsize + sizeof(RM) * MAX_RM_SIZE);
   for(i = 0;i < MAX_RM_SIZE;i++){
     /* entry non active */
     recv_lrmtb[i].size = 0;
@@ -969,14 +992,14 @@ int acp_init(int *argc, char ***argv){
     /* get the size of source address */
   addrlen = sizeof(srcaddr);
   if(acp_numprocs > 1){
-    if((acp_myrank & 1) == 0){/* odd rank  */
+    if((acp_myrank & 1) == 0){/* even rank  */
       if((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0){
 	fprintf(stderr, "accept() failed\n");
 	goto exit;
       }
       while(connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0);
     }
-    else{/* even rank */
+    else{/* odd rank */
       while(connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0);
       if((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0){
 	fprintf(stderr, "accept() failed\n");
@@ -999,20 +1022,21 @@ int acp_init(int *argc, char ***argv){
   }
   
   /* if there isn't any IB device in host */
-  if (!num_devices){
+  if (num_devices < 1){
     fprintf(stderr, "found %d device(s)\n", num_devices);
     rc = -1;
     goto exit;
   }
   fprintf(stdout, "found %d device(s)\n", num_devices);
   
-  dev_name = strdup(ibv_get_device_name(dev_list[0]));
   if(!dev_list[0]){
     fprintf(stderr, "IB device wasn't found\n");
     rc = -1;
     goto exit;
   }
+  dev_name = strdup(ibv_get_device_name(dev_list[0]));
   fprintf(stdout, "First IB device name is %s\n", dev_name);
+  
   /* get device handle */
   res.ib_ctx = ibv_open_device(dev_list[0]);
   if (!res.ib_ctx){
@@ -1024,16 +1048,10 @@ int acp_init(int *argc, char ***argv){
   /* free device list */
   ibv_free_device_list(dev_list);
   dev_list = NULL;
-  
+
+  /* get port attribution */
   if(ibv_query_port(res.ib_ctx, ib_port, &res.port_attr)){
     fprintf(stderr, "ibv_query_port on port %u failed\n", ib_port);
-    rc = -1;
-    goto exit;
-  }
-  
-  res.pd = ibv_alloc_pd(res.ib_ctx);
-  if (!res.pd){
-    fprintf(stderr, "ibv_alloc_pd failed\n");
     rc = -1;
     goto exit;
   }
@@ -1046,8 +1064,8 @@ int acp_init(int *argc, char ***argv){
     goto exit;
   }
   
-  /* each side will send only one WR, so Completion Queue with 1 entry is enough */
-  cq = NULL;
+  /* each side will send only one WR, 
+     so Completion Queue with 1 entry is enough */
   cq = ibv_create_cq(res.ib_ctx, cq_size, NULL, NULL, 0);
   if (!cq) {
     fprintf(stderr, 
@@ -1060,7 +1078,7 @@ int acp_init(int *argc, char ***argv){
   mr_flags = IBV_ACCESS_LOCAL_WRITE | 
     IBV_ACCESS_REMOTE_READ |
     IBV_ACCESS_REMOTE_WRITE ;
-  res.mr = ibv_reg_mr(res.pd, sm, smsize, mr_flags);
+  res.mr = ibv_reg_mr(res.pd, sysmem, syssize, mr_flags);
   if (!res.mr){
     fprintf(stderr, 
 	    "ibv_reg_mr failed with mr_flags=0x%x\n", 
@@ -1070,7 +1088,7 @@ int acp_init(int *argc, char ***argv){
   }
   fprintf(stdout, 
 	  "MR was registered with addr=0x%x, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
-	  (uintptr_t)sm, res.mr->lkey, res.mr->rkey, mr_flags);
+	  (uintptr_t)sysmem, res.mr->lkey, res.mr->rkey, mr_flags);
   
   /* create the Queue Pair */
   qp = (struct ibv_qp **) malloc(sizeof(struct ibv_qp *) * acp_numprocs);
@@ -1105,7 +1123,7 @@ int acp_init(int *argc, char ***argv){
   }
   
   /* exchange using TCP sockets info required to connect QPs */
-  local_data.addr = (uintptr_t)sm;
+  local_data.addr = (uintptr_t)sysmem;
   local_data.rkey = res.mr->rkey;
   local_data.lid = res.port_attr.lid;
   local_data.rank = acp_myrank;
@@ -1153,16 +1171,16 @@ int acp_init(int *argc, char ***argv){
     /* initialize ibv_qp_attr */
     memset(&attr, 0, sizeof(attr));
     
-    /* set attribution for RTS */
+    /* set attribution for INIT */
     attr.qp_state = IBV_QPS_INIT;
-    attr.port_num = ib_port;
-    attr.pkey_index = 0;
+    attr.port_num = ib_port;/* physical port number (1...n)*/
+    attr.pkey_index = 0;/* normally 0 */
     attr.qp_access_flags = 
       IBV_ACCESS_LOCAL_WRITE | 
       IBV_ACCESS_REMOTE_READ |
       IBV_ACCESS_REMOTE_WRITE;
     
-    /* set flag for RTS */
+    /* set flag for INIT */
     flags = IBV_QP_STATE |
       IBV_QP_PKEY_INDEX | 
       IBV_QP_PORT | 
@@ -1180,7 +1198,7 @@ int acp_init(int *argc, char ***argv){
     /* prepare the scatter/gather entry */
     memset(&sge, 0, sizeof(sge));
     
-    sge.addr = (uintptr_t)sm;
+    sge.addr = (uintptr_t)sysmem;
     sge.length = acp_smsize;
     sge.lkey = res.mr->lkey;
     
@@ -1211,12 +1229,11 @@ int acp_init(int *argc, char ***argv){
     attr.rq_psn = 0;
     attr.max_dest_rd_atomic = 1;
     attr.min_rnr_timer = 0x12;/* recommend value 0x12. miminum RNR(receive not ready) NAK timer */
-    attr.ah_attr.is_global = 0;/* global address, use global routing header */
-    attr.ah_attr.dlid = remote_data.lid;
-    attr.ah_attr.sl = 0;/* ??? */
-    attr.ah_attr.src_path_bits = 0;/* ??? */
+    attr.ah_attr.dlid = remote_data.lid;/* minimally ah_attr.dlid needs t o be filled in ah for UD */
+    attr.ah_attr.sl = 0;
+    attr.ah_attr.src_path_bits = 0;
+    attr.ah_attr.is_global = 0;
     attr.ah_attr.port_num = ib_port;
-    
     /* set flags for RTR */
     flags = IBV_QP_STATE |
       IBV_QP_AV | 
@@ -1283,23 +1300,27 @@ int acp_init(int *argc, char ***argv){
 int acp_finalize(){
   
   int myrank;/* my rank for command*/
+  acp_handle_t tail4c;/* tail for cmdq */
+  CMD *pcmdq;
   
   fprintf(stdout, "internal acp_finalize\n");
   
   /* Insert FIN command into cmdq */
   /* if queue is full, return ACP_HANDLE_NULL */
-  while(head - (tail + 1) % MAX_CMDQ_ENTRY == 0);
-   
+  while(tail - head == MAX_CMDQ_ENTRY - 1) ;
+  
   /* check my rank */
   myrank = acp_rank();
-  /* make a FIN command, and enqueue command Queue. */ 
-  cmdq[tail].rank = myrank;
-  cmdq[tail].type = FIN;
-  cmdq[tail].hdl = chdl;
-  cmdq[tail].stat = ISSUED;
+  /* make a FIN command, and enqueue command Queue. */
+  tail4c = tail % MAX_CMDQ_ENTRY;
+  pcmdq = &cmdq[tail4c];
+  pcmdq->rank = myrank;
+  pcmdq->type = FIN;
+  pcmdq->hdl = tail4c;
+  pcmdq->stat = ISSUED;
   
   /* update tail */
-  tail = (tail + 1) % MAX_CMDQ_ENTRY;
+  tail++ ;
   
   /* complete hdl */
   // acp_complete(chdl);
@@ -1317,7 +1338,6 @@ int acp_finalize(){
   acp_myrank = -1;
   acp_numprocs = -1;
   acp_smsize = -1;
-  chdl = 1;
   head = 0;
   tail = 0;
   

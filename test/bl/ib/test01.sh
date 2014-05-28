@@ -14,11 +14,11 @@ while [ $i -le $np ]
 do
 if [ $i -lt $np ]
 then
-ssh ace00$hid $HOME/acpbl/$1 $rank $np $smsize $mport $dport 192.168.1.$IP &> out$hid.log &
+ssh ace00$hid $1 $rank $np $smsize $mport $dport 192.168.1.$IP &> out$hid.log &
 else
 dport=`expr $port + 1`
 IP=1
-ssh ace00$hid $HOME/acpbl/$1 $rank $np $smsize $mport $dport 192.168.1.$IP &> out$hid.log
+ssh ace00$hid $1 $rank $np $smsize $mport $dport 192.168.1.$IP &> out$hid.log
 fi
 rank=`expr $rank + 1`
 mport=`expr $mport + 1`

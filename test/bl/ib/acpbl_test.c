@@ -1,4 +1,6 @@
 #include"acpbl.h"
+#include<stdio.h>
+#include<stdlib.h>
 
 int main(int argc, char **argv){
   
@@ -12,6 +14,7 @@ int main(int argc, char **argv){
   char *mygm;
   acp_atkey_t key;
   acp_ga_t mygmga, togmga;
+  int color = 0;
   
   /* initialization */
   rc = acp_init(&argc, &argv);
@@ -19,7 +22,7 @@ int main(int argc, char **argv){
   
   myrank = acp_rank();
   nprocs = acp_procs();
-  printf("myrank %d\n", myrank);
+  printf("myrank %d nprocs %d\n", myrank, nprocs);
   
   myga = acp_query_starter_ga(myrank);
   
@@ -30,15 +33,15 @@ int main(int argc, char **argv){
   printf("rank %d toga %lx myga %lx %p\n", myrank, toga, myga, sm);
  
   mygm = malloc(sizeof(char)*2);
-  key = acp_register_memory(mygm, sizeof(char)*2, 0);
+  key = acp_register_memory(mygm, sizeof(char)*2, color);
   mygmga = acp_query_ga(key, mygm);
   printf("my rank = %d mygmga = %lx\n", myrank, mygmga);
   sm[0] = mygmga;
   
   acp_sync();
   printf("rank %d sm[0] %lx\n", myrank, sm[0]);
-  //handle = acp_copy(toga + sizeof(acp_ga_t), myga, sizeof(acp_ga_t), 0 );
-  handle = acp_copy(myga + sizeof(acp_ga_t), toga, sizeof(acp_ga_t), 0 );
+  //handle = acp_copy(toga + sizeof(acp_ga_t), myga, sizeof(acp_ga_t), ACP_HANDLE_NULL );
+  handle = acp_copy(myga + sizeof(acp_ga_t), toga, sizeof(acp_ga_t), ACP_HANDLE_NULL );
   printf("finish acp_copy\n");
  
   acp_complete(handle);
@@ -54,7 +57,7 @@ int main(int argc, char **argv){
   printf("rank %d mygm[0] %c\n", myrank, mygm[0]);
   acp_sync();
   
-  handle = acp_copy(togmga + sizeof(char), mygmga, sizeof(char), 0);
+  handle = acp_copy(togmga + sizeof(char), mygmga, sizeof(char), ACP_HANDLE_NULL);
   acp_complete(handle);
   acp_sync();
   printf("rank %d mygm[1] %c\n", myrank, mygm[1]);

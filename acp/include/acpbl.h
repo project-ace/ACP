@@ -1,15 +1,13 @@
 #ifndef __ACPBL_H__
 #define __ACPBL_H__
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <stdint.h>
-#include <string.h> /* memset */
-#include <stdlib.h> /* malloc */
-#include <pthread.h>
-#include <infiniband/verbs.h>
+
+/* ACP constants */
+#define ACP_GA_NULL      0xffffffffffffffffLLU 
+#define ACP_ATKEY_NULL   0xffffffffffffffffLLU 
+#define ACP_HANDLE_ALL   0xffffffffffffffffLLU
+#define ACP_HANDLE_NULL  0x0LLU
 
 typedef uint64_t acp_ga_t;
 typedef uint64_t acp_atkey_t;

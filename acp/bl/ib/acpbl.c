@@ -110,23 +110,9 @@ pthread_t comm_thread_id;/* communcation thread ID */
 int acp_sync(void){
   int i;/* general index */
   char dummy1, dummy2;/* dummy buffer */
-  //int nprocs;/* # of processes */ 
   int myrank;/* my rank ID */
   
   fprintf(stdout, "internal sync\n");
-  /*
-  nprocs = acp_procs();
-  if(nprocs <= 0){
-    return -1;
-  }
-  if(nprocs > 1){
-    for(i=0;i < nprocs;i++){
-      write(sock_connect, &dummy1, sizeof(char));
-      recv(sock_accept, &dummy2, sizeof(char), 0);
-    }
-  }
- 
-  */
   myrank = acp_rank();
   if(myrank == 0){
     write(sock_connect, &dummy2, sizeof(char));
@@ -240,7 +226,8 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
       return ACP_GA_NULL;
     }
     else{
-      fprintf(stdout, "acp_query_ga key %lx, addr %p, rank %d gmtag %d front addr %p\n", 
+      fprintf(stdout, 
+	      "acp_query_ga key %lx, addr %p, rank %d gmtag %d faddr %p\n", 
 	      atkey, addr, keyrank, gmtag, lrmtb[gmtag].addr);
       offset = (char *)addr - (lrmtb[gmtag].addr) ;
       ga = ((uint64_t)keyrank << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
@@ -348,7 +335,7 @@ void *acp_query_address(acp_ga_t ga){
       if(lrmtb[gmtag].size != 0){
 	base_addr = (char *)lrmtb[gmtag].addr;
 	fprintf(stdout, 
-		"LRMTB: tag %d addr %p size %d\n,",
+		"LRMTB: tag %d addr %p size %d\n",
 		gmtag, lrmtb[gmtag].addr, lrmtb[gmtag].size);
       }
       else{
@@ -628,8 +615,7 @@ void *comm_thread_func(void *dm){
   int torank, dstrank, srcrank;/* target rank, dstga rank, srcga rank*/
   int totag, dsttag, srctag;/* target tag, dst tag, src tag */
   uint64_t dstoffset, srcoffset;/* dst offset, src offset */
-
-
+  
   /* get my rank id */
   myrank = acp_rank();
   
@@ -641,14 +627,12 @@ void *comm_thread_func(void *dm){
       fprintf(stderr, "Fail poll cq\n");
       exit(-1);
     }
-    /* if(rc == 1){
-       fprintf(stdout, "poll ct %d, wc.wr_id %d\n", rc, wc.wr_id);
-       }
-    */
+    /*if(rc == 1){fprintf(stdout, "poll ct %d, wc.wr_id %d\n", rc, wc.wr_id);}*/
+    /*if(rc == 0)fprintf(stdout, "no cqe\n");*/
     if(rc > 0){
       index = head;
       chcomp_fcqe = 0;
-      /* fprintf(stdout, "wr_id %ld\n", wc.wr_id);*/
+      fprintf(stdout, "wr_id %ld\n", wc.wr_id);
       if(wc.status == IBV_WC_SUCCESS){
 	/* when ibv_poll_cq is SUCCESS,
 	   if cmdq index toutch tail and 
@@ -669,7 +653,7 @@ void *comm_thread_func(void *dm){
 		 chang COMPLETE and update head to new index 
 		 which have a COMPLETE status. */
 	      idx4c = head % MAX_CMDQ_ENTRY;
-
+	      
 	      while(head <= tail){
 		/* if status FINISED */
 		if(cmdq[idx4c].stat == FINISHED){
@@ -688,6 +672,7 @@ void *comm_thread_func(void *dm){
 	      /* set TRUE to flag of changing status by CEQ */
 	      chcomp_fcqe = 1;
 	      break;
+	      
 	    case GETED_RRM:/* waiting for get rkey table */
 	      fprintf(stdout, "CMD COPY GET RMtb\n");
 	      /* get logical address src and dst */
@@ -722,7 +707,8 @@ void *comm_thread_func(void *dm){
 	      size = cmdq[idx].size;
 	      
 	      /* issued copy */
-	      icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+	      icopy(cmdq[idx].hdl, dstrank, dsttag, 
+		    dstoffset, srcrank, srctag, srcoffset, size);
 	      
 	      /* set command status ISSUED */
 	      cmdq[idx].stat = ISSUED;
@@ -773,8 +759,15 @@ void *comm_thread_func(void *dm){
 	  /* command type is COPY */
 	  else if(cmdq[idx].type == COPY){
 	    if(cmdq[idx].stat == UNISSUED){
-	      
 	      fprintf(stdout, "CMD COPY issued\n");
+	      if(cmdq[idx].ohdl >= head){
+		fprintf(stdout, 
+			"index %ld ohndl %ld head %ld\n", 
+			index, cmdq[idx].ohdl, head);
+		index++;
+		continue;
+	      }
+	      
 	      src = cmdq[idx].gasrc;
 	      dst = cmdq[idx].gadst;
 	      size = cmdq[idx].size;
@@ -795,6 +788,32 @@ void *comm_thread_func(void *dm){
 		fprintf(stdout, "dadr %p sadr %p\n", dstaddr, srcaddr);
 		memcpy(dstaddr, srcaddr, size);
 		cmdq[idx].stat = FINISHED;
+
+		/* if index is head, set COMPLETED status */
+		if(index == head){
+		  cmdq[idx].stat = COMPLETED;
+		  head ++;
+		}
+		/* if after cmdq status is FINISHED,  
+		   chang COMPLETE and update head to new index 
+		   which have a COMPLETE status. */
+		idx4c = head % MAX_CMDQ_ENTRY;
+		
+		while(head <= tail){
+		  /* if status FINISED */
+		  if(cmdq[idx4c].stat == FINISHED){
+		    cmdq[idx4c].stat = COMPLETED;
+		    head++;
+		    idx4c++;
+		    fprintf(stdout, 
+			    "chcomp update idx4c %ld head %ld tail %ld local copy\n", 
+			    idx4c, head, tail);
+		  }
+		  /* if status is not FINISED, break */
+		  else{
+		    break;
+		  }
+		}
 		break;
 	      }
 
@@ -812,7 +831,8 @@ void *comm_thread_func(void *dm){
 	      /* chekc tag */
 	      /* if tag point stater memory */
 	      if(totag == TAG_SM){
-		icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+		icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, 
+		      srcrank, srctag, srcoffset, size);
 		cmdq[idx].stat = ISSUED;
 	      }
 	      /* if tag point globl memory */
@@ -827,7 +847,8 @@ void *comm_thread_func(void *dm){
 		    fprintf(stdout, 
 			    "CMD COPY have a entry rank %d torank %d, totag %d\n",
 			    myrank, torank, totag);
-		    icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, srcrank, srctag, srcoffset, size);
+		    icopy(cmdq[idx].hdl, dstrank, dsttag, dstoffset, 
+			  srcrank, srctag, srcoffset, size);
 		    cmdq[idx].stat = ISSUED;
 		  }
 		  /* if tag entry is non active */

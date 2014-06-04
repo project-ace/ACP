@@ -4,6 +4,10 @@ all:
 	cd $(SRCDIR) ; make
 	cd $(TESTDIR) ; make
 
+clean:
+	cd $(SRCDIR) ; make clean
+	cd $(TESTDIR) ; make clean
+
 #install:
 #	cp $(INCDIR)/acpbl.h $(INSTALLINCDIR)
 #	cp $(LIB_VER_REAL) $(INSTALLLIBDIR)

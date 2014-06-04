@@ -50,7 +50,7 @@ int main(int argc, char **argv){
   acp_complete(handle);
   acp_sync();
   togmga = sm[1];
-  printf("rank %d sm[1] %lx togmga\n", myrank, sm[1], togmga);
+  printf("rank %d sm[1] %lx togmga %lx\n", myrank, sm[1], togmga);
   printf("finish acp_copy\n");  
   acp_sync();
   

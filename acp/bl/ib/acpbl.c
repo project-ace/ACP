@@ -4,8 +4,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <string.h> /* memset */
-#include <stdlib.h> /* malloc */
+#include <arpa/inet.h>
+#include <unistd.h> /* write() */
+#include <string.h> /* memset() */
+#include <stdlib.h> /* malloc() */
 #include <pthread.h>
 #include <infiniband/verbs.h>
 
@@ -110,21 +112,17 @@ pthread_t comm_thread_id;/* communcation thread ID */
 int acp_sync(void){
   int i;/* general index */
   char dummy1, dummy2;/* dummy buffer */
-  int myrank;/* my rank ID */
+  int nprocs;/* my rank ID */
   
 #ifdef DEBUG
   fprintf(stdout, "internal sync\n");
 #endif
-  myrank = acp_rank();
-  if(myrank == 0){
-    write(sock_connect, &dummy2, sizeof(char));
-    recv(sock_accept, &dummy1, sizeof(char), 0);
-  }
-  else{
-    recv(sock_accept, &dummy2, sizeof(char), 0);
+  
+  nprocs = acp_procs();
+  for(i = 0; i < nprocs; i++){
     write(sock_connect, &dummy1, sizeof(char));
+    recv(sock_accept, &dummy2, sizeof(char), 0);
   }
-
 
 #ifdef DEBUG
   fprintf(stdout, "internal sync fin\n");
@@ -428,7 +426,6 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, acp_size_t size, acp_handle_t 
 void acp_complete(acp_handle_t handle){
   
   acp_handle_t index;/* index of cmdq */
-  acp_handle_t head_hdl; /* handle of head of cmdq */
   
   
 #ifdef DEBUG
@@ -482,8 +479,6 @@ int getlrm(acp_handle_t handle, int torank){
   struct ibv_sge sge; /* scatter/gather entry */
   struct ibv_send_wr sr; /* send work reuqest */
   struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
-  
-  uint64_t remote_offset;/* the offset of remote RM */
   
   int rc; /* return code */
   
@@ -673,7 +668,7 @@ void *comm_thread_func(void *dm){
   char chcomp_fcqe = 0; /* complete to change status from CQE */
   int myrank; /* my rank id */
   acp_handle_t idx, idx4c;/* CMDQ index */
-  acp_handle_t index, index4c;/* handle index */
+  acp_handle_t index;/* handle index */
   
   /* icopy and getlrm */
   acp_ga_t src, dst;/* src and dst ga */
@@ -799,13 +794,13 @@ void *comm_thread_func(void *dm){
 	  /* update index for next cmd queue */
 	  index ++;
 #ifdef DEBUG
-	  fprintf(stdout, "qp section update index %ld\n", index);
+	  fprintf(stdout, "qp section update index %lu\n", index);
 #endif
 	}
       }
       else {
 	fprintf(stderr, 
-		"wc %d is not SUCESS when check CQ %ld\n", 
+		"wc %lu is not SUCESS when check CQ %d\n", 
 		wc.wr_id, wc.status);
 	exit(-1);
       }
@@ -996,7 +991,7 @@ int acp_init(int *argc, char ***argv){
   uint32_t dst_addr;/* destination ip address */
   
   int sock_s;  /* socket server */
-  int addrlen;/* address length */
+  socklen_t addrlen;/* address length */
   struct sockaddr_in myaddr, dstaddr, srcaddr;/* address */
   
   struct ibv_device **dev_list = NULL; /* IB device list */
@@ -1033,7 +1028,7 @@ int acp_init(int *argc, char ***argv){
   acp_smsize = strtol((*argv)[3], NULL, 0);
   my_port = strtol((*argv)[4], NULL, 0);
   dst_port = strtol((*argv)[5], NULL, 0);
-  dst_addr = inet_addr((*argv)[6], NULL, 0);
+  dst_addr = inet_addr((*argv)[6]);
   
   /* print acp_init argument */
 #ifdef DEBUG
@@ -1048,7 +1043,7 @@ int acp_init(int *argc, char ***argv){
   syssize = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2;
   sysmem = (char *) malloc(syssize);
   if (!sysmem ){
-    fprintf(stderr, "failed to malloc %Zu bytes to memory buffer\n", 
+    fprintf(stderr, "failed to malloc %d bytes to memory buffer\n", 
 	    syssize);
     rc = -1;
     goto exit;
@@ -1113,7 +1108,6 @@ int acp_init(int *argc, char ***argv){
   dstaddr.sin_port = dst_port;
   
     /* get the size of source address */
-  addrlen = sizeof(srcaddr);
   if(acp_numprocs > 1){
     if((acp_myrank & 1) == 0){/* even rank  */
       if((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0){

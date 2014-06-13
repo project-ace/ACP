@@ -119,11 +119,15 @@ int acp_sync(void){
 #endif
   
   nprocs = acp_procs();
-  for(i = 0; i < nprocs; i++){
-    write(sock_connect, &dummy1, sizeof(char));
-    recv(sock_accept, &dummy2, sizeof(char), 0);
+  if(nprocs <= 0){
+    return -1;
   }
-
+  if(nprocs > 0){
+    for(i = 0; i < nprocs; i++){
+      write(sock_connect, &dummy1, sizeof(char));
+      recv(sock_accept, &dummy2, sizeof(char), 0);
+    }
+  }
 #ifdef DEBUG
   fprintf(stdout, "internal sync fin\n");
 #endif

@@ -1,4 +1,5 @@
-PREFIX = $(HOME)/ACE/devel
+#PREFIX = $(HOME)/ACE/devel
+PREFIX = $(HOME)/ace_tkoba/ACE/devel
 
 SRCDIR = $(PREFIX)/acp/bl/ib
 INCDIR = $(PREFIX)/acp/include
@@ -7,7 +8,7 @@ INSTALL_INCDIR = $(HOME)/local/include
 TESTDIR = $(PREFIX)/test/bl/ib
 
 #OBJ_ACPBL_PRIM = $(HOME)/ACE.test/devel/acp/bl/ib/acpbl.o
-OBJ_ACPBL_PRIM = $(HOME)/ACE/devel/acp/bl/ib/acpbl.o
+OBJ_ACPBL_PRIM = $(PREFIX)/acp/bl/ib/acpbl_ib.o
 
 CC = gcc
 LD = gcc

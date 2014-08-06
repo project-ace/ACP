@@ -1,6 +1,7 @@
-#include"acpbl.h"
 #include<stdio.h>
 #include<stdlib.h>
+#include<stdint.h>
+#include"acpbl.h"
 
 int main(int argc, char **argv){
   
@@ -46,7 +47,7 @@ int main(int argc, char **argv){
  
   acp_complete(handle);
   acp_sync();
-  
+
   printf("rank %d sm[1] %lx\n", myrank, sm[1]);
   togmga = sm[1];
   printf("rank %d sm[1] %lx\n", myrank, togmga);

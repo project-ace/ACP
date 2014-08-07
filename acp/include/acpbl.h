@@ -45,7 +45,7 @@ extern "C" {
  * @retval -1 Fail
  * @ENDL
  */
-int acp_init(int *argc, char ***argv);
+extern int acp_init(int *argc, char ***argv);
 
 /**
  * @JP

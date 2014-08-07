@@ -1,5 +1,5 @@
 #PREFIX = $(HOME)/ACE/devel
-PREFIX = $(HOME)/ace_tkoba/ACE/devel
+PREFIX = $(HOME)/devel
 
 SRCDIR = $(PREFIX)/acp/bl/ib
 INCDIR = $(PREFIX)/acp/include

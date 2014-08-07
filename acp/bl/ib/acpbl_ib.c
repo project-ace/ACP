@@ -206,6 +206,10 @@ static int *rrm_reset_flag_tb; /* rrm reset flag tb */
 static int *rrm_ack_flag_tb; /* rrm ack flag tb */
 static int *true_flag_buf; /* get rrm flag buf */
 
+static char *acp_ch_buf;
+static char *acp_ds_buf;
+static char *acp_vd_buf;
+
 /* flags */
 static int writebackbuf_flag = TRUE; /* write enable writebackbuf flag */
 static int tail_buf_flag = TRUE; /* write enable writebackbuf flag */
@@ -223,6 +227,13 @@ void acp_abort(const char *str){
 #ifdef DEBUG
   fprintf(stdout, "internal acp_abort\n");
 #endif
+
+#ifdef MUL_DOD
+  iacp_abort_vd();
+  iacp_abort_ch();
+  iacp_abort_ds();
+#endif
+
   for(i=0;i < acp_numprocs ;i++){
     if(rrmtb[i] != NULL){
       free(rrmtb[i]);
@@ -411,6 +422,82 @@ acp_ga_t acp_query_starter_ga(int rank){
   ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
     + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
     + ((uint64_t)gmtag << OFFSET_BITS);
+  
+#ifdef DEBUG_L3
+  fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+#endif
+  
+  return ga;
+}
+acp_ga_t iacp_query_starter_ga_ch(int rank){
+  
+  acp_ga_t ga; /* global address */
+  uint32_t gmtag = TAG_SM;/* general tag of startar memory */
+  uint32_t color = 0;/* color of ga */
+  uint64_t offset;
+  
+  /* initialzie ga */
+  ga = ACP_GA_NULL;
+  
+  offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
+    sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
+    sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(int) * acp_numprocs * 3 + sizeof(int);
+  /* set ga */
+  ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)gmtag << OFFSET_BITS)
+    + offset;
+  
+#ifdef DEBUG_L3
+  fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+#endif
+  
+  return ga;
+}
+acp_ga_t iacp_query_starter_ds_ga(int rank){
+  
+  acp_ga_t ga; /* global address */
+  uint32_t gmtag = TAG_SM;/* general tag of startar memory */
+  uint32_t color = 0;/* color of ga */
+  uint64_t offset;
+  /* initialzie ga */
+  ga = ACP_GA_NULL;
+  
+  /* set ga */
+  offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
+    sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
+    sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(int) * acp_numprocs * 3 + sizeof(int) +
+    acp_smsize ;
+  ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)gmtag << OFFSET_BITS)
+    + offset;
+  
+#ifdef DEBUG_L3
+  fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+#endif
+  
+  return ga;
+}
+acp_ga_t iacp_query_starter_ga_vd(int rank){
+  
+  acp_ga_t ga; /* global address */
+  uint32_t gmtag = TAG_SM;/* general tag of startar memory */
+  uint32_t color = 0;/* color of ga */
+  uint64_t offset;
+  
+  /* initialzie ga */
+  ga = ACP_GA_NULL;
+  
+  /* set ga */
+  offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
+    sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
+    sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(int) * acp_numprocs * 3 + sizeof(int) +
+    acp_smsize * 2;
+  ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
+    + ((uint64_t)gmtag << OFFSET_BITS)
+    + offset;
   
 #ifdef DEBUG_L3
   fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
@@ -3121,7 +3208,8 @@ int iacp_init(void){
   
   syssize = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
     sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-    sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(int) * acp_numprocs * 3 + sizeof(int);
+    sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(int) * acp_numprocs * 3 + sizeof(int) +
+    acp_smsize * 3;	
   sysmem = (char *) malloc(syssize);
   if (NULL == sysmem ){
     fprintf(stderr, "failed to malloc %d bytes to memory buffer\n", 
@@ -3188,10 +3276,14 @@ int iacp_init(void){
   true_flag_buf = (int *)((char*)rrm_ack_flag_tb + sizeof(int) * acp_numprocs);
   *true_flag_buf = TRUE;
   
+  acp_ch_buf = (char *)((char *)true_flag_buf + sizeof(int) );
+  acp_ds_buf = (char *)((char *)acp_ds_buf + acp_smsize );
+  acp_vd_buf = (char *)((char *)acp_vd_buf + acp_smsize );
+  
 #ifdef DEBUG
   fprintf(stdout, 
-	  "sm %p flag_buf %p syssize %d sm + syssize %p\n", 
-	  sysmem, (char *)true_flag_buf + sizeof(int), syssize, sysmem +syssize);
+	  "sm %p acp_vd_buf %p syssize %d sm + syssize %p\n", 
+	  sysmem, (char *)acp_vd_buf + acp_smsize, syssize, sysmem +syssize);
 #endif
   /* remote register memory table */
   rrmtb = (RM **) malloc (sizeof (RM *) * acp_numprocs);
@@ -3567,7 +3659,12 @@ int iacp_init(void){
   }
   
   pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
-  
+
+#ifdef MUL_MOD  
+  if (iacp_init_ds()) return -1;
+  if (iacp_init_ch()) return -1;
+  if (iacp_init_vd()) return -1;
+#endif
   return rc;
   
  exit:
@@ -3609,7 +3706,12 @@ int acp_finalize(){
 #ifdef DEBUG
   fprintf(stdout, "internal acp_finalize\n");
 #endif
-  
+
+#ifdef MUL_MOD
+  iacp_finalize_vd();
+  iacp_finalize_ch();
+  iacp_finalize_ds();
+#endif
   /* Insert FIN command into cmdq */
   /* if queue is full, return ACP_HANDLE_NULL */
   while(tmptail - tmphead == MAX_CMDQ_ENTRY - 1) ;
@@ -3632,7 +3734,6 @@ int acp_finalize(){
   
   /* complete hdl */
   pthread_join(comm_thread_id, NULL);
-  
   
   for(i=0;i < acp_numprocs;i++){
     if(rrmtb[i] != NULL){

@@ -12,6 +12,7 @@
 #include <poll.h>
 #include <pthread.h>
 #include "acpbl.h"
+#include "acpbl_mms.h"
 #include "acpbl_sync.h"
 #include "acpbl_udp.h"
 #include "acpbl_udp_gmm.h"
@@ -23,6 +24,8 @@ static uint32_t parent_addr;
 static int sock_listen, sock_accept0, sock_accept1, sock_connect;
 static int num_child;
 static uint64_t sync_sequence_number;
+
+int acp_errno;
 
 static int iacp_init(void)
 {

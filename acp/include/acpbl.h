@@ -71,7 +71,7 @@ extern int acp_init(int *argc, char ***argv);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_finalize(void);
+extern int acp_finalize(void);
 
 /**
  * @JP
@@ -105,7 +105,7 @@ int acp_finalize(void);
  * @ENDL
  */
 //int acp_reset(int rank, size_t size); [ace-yt3 51]
-int acp_reset(int rank);
+extern int acp_reset(int rank);
 
 /**
  * @JP
@@ -128,7 +128,7 @@ int acp_reset(int rank);
  * @param str additional error message
  * @ENDL
  */
-void acp_abort(const char* str);
+extern void acp_abort(const char* str);
 
 /**
  * @JP
@@ -149,7 +149,8 @@ void acp_abort(const char* str);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_sync(void);
+//void acp_sync(void);
+extern int acp_sync(void);
 
 /**
  * @JP
@@ -169,7 +170,7 @@ int acp_sync(void);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_rank(void);
+extern int acp_rank(void);
 
 /**
  * @JP
@@ -189,9 +190,13 @@ int acp_rank(void);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_procs(void);
+extern int acp_procs(void);
 
-int acp_errno;
+#ifdef __cplusplus
+}
+#endif
+
+extern int acp_errno;
 
 /** \ingroup acpbl
  * \name Global Segment Management
@@ -219,6 +224,10 @@ typedef uint64_t acp_ga_t;	/*!< Global address. Commonly used among
 				  processes for byte-wise addressing 
 				  of the global memory. */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @JP
  * @brief スターターアドレス取得関数
@@ -241,7 +250,7 @@ typedef uint64_t acp_ga_t;	/*!< Global address. Commonly used among
  * @retval ACP_GA_NULL Fail
  * @ENDL
  */
-acp_ga_t acp_query_starter_ga(int rank);
+extern acp_ga_t acp_query_starter_ga(int rank);
 
 /**
  * @JP
@@ -273,7 +282,7 @@ acp_ga_t acp_query_starter_ga(int rank);
  * @retval ACP_ATKEY_NULL Fail
  * @ENDL
  */
-acp_atkey_t acp_register_memory(void* addr, size_t size, int color);
+extern acp_atkey_t acp_register_memory(void* addr, size_t size, int color);
 
 /**
  * @JP
@@ -295,7 +304,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_unregister_memory(acp_atkey_t atkey);
+extern int acp_unregister_memory(acp_atkey_t atkey);
 
 /**
  * @JP
@@ -322,7 +331,7 @@ int acp_unregister_memory(acp_atkey_t atkey);
  * @retval ACP_GA_NULL Fail
  * @ENDL
  */
-acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr);
+extern acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr);
 
 /**
  * @JP
@@ -349,7 +358,7 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr);
  * @retval NULL Fail
  * @ENDL
  */
-void* acp_query_address(acp_ga_t ga);
+extern void* acp_query_address(acp_ga_t ga);
 
 /**
  * @JP
@@ -378,7 +387,7 @@ void* acp_query_address(acp_ga_t ga);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_query_rank(acp_ga_t ga);
+extern int acp_query_rank(acp_ga_t ga);
 
 /**
  * @JP
@@ -405,7 +414,7 @@ int acp_query_rank(acp_ga_t ga);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_query_color(acp_ga_t ga);
+extern int acp_query_color(acp_ga_t ga);
 
 /**
  * @JP
@@ -425,8 +434,12 @@ int acp_query_color(acp_ga_t ga);
  * @retval -1 Fail
  * @ENDL
  */
-int acp_colors(void);
+extern int acp_colors(void);
 /*@}*/ /* Global Segment Management */
+ 
+#ifdef __cplusplus
+}
+#endif
 
 /** \ingroup acpbl
  * \name Global Memory Access
@@ -455,6 +468,10 @@ typedef uint64_t acp_handle_t; /*!< Handle of GMA.
 typedef struct {
   int dummy;
 } acp_errstat_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @JP
@@ -486,7 +503,7 @@ typedef struct {
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order);
+extern acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order);
 
 /**
  * @JP
@@ -521,7 +538,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, 
+extern acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, 
 		uint32_t newval, acp_handle_t order);
 
 /**
@@ -557,7 +574,7 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval,
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval,
+extern acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval,
 	       	uint64_t newval, acp_handle_t order);
 
 /**
@@ -590,7 +607,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval,
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
+extern acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -622,7 +639,7 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
+extern acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -654,7 +671,7 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
+extern acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -686,7 +703,7 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
+extern acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -718,7 +735,7 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
+extern acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -748,7 +765,7 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
+extern acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -780,7 +797,7 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
+extern acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -812,7 +829,7 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
+extern acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -844,7 +861,7 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
+extern acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -876,7 +893,7 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
  * @retval ACP_HANDLE_NULL Fail
  * @ENDL
  */
-acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
+extern acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order);
 
 /**
  * @JP
@@ -905,7 +922,7 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
  * @param Handle of a GMA to be waited for the completion.
  * @ENDL
  */
-void acp_complete(acp_handle_t handle);
+extern void acp_complete(acp_handle_t handle);
 
 /**
  * @JP
@@ -936,27 +953,8 @@ void acp_complete(acp_handle_t handle);
  * @retval 1 There is at least one incomplete GMA.
  * @ENDL
  */
-int acp_inquire(acp_handle_t handle);
+extern int acp_inquire(acp_handle_t handle);
 /*@}*/
-
-/* Multi-module support */
-
-acp_ga_t iacp_query_starter_ga_ds(int);
-acp_ga_t iacp_query_starter_ga_ch(int);
-acp_ga_t iacp_query_starter_ga_vd(int);
-int iacp_init_ds(void);
-int iacp_init_ch(void);
-int iacp_init_vd(void);
-int iacp_finalize_ds(void);
-int iacp_finalize_ch(void);
-int iacp_finalize_vd(void);
-void iacp_abort_ds(void);
-void iacp_abort_ch(void);
-void iacp_abort_vd(void);
-
-size_t iacp_starter_memory_size_ds;
-size_t iacp_starter_memory_size_ch;
-size_t iacp_starter_memory_size_vd;
 
 #ifdef  __cplusplus
 }

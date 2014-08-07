@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include <infiniband/verbs.h>
 #include "acpbl.h"
+#include "acpbl_mms.h"
 #include "acpbl_sync.h"
 
 /* debug */

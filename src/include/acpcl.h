@@ -1,9 +1,9 @@
-/** \file acpch.h
- * \ingroup acpch
+/** \file acpcl.h
+ * \ingroup acpcl
  */
 
-#ifndef __ACPCH_H__
-#define __ACPCH_H__
+#ifndef __ACPCL_H__
+#define __ACPCL_H__
 
 #include "acpbl.h"
 

@@ -1,10 +1,6 @@
 #ifndef __ACPBL_UDP_GMA_H__
 #define __ACPBL_UDP_GMA_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Maximum Fragment Size */
 #ifndef ACPBL_UDP_MFS
 #define ACPBL_UDP_MFS 1440
@@ -12,7 +8,7 @@ extern "C" {
 
 /* Command Queue Size in binary exponent */
 #ifndef ACPBL_UDP_CQ_SIZE
-#define ACPBL_UDP_CQ_SIZE 22
+#define ACPBL_UDP_CQ_SIZE 12
 #endif
 
 /* Command Station Size in binary exponent */
@@ -22,7 +18,7 @@ extern "C" {
 
 /* Delegate Station Size in binary exponent */
 #ifndef ACPBL_UDP_DS_SIZE
-#define ACPBL_UDP_DS_SIZE 3
+#define ACPBL_UDP_DS_SIZE 20
 #endif
 
 /* Delegate Window Size in binary exponent */
@@ -33,9 +29,5 @@ extern "C" {
 int iacpbludp_init_gma(void);
 int iacpbludp_finalize_gma(void);
 void iacpbludp_abort_gma(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif /* acpbl_udp_gma.h */

@@ -6,7 +6,6 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "acpbl.h"
-#include "acpbl_sync.h"
 
 //#define MHZ 2933.333
 #define MHZ 2266.667

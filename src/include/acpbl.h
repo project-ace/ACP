@@ -11,7 +11,7 @@
 /*****************************************************************************/
 #ifndef __ACPBL_H__
 #define __ACPBL_H__
-#include "../../include/acp.h"
+#include "acp.h"
 
 #include "acpbl_sync.h"
 

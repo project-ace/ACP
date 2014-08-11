@@ -10,8 +10,10 @@
 /***** Version: 0.0                                                      *****/
 /***** Module Version: 0.0                                               *****/
 /*****                                                                   *****/
-/***** Note:                                                             *****/
 /***** This software is released under the BSD License, see LICENSE.     *****/
+/*****                                                                   *****/
+/***** Note:                                                             *****/
+/*****                                                                   *****/
 /*****************************************************************************/
 
 /** \file acp.h
@@ -993,6 +995,157 @@ extern int acp_inquire(acp_handle_t handle);
  * \name Communication Library
  */
 /*@{*/
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef struct chreqitem *acp_request_t;
+
+typedef struct chitem *acp_ch_t;
+
+/**
+ * @brief Creates an endpoint of a channel to transfer messages from sender to receiver.
+ *
+ * Creates an endpoint of a channel to transfer messages from sender to receiver, 
+ * and returns a handle of it. It returns error if sender and receiver is same, 
+ * or the caller process is neither the sender nor the receiver.
+ * This function does not wait for the completion of the connection 
+ * between sender and receiver. The connection will be completed by the completion 
+ * of the communication through this channel. There can be more than one channels 
+ * for the same sender-receiver pair.
+ *
+ * @param sender   rank of the sender process of the channel
+ * @param receiver  rank of the receiver process of the channel
+ * @retval nonACP_CH_NULL handle of the endpoint of the channel
+ * @retval ACP_CH_NULL fail
+ */
+//extern acp_ch_t acp_create_ch(int src, int dest); [ace-yt3 51]
+extern acp_ch_t acp_create_ch(int sender, int receiver);
+
+/**
+ * @brief Frees the endpoint of the channel specified by the handle.
+ *
+ * Frees the endpoint of the channel specified by the handle. 
+ * It waits for the completion of negotiation with the counter peer 
+ * of the channel for disconnection. It returns error if the caller 
+ * process is neither the sender nor the receiver. 
+ * Behavior of the communication with the handle of the channel endpoint 
+ * that has already been freed is undefined.
+ *
+ * @param ch handle of the channel endpoint to be freed
+ * @retval 0 success
+ * @retval -1 fail
+ */
+extern int acp_free_ch(acp_ch_t ch);
+
+/**
+ * @brief Starts a nonblocking free of the endpoint of the channel specified by t
+he handle.
+ *
+ * It returns error if the caller process is neither the sender nor the receiver. 
+ * Otherwise, it returns a handle of the request for waiting the completion of 
+ * the free operation. Communication with the handle of the channel endpoint 
+ * that has been started to be freed causes an error.
+ *
+ * @param ch handle of the channel endpoint to be freed
+ * @retval nonACP_REQUEST_NULL a handle of the request for waiting the 
+ * completion of this operation
+ * @retval ACP_REQUEST_NULL fail
+ */
+extern acp_request_t acp_nbfree_ch(acp_ch_t ch);
+
+/**
+ * @brief Blocking send via channels
+ *
+ * Performs a blocking send of a message through the channel 
+ * specified by the handle. It blocks until the message has been stored somewhere 
+ * so that the modification to the send buffer does not collapse the message. 
+ * It returns error if the sender of the channel endpoint specified by the handle 
+ * is not the caller process.
+ *
+ * @param ch handle of the channel endpoint to send a message
+ * @param buf initial address of the send buffer
+ * @param size size in byte of the message
+ * @retval 0 success
+ * @retval -1 fail
+ */
+extern int acp_send_ch(acp_ch_t ch, void * buf, size_t size);
+
+/**
+ * @brief Blocking receive via channels
+ *
+ * Performs a blocking receive of a message from the channel specified by the handle. 
+ * It waits for the arrival of the message. It returns error if the receiver of the 
+ * channel endpoint specified by the handle is not the caller process. If the message 
+ * is smaller than the size of the receive buffer, only the region of the message size, 
+ * starting from the initial address of the receive buffer is modified. If the message 
+ * is larger than the size of the receive buffer, the exceeded part of the message is discarded.
+ *
+ * @param ch handle of the channel endpoint to receive a message
+ * @param buf initial address of the receive buffer
+ * @param size size in byte of the receive buffer
+ * @retval >=0 success. size of the received data
+ * @retval -1 fail
+ */
+extern int acp_recv_ch(acp_ch_t ch, void * buf, size_t size);
+
+/**
+ * @brief Non-Blocking send via channels
+ *
+ * Starts a nonblocking send of a message through the channel specified by the handle. 
+ * It returns error if the sender of the channel endpoint specified by the handle is 
+ * not the caller process. Otherwise, it returns a handle of the request for waiting 
+ * the completion of the nonblocking send. 
+ *
+ * @param ch handle of the channel endpoint to send a message
+ * @param buf initial address of the send buffer
+ * @param size size in byte of the message
+ * @retval nonACP_REQUEST_NULL a handle of the request for waiting the completion 
+ * of this operation
+ * @retval ACP_REQUEST_NULL fail
+ */
+extern acp_request_t acp_nbsend_ch(acp_ch_t ch, void * buf, size_t size);
+
+/**
+ * @brief Non-Blocking receive via channels
+ *
+ * Starts a nonblocking receive of a message through the channel specified by the handle. 
+ * It returns error if the receiver of the channel endpoint specified by the handle is 
+ * not the caller process. Otherwise, it returns a handle of the request for waiting 
+ * the completion of the nonblocking receive. 
+ * If the message is smaller than the size of the receive buffer, only the region of 
+ * the message size, starting from the initial address of the receive buffer is modified. 
+ * If the message is larger than the size of the receive buffer, the exceeded part of 
+ * the message is discarded.
+ *
+ * @param ch handle of the channel endpoint to receive a message
+ * @param buf initial address of the receive buffer
+ * @param size size in byte of the receive buffer
+ * @retval nonACP_REQUEST_NULL a handle of the request for waiting the completion 
+ * of this operation
+ * @retval ACP_REQUEST_NULL fail
+ */
+extern acp_request_t acp_nbrecv_ch(acp_ch_t ch, void * buf, size_t size);
+
+/**
+ * @brief Waits for the completion of the nonblocking operation 
+ *
+ * Waits for the completion of the nonblocking operation specified by the request handle. 
+ * If the operation is a nonblocking receive, it retruns the size of the received data.
+ *
+ * @param request 　　handle of the request of a nonblocking operation
+ * @retval >=0 success. if the operation is a nonblocking receive, the size of the received data.
+ * @retval -1 fail
+ */
+extern size_t acp_wait_ch(acp_request_t request);
+
+extern int acp_waitall_ch(acp_request_t *, int, size_t *);
+
+#ifdef __cplusplus
+}
+#endif
+
 /*@}*/ /* Communication Library */
 
 /*****************************************************************************/
@@ -1064,7 +1217,7 @@ extern "C" {
  *
  * @param nelem Number of elements
  * @param size Size of element
- * @param rank Number of rank
+ * @param rank Rank number
  * @retval ACP_VECTOR_NULL Fail
  * @retval acp_vector A reference of created vector data.
  * @ENDL
@@ -1089,8 +1242,54 @@ extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
  */
 extern void acp_destroy_vector(acp_vector_t vector);
 
-acp_vector_t acp_duplicate_vector(acp_vector_t, int);
-void acp_swap_vector(acp_vector_t, acp_vector_t);
+/**
+ * @JP
+ * @brief ベクタ複製
+ *
+ * 指定したベクトル型データの複製を、任意のプロセスに生成する。
+ *
+ * @param vector 複製するベクトル型データの参照
+ * @param rank 複製先ランク番号
+ * 
+ * @retval ACP_VECTOR_NULL以外 複製したベクタ型データの参照
+ * @retval ACP_VECTOR_NULL 失敗
+ * 
+ * @EN
+ * @brief Vector duplicate
+ *
+ * Duplicate a specified vector type data on any processes.
+ *
+ * @param vector A reference of vector data to duplicate.
+ * @param rank A rank number of the process on which a vector type data
+ *        is duplicated
+ *
+ * @retval ACP_VECTOR_NULL Fail
+ * @retval acp_vector A reference of duplicated vector data.
+ * @ENDL
+ */
+extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
+
+/**
+ * @JP
+ * @brief ベクタ交換
+ *
+ * ２つのベクトル型データの内容を交換する。
+ *
+ * @param v1 交換するベクトル型データの一方の参照
+ * @param v2 交換するベクトル型データのもう一方の参照
+ * 
+ * @EN
+ * @brief Vector swap
+ *
+ * 
+ *
+ * @param v1
+ * @param v2
+ *
+ * @ENDL
+ */
+extern void acp_swap_vector(acp_vector_t v1, acp_vector_t v2);
+
 void acp_clear_vector(acp_vector_t);
 void acp_insert_vector(acp_vector_t, acp_vector_it_t);
 acp_vector_it_t acp_erase_vector(acp_vector_t, acp_vector_it_t);
@@ -1125,22 +1324,200 @@ int acp_greater_or_equal_vector(acp_vector_t, acp_vector_t);
  */
 /*@{*/
 
-#define acp_list_t acp_ga_t
-#define acp_list_it_t acp_ga_t
+#define acp_list_t acp_ga_t     /*!< List data type. */
+#define acp_list_it_t acp_ga_t  /*!< Iterater of list data type. */
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-acp_list_t acp_create_list(size_t, int);
-void acp_destroy_list(acp_list_t);
-acp_list_it_t acp_insert_list(acp_list_t, acp_list_it_t, void*, int);
-acp_list_it_t acp_erase_list(acp_list_t, acp_list_it_t);
-void acp_push_back_list(acp_list_t, void*, int);
-acp_list_it_t acp_begin_list(acp_list_t);
-acp_list_it_t acp_end_list(acp_list_t);
-void acp_increment_list(acp_list_it_t*);
-void acp_decrement_list(acp_list_it_t*);
+/**
+ * @JP
+ * @brief リスト生成
+ *
+ * 任意のプロセスでリスト型データを生成する。
+ *
+ * @param elsize 要素サイズ
+ * @param rank ランク番号
+ * @retval ACP_LIST_NULL以外 生成したリスト型データの参照
+ * @retval ACP_LIST_NULL 失敗
+ *
+ * @EN
+ * @brief List creation
+ *
+ * Creates a list type data on any process.
+ *
+ * @param elsize Size of element
+ * @param rank Rank number
+ * @retval ACP_LIST_NULL Fail
+ * @retval acp_list A reference of created list data.
+ * @ENDL
+ */
+extern acp_list_t acp_create_list(size_t, int);
+
+/**
+ * @JP
+ * @brief リスト破棄
+ *
+ * リスト型データを破棄する。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief List destruction
+ *
+ * Destroies a list type data.
+ *
+ * @param list A reference of list data.
+ * @ENDL
+ */
+extern void acp_destroy_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト要素挿入
+ *
+ * 指定したプロセスに要素をコピーし、リスト型データの指定位置に挿入する。
+ *
+ * @param list リスト型データの参照
+ * @param it リスト型のイテレータ
+ * @param ptr 挿入する要素の先頭アドレス
+ * @param rank 要素を複製するプロセス
+ * @retval it 挿入された要素を指すリスト型イテレータ
+ *
+ * @EN
+ * @brief Insert a list element
+ *
+ * 
+ *
+ * @param list A reference of list type data
+ * @param it An iterater of list type data
+ * @param ptr The pointer of list element
+ * @param rank 
+ * @retval it 
+ * @ENDL
+ */
+extern acp_list_it_t acp_insert_list(acp_list_t list, acp_list_it_t it,
+				     void* ptr, int rank);
+
+/**
+ * @JP
+ * @brief リスト要素削除
+ *
+ * 指定した位置の要素をリスト型データから削除する。
+ *
+ * @param list リスト型データの参照
+ * @param it 削除する要素を指すリスト型イテレータ
+ * @retval it 削除した要素の直後の要素を指すリスト型イテレータ
+ *
+ * @EN
+ * @brief Erase a list element
+ *
+ * 
+ *
+ * @param list A reference of list type data
+ * @param it An iterater of list type data
+ * @param rank 
+ * @retval it 
+ * @ENDL
+ */
+extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
+
+/**
+ * @JP
+ * @brief リスト末尾要素追加
+ *
+ * 指定したプロセスに要素をコピーし、リスト型データの末尾に挿入する。
+ *
+ * @param list リスト型データの参照
+ * @param ptf 挿入する要素の先頭アドレス
+ * @param rank 要素を複製するプロセス
+ *
+ * @EN
+ * @brief Erase a list element
+ *
+ * 
+ *
+ * @param list A reference of list type data
+ * @param ptr A pointer of list type data
+ * @param rank 
+ * @ENDL
+ */
+extern void acp_push_back_list(acp_list_t list, void* ptr, int rank);
+
+/**
+ * @JP
+ * @brief リスト先頭イテレータ取得
+ *
+ * リスト型データの先頭要素を指すイテレータを取得する。
+ *
+ * @param list リスト型データの参照
+ * @retval it 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the head iterater of a list
+ *
+ * 
+ *
+ * @param list A reference of list type data
+ * @retval it The head of iterater
+ * @ENDL
+ */
+extern acp_list_it_t acp_begin_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト後端イテレータ取得
+ *
+ * リスト型データの後端要素を指すイテレータを取得する。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief Query for the tail iterater of a list
+ *
+ * 
+ *
+ * @param list A reference of list type data
+ * @ENDL
+ */
+extern acp_list_it_t acp_end_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト先頭イテレータ加算
+ *
+ * リスト型イテレータを一つ増加させる。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief Increment an iterater of a list data
+ *
+ * Increments an iterater of a list data
+ *
+ * @param list A reference of list type data
+ * @ENDL
+ */
+extern void acp_increment_list(acp_list_it_t* list);
+
+/**
+ * @JP
+ * @brief リスト先頭イテレータ減算
+ *
+ * リスト型イテレータを一つ減少させる。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief Decrement an iterater of a list data
+ *
+ * Decrements an iterater of a list data
+ *
+ * @param list A reference of list type data
+ * @ENDL
+ */
+extern void acp_decrement_list(acp_list_it_t* list);
 
 #ifdef __cplusplus
 }

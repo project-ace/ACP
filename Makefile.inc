@@ -1,14 +1,14 @@
-#PREFIX = $(HOME)/ACE/devel
-PREFIX = $(HOME)/devel
+PREFIX = $(HOME)/ACE/devel
+#PREFIX = $(HOME)/devel
 
-SRCDIR = $(PREFIX)/acp/bl/ib
-INCDIR = $(PREFIX)/acp/include
+SRCDIR = $(PREFIX)/src/bl/ib
+INCDIR = $(PREFIX)/src/include
 INSTALL_LIBDIR = $(HOME)/local/lib
 INSTALL_INCDIR = $(HOME)/local/include
 TESTDIR = $(PREFIX)/test/bl/ib
 
-#OBJ_ACPBL_PRIM = $(HOME)/ACE.test/devel/acp/bl/ib/acpbl.o
-OBJ_ACPBL_PRIM = $(PREFIX)/acp/bl/ib/acpbl_ib.o
+#OBJ_ACPBL_PRIM = $(HOME)/ACE.test/devel/src/bl/ib/acpbl.o
+OBJ_ACPBL_PRIM = $(PREFIX)/src/bl/ib/acpbl_ib.o
 
 CC = gcc
 LD = gcc

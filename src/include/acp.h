@@ -1185,6 +1185,9 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
 #define acp_less_or_equal(type, ...)    acp_less_or_equal_##type(__VA_ARGS__)
 #define acp_greater_or_equal(type, ...) acp_greater_or_equal_##type(__VA_ARGS__)
 
+acp_ga_t acp_malloc(size_t, int);
+void acp_free(acp_ga_t);
+
 /* Vector */
 /** \ingroup acpdl
  * \name Vector

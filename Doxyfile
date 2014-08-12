@@ -58,7 +58,7 @@ PROJECT_LOGO           = ../ace_icon.pdf
 # entered, it will be relative to the location where doxygen was started. If
 # left blank the current directory will be used.
 
-OUTPUT_DIRECTORY       = Doc/en
+OUTPUT_DIRECTORY       = doc/en
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
@@ -756,7 +756,7 @@ WARN_LOGFILE           =
 # spaces.
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = acp \
+INPUT                  = src_man/ \
                          sample
 
 # This tag can be used to specify the character encoding of the source files

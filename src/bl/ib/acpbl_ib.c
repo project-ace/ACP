@@ -278,6 +278,12 @@ void acp_abort(const char *str){
   ack_comp_count = 0;
   
   ibv_dereg_mr(res.mr);
+    for(i = 0;i < MAX_RM_SIZE;i++){
+    if(lmrtb[i] != NULL){
+      ibv_dereg_mr(lmrtb[i]);
+      lmrtb[i] = NULL;
+    }
+  }
   if(system != NULL){
     free(sysmem);
     sysmem = NULL;
@@ -3780,7 +3786,7 @@ int acp_finalize(){
   
   ibv_dereg_mr(res.mr);
   for(i = 0;i < MAX_RM_SIZE;i++){
-    if(lmrtb[i] == NULL){
+    if(lmrtb[i] != NULL){
       ibv_dereg_mr(lmrtb[i]);
       lmrtb[i] = NULL;
     }

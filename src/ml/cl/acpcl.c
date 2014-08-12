@@ -298,7 +298,7 @@ static void handl_conchlist(void)
 	printf("handl_conchlist: rank %d : Error: head of the connecting channel list cannot be CHSTINIT. \n", 
 		myrank);
 	fflush(stdout);
-	iacp_abort_ch();
+	iacp_abort_cl();
 	break;
       case CHSTWTHD:
 	/* check if head (and tail) has arrived */
@@ -315,7 +315,7 @@ static void handl_conchlist(void)
 		     ACP_HANDLE_NULL);
 #ifdef DEBUG
 	    printf("%d: handl_conchlist: remote start %016llx put crb msg to %016llx (rank %d) from %p crbmsg %d %d %016llx %d %d %d %d %d\n", 
-		   myrank, iacp_query_starter_ga_ch(ch->peer), 
+		   myrank, iacp_query_starter_ga_cl(ch->peer), 
 		   conninfo->starterga + CRB_TABLE_OFFSET + sizeof(crbmsg_t) * (tail % crbentrynum),
 		   acp_query_rank(conninfo->starterga + CRB_TABLE_OFFSET + sizeof(crbmsg_t) * (tail % crbentrynum)),
 		   ch->localga + CONNINFO_CRBMSG_OFFSET,
@@ -377,7 +377,7 @@ static void handl_conchlist(void)
 	printf("handl_conchlist: rank %d : wrong channel status %d\n", 
 		myrank, ch->state);
 	fflush(stdout);
-	iacp_abort_ch();
+	iacp_abort_cl();
       }
       break;
     case CHTYRECV:
@@ -397,7 +397,7 @@ static void handl_conchlist(void)
 		    msg->rbuf_entrynum, ch->rbuf_entrynum, 
 		    msg->sbuf_entrynum, ch->sbuf_entrynum);
 	    fflush(stdout);
-	    iacp_abort_ch();
+	    iacp_abort_cl();
 	  }
 
 	  /* clear start and end flags of the element */
@@ -457,7 +457,7 @@ static void handl_conchlist(void)
       printf("handl_conchlist: rank %d : wrong channel type %d\n", 
 	      myrank, ch->type);
 	fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
     ch = nextch;
   }
@@ -518,7 +518,7 @@ static void initreq(acp_ch_t ch)
   if (ch->reqtable == NULL){
     printf("initreq(): %d: cannot allocate reqtable\n", myrank);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
   
   for (i = 0; i < acpch_chreqnum-1; i++){
@@ -656,7 +656,7 @@ static void progress_send(acp_ch_t ch)
     default:
       printf("progress_send(): Wrong request type %d\n", req->type);
       fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
 
     /* send the message */
@@ -755,7 +755,7 @@ static void progress_recv(acp_ch_t ch)
 	printf("progress_recv(): Message mismatch. src %d dst %d \n", 
 		type, req->type);
 	fflush(stdout);
-	iacp_abort_ch();
+	iacp_abort_cl();
       }
       
       list_remove(&(ch->reqs), (listitem_t *)req);
@@ -764,7 +764,7 @@ static void progress_recv(acp_ch_t ch)
     default:
       printf("progress_recv(): Wrong request type %d from sender\n", type);
 	fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
 
     /* update head */
@@ -795,7 +795,7 @@ static void progress_recv(acp_ch_t ch)
     if (req->type != CHREQTYRCVRND){
       printf("progress_recv(): Wrong request type %d\n", req->type);
 	fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
 
     /* check if the data has been arrived */
@@ -842,7 +842,7 @@ static void handl_reqchlist(void)
       printf("handl_reqchlist: rank %d : wrong channel type %d\n", 
 	      myrank, ch->type);
 	fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
 
     nextch = ch->next;
@@ -872,7 +872,7 @@ static void progress(void)
   handl_reqchlist();
 }
 
-/* int iacp_init_ch(void)
+/* int iacp_init_cl(void)
  *  return: 0 (success)
  *  
  *  error: aborts when starter memory is less than crb size
@@ -884,7 +884,7 @@ static void progress(void)
  *  - synchronize among processes
  * 
  */
-int iacp_init_ch(void) 
+int iacp_init_cl(void) 
 {
   int crbsz;
   int myrank;
@@ -907,25 +907,25 @@ int iacp_init_ch(void)
    *        trashbox: used as a dummy target of remote atomic operation, uint64_t
    */
   crbsz = 2*(sizeof(uint64_t)) + crbentrynum * sizeof(crbmsg_t) + sizeof(uint64_t);
-  if (iacp_starter_memory_size_ch < crbsz){
-    printf("Error: iacp_init_ch: iacp_starter_memory_size_ch %d is smaller than crbsz %d\n",
-	    iacp_starter_memory_size_ch, crbsz);
+  if (iacp_starter_memory_size_cl < crbsz){
+    printf("Error: iacp_init_cl: iacp_starter_memory_size_cl %d is smaller than crbsz %d\n",
+	    iacp_starter_memory_size_cl, crbsz);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 #ifdef DEBUG
-  printf("%d: iacp_init_ch: crbsz %d \n", myrank, crbsz);
+  printf("%d: iacp_init_cl: crbsz %d \n", myrank, crbsz);
     fflush(stdout);
 #endif
 
   /* set addresses of crb */
-  crbhead = (uint64_t *)acp_query_address(iacp_query_starter_ga_ch(myrank));
+  crbhead = (uint64_t *)acp_query_address(iacp_query_starter_ga_cl(myrank));
   crbtail = (uint64_t *)((char *)crbhead + CRB_TAIL_OFFSET);
   crbtbl = (crbmsg_t *)((char *)crbhead + CRB_TABLE_OFFSET);
-  trashboxga = iacp_query_starter_ga_ch(myrank) + CRB_TRASHBOX_OFFSET;
+  trashboxga = iacp_query_starter_ga_cl(myrank) + CRB_TRASHBOX_OFFSET;
 
 #ifdef DEBUG
-  printf("%d: iacp_init_ch: crbhead %p, crbtail %p, crbtbl %p, trashboxga %p\n", 
+  printf("%d: iacp_init_cl: crbhead %p, crbtail %p, crbtbl %p, trashboxga %p\n", 
 	 myrank, crbhead, crbtail, crbtbl, trashboxga);
   fflush(stdout);
 #endif
@@ -950,7 +950,7 @@ int iacp_init_ch(void)
   return 0; 
 };
 
-int iacp_finalize_ch(void) 
+int iacp_finalize_cl(void) 
 {
   acp_ch_t ch;
   /* wait until lists conch_list, reqch_list and disconnch_list becomes empty
@@ -981,7 +981,7 @@ int iacp_finalize_ch(void)
   return 0; 
 };
 
-void iacp_abort_ch(void) 
+void iacp_abort_cl(void) 
 { 
   exit (-1);
 };
@@ -1039,13 +1039,13 @@ acp_ch_t acp_create_ch(int src, int dst)
     printf("acp_create_ch: rank %d : Error: Wrong paramter src %d, dst %d (procs = %d) \n",
 	    myrank, src, dst, procs);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
   if (src == dst){
     printf("acp_create_ch: rank %d : Error: ACP does not support loop back channel (src %d, dst %d) \n",
 	    myrank, src, dst);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* determine sender or receiver */
@@ -1057,7 +1057,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     printf("acp_create_ch: rank %d : Error: ACP does not support remote-to-remote channel (src %d, dst %d) \n",
 	    myrank, src, dst);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* allocate channel endpoint */
@@ -1065,7 +1065,7 @@ acp_ch_t acp_create_ch(int src, int dst)
   if (ch == NULL){
     printf("acp_create_ch: rank %d : Error: cannot allocate channel endpoint structure \n", myrank);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* set common members */
@@ -1095,7 +1095,7 @@ acp_ch_t acp_create_ch(int src, int dst)
   if (ch->chbody == NULL){
     printf("acp_create_ch: rank %d : Error: cannot allocate chbody \n", myrank);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* initialize head, tail and idx */
@@ -1109,7 +1109,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     printf("acp_create_ch: rank %d : cannot register buffer \n",
 	    myrank);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
 #ifdef DEBUG
@@ -1138,7 +1138,7 @@ acp_ch_t acp_create_ch(int src, int dst)
 	   (conninfo->crbmsg).sbuf_entrynum, (conninfo->crbmsg).end);
     fflush(stdout);
 #endif
-    conninfo->starterga = iacp_query_starter_ga_ch(ch->peer);
+    conninfo->starterga = iacp_query_starter_ga_cl(ch->peer);
     conninfo->remotega = ACP_GA_NULL;
   }
     
@@ -1195,7 +1195,7 @@ acp_request_t acp_nbfree_ch(acp_ch_t ch)
     printf("acp_nbfree_ch: rank %d : Error: channel has already been requested to disconnect\n", 
 	    myrank);
 	fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* if the request list of this channel is empty, move it to reqch_list  */
@@ -1245,7 +1245,7 @@ acp_request_t acp_nbsend_ch(acp_ch_t ch, void *sbuf, size_t sz)
     printf("acp_nbsend_ch: rank %d : Error: requesting nbsend to the channel that has been requested to disconnect\n", 
 	   myrank);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* if the request list of this channel is empty, move it to reqch_list  */
@@ -1301,7 +1301,7 @@ acp_request_t acp_nbrecv_ch(acp_ch_t ch, void *rbuf, size_t sz)
     printf("acp_nbrecv_ch: rank %d : Error: channel has been requested to disconnect\n", 
 	    myrank);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 
   /* if the request list of this channel is empty, move it to reqch_list  */
@@ -1435,7 +1435,7 @@ size_t acp_wait_ch(acp_request_t req)
     default:
       printf("acp_wait_ch: rank %d : Error: wrong channel type %d\n", myrank, ch->type);
 	fflush(stdout);
-      iacp_abort_ch();
+      iacp_abort_cl();
     }
 
     acp_unregister_memory(ch->localatkey); // unregister chbody
@@ -1455,7 +1455,7 @@ size_t acp_wait_ch(acp_request_t req)
   default:
     printf("acp_wait_ch: rank %d : Error: Wrong request type %d\n", myrank, req->type);
     fflush(stdout);
-    iacp_abort_ch();
+    iacp_abort_cl();
   }
 }
 

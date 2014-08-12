@@ -35,8 +35,6 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "acpbl.h"
-#include "acpci.h"
-#include "acpbl_sync.h"
 
 int main(int argc, char** argv)
 {
@@ -57,20 +55,20 @@ int main(int argc, char** argv)
   if (rank == 0){
     a = 100;
     b = 0;
-    req[0] = acp_nbsend(ch[0], &a, sizeof(int));
-    acp_wait(req[0]);
-    req[1] = acp_nbrecv(ch[1], &b, sizeof(int));
-    acp_wait(req[1]);
+    req[0] = acp_nbsend_ch(ch[0], &a, sizeof(int));
+    acp_wait_ch(req[0]);
+    req[1] = acp_nbrecv_ch(ch[1], &b, sizeof(int));
+    acp_wait_ch(req[1]);
   }
   //  sleep(5);
   //  acp_sync();
     if (rank == 1){
       a = 0;
       b = 200;
-      req[0] = acp_nbrecv(ch[0], &a, sizeof(int));
-    acp_wait(req[0]);
-      req[1] = acp_nbsend(ch[1], &b, sizeof(int));
-    acp_wait(req[1]);
+      req[0] = acp_nbrecv_ch(ch[0], &a, sizeof(int));
+    acp_wait_ch(req[0]);
+      req[1] = acp_nbsend_ch(ch[1], &b, sizeof(int));
+    acp_wait_ch(req[1]);
     }
     //  acp_sync();
   fflush(stdout);  
@@ -89,7 +87,7 @@ int main(int argc, char** argv)
 
   if (rank < 2){
     req[0] = acp_nbfree_ch(ch[0]);
-    acp_wait(req[0]);
+    acp_wait_ch(req[0]);
   }
   acp_sync();
 
@@ -99,7 +97,7 @@ int main(int argc, char** argv)
   if (rank < 2){
     req[1] = acp_nbfree_ch(ch[1]);
 
-    acp_wait(req[1]);
+    acp_wait_ch(req[1]);
   }
   
   acp_sync();
@@ -114,11 +112,11 @@ int main(int argc, char** argv)
 
 }
 
-int iacp_init_ds(void) { return 0; };
+int iacp_init_dl(void) { return 0; };
 int iacp_init_vd(void) { return 0; };
-int iacp_finalize_ds(void) { return 0; };
+int iacp_finalize_dl(void) { return 0; };
 int iacp_finalize_vd(void) { return 0; };
-void iacp_abort_ds(void) { return; };
+void iacp_abort_dl(void) { return; };
 void iacp_abort_vd(void) { return; };
   
 

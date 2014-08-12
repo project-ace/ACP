@@ -25,8 +25,6 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "acpbl.h"
-#include "acpci.h"
-#include "acpbl_sync.h"
 
 int main(int argc, char** argv)
 {
@@ -45,18 +43,18 @@ int main(int argc, char** argv)
   }
   if (rank == 0){
     a = 100;
-    req = acp_nbsend(ch, &a, sizeof(int));
+    req = acp_nbsend_ch(ch, &a, sizeof(int));
   }
   //  sleep(5);
   //  acp_sync();
     if (rank == 1){
       a = 0;
-      req = acp_nbrecv(ch, &a, sizeof(int));
+      req = acp_nbrecv_ch(ch, &a, sizeof(int));
     }
     //  acp_sync();
   fflush(stdout);  
 
-    acp_wait(req);
+    acp_wait_ch(req);
   fflush(stdout);  
 
   if (rank == 1){
@@ -74,7 +72,7 @@ int main(int argc, char** argv)
   if ((rank == 1) || (rank == 0)){
     req = acp_nbfree_ch(ch);
 
-    acp_wait(req);
+    acp_wait_ch(req);
   }
   
 
@@ -90,11 +88,11 @@ int main(int argc, char** argv)
 
 }
 
-int iacp_init_ds(void) { return 0; };
+int iacp_init_dl(void) { return 0; };
 int iacp_init_vd(void) { return 0; };
-int iacp_finalize_ds(void) { return 0; };
+int iacp_finalize_dl(void) { return 0; };
 int iacp_finalize_vd(void) { return 0; };
-void iacp_abort_ds(void) { return; };
+void iacp_abort_dl(void) { return; };
 void iacp_abort_vd(void) { return; };
   
 

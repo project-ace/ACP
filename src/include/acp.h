@@ -453,7 +453,7 @@ extern int acp_query_color(acp_ga_t ga);
  * @retval -1 Fail
  * @ENDL
  */
-exterint acp_colors(void);
+extern int acp_colors(void);
 
 #ifdef __cplusplus
 }

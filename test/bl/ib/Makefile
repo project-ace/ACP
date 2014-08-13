@@ -2,17 +2,21 @@ include ../../../Makefile.inc
 
 OBJS_ACPBL = acpbl_test.o
 OBJS_ACPBL_OHANDLE = acpbl_test_order_handle.o
+OBJS_ACPBL_RRCSM = acpbl_test_rr.o
+OBJS_ACPBL_RRCGM = acpbl_test_rr2.o
 OBJS_ACPBL_ATOMIC = acpbl_test_atomic.o
 OBJS_ACPBL_ATOMIC8 = acpbl_test_atomic8.o
 OBJS_ACPBL_RM = acpbl_test_rm.o
 
 EXE_ACPBL = acpbl
 EXE_ACPBL_OHANDLE = acpbl_ohandle
+EXE_ACPBL_RRCSM = acpbl_rr
+EXE_ACPBL_RRCGM = acpbl_rr2
 EXE_ACPBL_ATOMIC = acpbl_atomic
 EXE_ACPBL_ATOMIC8 = acpbl_atomic8
 EXE_ACPBL_RM = acpbl_rm
 
-all: $(EXE_ACPBL) $(EXE_ACPBL_OHANDLE) $(EXE_ACPBL_ATOMIC) $(EXE_ACPBL_ATOMIC8) $(EXE_ACPBL_RM) 
+all: $(EXE_ACPBL) $(EXE_ACPBL_OHANDLE) $(EXE_ACPBL_ATOMIC) $(EXE_ACPBL_ATOMIC8) $(EXE_ACPBL_RM) $(EXE_ACPBL_RRCSM) $(EXE_ACPBL_RRCGM) 
 
 acpbl_test_order_handle.o: acpbl_test_order_handle.c
 	$(CC) $(CCFLAGS) -O3 -c acpbl_test_order_handle.c
@@ -22,6 +26,12 @@ $(EXE_ACPBL): $(OBJS_ACPBL)
 
 $(EXE_ACPBL_OHANDLE): $(OBJS_ACPBL_OHANDLE)
 	$(LD) $(LDFLAGS) -o $(EXE_ACPBL_OHANDLE) $(OBJS_ACPBL_OHANDLE) $(OBJ_ACPBL_PRIM)
+
+$(EXE_ACPBL_RRCSM): $(OBJS_ACPBL_RRCSM)
+	$(LD) $(LDFLAGS) -o $(EXE_ACPBL_RRCSM) $(OBJS_ACPBL_RRCSM) $(OBJ_ACPBL_PRIM)
+
+$(EXE_ACPBL_RRCGM): $(OBJS_ACPBL_RRCGM)
+	$(LD) $(LDFLAGS) -o $(EXE_ACPBL_RRCGM) $(OBJS_ACPBL_RRCGM) $(OBJ_ACPBL_PRIM)
 
 $(EXE_ACPBL_ATOMIC): $(OBJS_ACPBL_ATOMIC)
 	$(LD) $(LDFLAGS) -o $(EXE_ACPBL_ATOMIC) $(OBJS_ACPBL_ATOMIC) $(OBJ_ACPBL_PRIM)
@@ -35,11 +45,15 @@ $(EXE_ACPBL_RM): $(OBJS_ACPBL_RM)
 clean: 
 	-rm -f $(OBJS_ACPBL)
 	-rm -f $(OBJS_ACPBL_OHANDLE)
+	-rm -f $(OBJS_ACPBL_RRCSM)
+	-rm -f $(OBJS_ACPBL_RRCGM)
 	-rm -f $(OBJS_ACPBL_ATOMIC)
 	-rm -f $(OBJS_ACPBL_ATOMIC8)
 	-rm -f $(OBJS_ACPBL_RM)
 	-rm -f $(EXE_ACPBL)
 	-rm -f $(EXE_ACPBL_OHANDLE)
+	-rm -f $(EXE_ACPBL_RRCSM)
+	-rm -f $(EXE_ACPBL_RRCGM)
 	-rm -f $(EXE_ACPBL_ATOMIC)
 	-rm -f $(EXE_ACPBL_ATOMIC8)
 	-rm -f $(EXE_ACPBL_RM)

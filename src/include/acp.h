@@ -1163,7 +1163,7 @@ extern acp_request_t acp_nbrecv_ch(acp_ch_t ch, void * buf, size_t size);
  * Waits for the completion of the nonblocking operation specified by the request handle. 
  * If the operation is a nonblocking receive, it retruns the size of the received data.
  *
- * @param request 　　handle of the request of a nonblocking operation
+ * @param request handle of the request of a nonblocking operation
  * @retval >=0 success. if the operation is a nonblocking receive, the size of the received data.
  * @retval -1 fail
  */

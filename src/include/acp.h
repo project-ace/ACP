@@ -16,11 +16,12 @@
 /*****                                                                   *****/
 /*****************************************************************************/
 
-/** \file acp.h
- * \ingroup acp
+/**
+ * \file acp.h
  *  @brief A header file for ACP.
  *         
  *  This is the ACP header file.
+ *
  */
 
 #ifndef __ACP_H__
@@ -29,17 +30,28 @@
 /*****************************************************************************/
 /***** Basic Layer                                                       *****/
 /*****************************************************************************/
-/** \ingroup acpbl
- * \name Basic Layer
+/** \defgroup acpbl ACP Basic Layer
+ *
+ * ACP basic layer is a thin abstraction of underlying communication devices.
+ *
+ * The basic layer of ACP provides global address space shared among all of 
+ * the processes. The global address of this space is represented by 64bit 
+ * unsigned integer, so that it can be directly handled by the atomic operations 
+ * of CPUs and devices. Any local memory space of any process can be mapped to 
+ * this space via the registration function.
  */
-/*@{*/
 
 /* Infrastructure */
 
-/** \ingroup acpbl
- * \name Infrastructure
+/** \defgroup infrastructure ACP Basic Layer Infrastructure
+ * @ingroup acpbl
+ *
+ * These functions perform the infrastructure of ACP Basic Layer.
+ *
+ * .............
+ *
+ * @{
  */
-/*@{*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -222,24 +234,31 @@ extern int acp_procs(void);
 #ifdef __cplusplus
 }
 #endif
-/*@}*/ /* Infrastructure */
+/* @} */ /* Infrastructure */
 
 /* Global memory management */
-/** \ingroup acpbl
- * \name Global memory management
+/** \defgroup GMM ACP Basic Layer Global Memory Management
+ * @ingroup acpbl
+ *
+ * Functions for global memory management.
+ *
+ * .......
+ *
+ * @{
  */
-/*@{*/
 
-#define ACP_ATKEY_NULL  0LLU  /*!< Represents that no address 
-                                translation key is available. */
-#define ACP_GA_NULL     0LLU  /*!< Null address of the global memory. */
+/** Represents that no address translation key is available. */
+#define ACP_ATKEY_NULL  0LLU
+/** Null address of the global memory. */
+#define ACP_GA_NULL     0LLU
 
-typedef uint64_t acp_atkey_t; /*!< Address translation key. 
-				An attribute to translate between a 
-				logical address and a global address. */
-typedef uint64_t acp_ga_t;    /*!< Global address. Commonly used among 
-				processes for byte-wise addressing 
-				of the global memory. */
+/** Address translation key. An attribute to translate between a 
+ * logical address and a global address. */
+typedef uint64_t acp_atkey_t;
+
+/** Global address. Commonly used among processes for byte-wise addressing 
+ * of the global memory. */
+typedef uint64_t acp_ga_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -458,26 +477,29 @@ extern int acp_colors(void);
 #ifdef __cplusplus
 }
 #endif
-/*@}*/ /* Global memory management */
+/* @} */ /* Global memory management */
 
 /* Global memory access */
-/** \ingroup acpbl
- * \name Global memory access
- */
-/*@{*/
+/** \defgroup GMA ACP Basic Layer Global Memory Access
+ * @ingroup acpbl
+ *
+ * Functions for Global memory access
+ *
+ * ..........
+ * @{
+ * */
 
-#define ACP_HANDLE_ALL  0xffffffffffffffffLLU  /*!< Represents all of 
-						 the handles of GMAs 
-						 that have been invoked 
-						 so far. */
-#define ACP_HANDLE_CONT 0xfffffffffffffffeLLU  /*!< Represents the 
-						 continuation of the 
-						 previous GMA.(*). */
-#define ACP_HANDLE_NULL 0x0000000000000000LLU  /*!< Represents that no 
-						 handle is available. */
+/** Represents all of the handles of GMAs that have been invoked so far. */
+#define ACP_HANDLE_ALL  0xffffffffffffffffLLU
 
-typedef int64_t acp_handle_t;  /*!< Handle of GMA. 
-				 Used as identifiers of the invoked GMAs. */
+/** Represents the continuation of the previous GMA.(*). */
+#define ACP_HANDLE_CONT 0xfffffffffffffffeLLU
+
+/** Represents that no handle is available. */
+#define ACP_HANDLE_NULL 0x0000000000000000LLU
+
+/** Handle of GMA.  Used as identifiers of the invoked GMAs. */
+typedef int64_t acp_handle_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -980,21 +1002,28 @@ extern int acp_inquire(acp_handle_t handle);
 }
 #endif
 
-/*@}*/ /* Global memory access */
-/*@}*/ /* Basic Layre */
+/* @} */ /* Global memory access */
 
-/** \ingroup acpml
- * \name Middle Layer
+/** \defgroup acpml ACP Middle Layer
+ *
+ * ACP middle layer is a set of operations for primitive communication 
+ * patterns used by applications.
+ *
+ * .........
  */
-/*@{*/
 
 /*****************************************************************************/
 /***** Communication Library                                             *****/
 /*****************************************************************************/
-/** \ingroup acpcl
- * \name Communication Library
+/** \defgroup acpcl ACP Middle Layer Communication Library
+ * @ingroup acpml
+ *
+ * This library provides \a Channel interface and \a collective communication
+ * interface.
+ *
+ * .........
+ * @{
  */
-/*@{*/
 
 #ifdef __cplusplus
 extern "C" {
@@ -1146,15 +1175,20 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
 }
 #endif
 
-/*@}*/ /* Communication Library */
+/* @} */ /* Communication Library */
 
 /*****************************************************************************/
 /***** Data Library                                                      *****/
 /*****************************************************************************/
-/** \ingroup acpdl
- * \name Data Library
+/** \defgroup acpdl ACP Middle Layer Data Library
+ * @ingroup acpml
+ *
+ * This library provides various data handling functions:
+ * Vector, List, Deque, Set, Map
+ *
+ * ...........
+ * @{
  */
-/*@{*/
 
 /* Function name concatenation macros */
 
@@ -1189,10 +1223,13 @@ acp_ga_t acp_malloc(size_t, int);
 void acp_free(acp_ga_t);
 
 /* Vector */
-/** \ingroup acpdl
- * \name Vector
+/** \defgroup vector ACP Middle Layer Dara Library Vector
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Dara Library Vector
+ *
+ * @{
  */
-/*@{*/
 
 #define acp_vector_t acp_ga_t  /*!< Vector type. */
 #define acp_vector_it_t int    /*!< Iterater of Vector type. */
@@ -1322,10 +1359,13 @@ int acp_greater_or_equal_vector(acp_vector_t, acp_vector_t);
 /*@}*/ /* Vector */
 
 /* List */
-/** \ingroup acpdl
- * \name List
+/** \defgroup list ACP Middle Layer Dara Library List
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Dara Library List
+ *
+ * @{
  */
-/*@{*/
 
 #define acp_list_t acp_ga_t     /*!< List data type. */
 #define acp_list_it_t acp_ga_t  /*!< Iterater of list data type. */
@@ -1528,35 +1568,43 @@ extern void acp_decrement_list(acp_list_it_t* list);
 /*@}*/ /* List */
 
 /* Deque */
-/** \ingroup acpdl
- * \name Deque
+/** \defgroup deque ACP Middle Layer Dara Library Deque
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Dara Library Deque
+ *
+ * @{
  */
-/*@{*/
 
 #define acp_deque_t acp_ga_t
 #define acp_deque_it_t int
 /*@}*/ /* Deque */
 
 /* Set */
-/** \ingroup acpdl
- * \name Set
+/** \defgroup set ACP Middle Layer Dara Library Set
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Dara Library Set
+ *
+ * @{
  */
-/*@{*/
 
 #define acp_set_t acp_ga_t
 #define acp_set_it_t acp_ga_t
 /*@}*/ /* Set */
 
 /* Map */
-/** \ingroup acpdl
- * \name Map
+/** \defgroup map ACP Middle Layer Dara Library Map
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Dara Library Map
+ *
+ * @{
  */
-/*@{*/
 
 #define acp_map_t acp_ga_t
 #define acp_map_it_t acp_ga_t
 /*@}*/ /* Map */
 
 /*@}*/ /* Data Library */
-/*@}*/ /* Middle Layre */
 #endif /* acp.h */

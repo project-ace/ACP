@@ -1,5 +1,7 @@
-BLHEADERS = acpbl.h acpbl_udp.h acpbl_udp_gma.h acpbl_udp_gmm.h
-BLOBJS = acpbl_udp.o acpbl_udp_gma.o acpbl_udp_gmm.o
+#BLHEADERS = acpbl.h acpbl_udp.h acpbl_udp_gma.h acpbl_udp_gmm.h
+BLHEADERS = acpbl.h 
+#BLOBJS = acpbl_udp.o acpbl_udp_gma.o acpbl_udp_gmm.o
+BLOBJS = acpbl_ib.o
 #MLOBJS = acpdl.o acpvd.o
 MLOBJS = 
 CIOBJS = acpcl.o
@@ -7,7 +9,8 @@ CFLAGS = -I../../../src/include
 OBJS = $(BLOBJS) $(CIOBJS) $(MLOBJS)
 DEBUG= -DDEBUG
 CC=gcc
-LIBS=-lpthread
+#LIBS=-lpthread
+LIBS=-lpthread -libverbs
 
 .c.o: 
 	$(CC) $(CFLAGS) $(DEBUG) -c $<
@@ -48,6 +51,8 @@ acpdl.o:
 	cp ../../../src/ml/dl/acpdl.o .
 acpvd.o:
 	cp ../../../src/ml/vd/acpvd.o .
+acpbl_ib.o:
+	cp ../../../src/bl/ib/acpbl_ib.o .
 
 clean:
 	/bin/rm -f acpbl_udp_test acpch_test0 acpch_test1 acpch_test2 acpch_test3 acpch_test4 *.o

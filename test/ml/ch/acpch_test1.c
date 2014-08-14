@@ -36,11 +36,11 @@ int main(int argc, char** argv)
 
   fflush(stdout);  
   rank = acp_rank();
-
   if ((rank == 1) || (rank == 0)){
     ch = acp_create_ch(0, 1);
-  fflush(stdout);  
+    fflush(stdout);  
   }
+  
   if (rank == 0){
     a = 100;
     req = acp_nbsend_ch(ch, &a, sizeof(int));

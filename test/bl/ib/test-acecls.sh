@@ -13,15 +13,16 @@ COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
 # input exec file
-COMM=$COMM_DIR/acpbl
+# COMM=$COMM_DIR/acpbl
+# COMM=$COMM_DIR/acpbl_ohandle
+# COMM=$COMM_DIR/acpbl_rm
 # COMM=$COMM_DIR/acpbl_atomic
 # COMM=$COMM_DIR/acpbl_atomic8
 # COMM=$COMM_DIR/acpbl_rr
-# COMM=$COMM_DIR/acpbl_rr2
-# COMM=$COMM_DIR/acpbl_ohandle
-# COMM=$COMM_DIR/acpbl_rm
+COMM=$COMM_DIR/acpbl_rr2
+
 # # of process
-np=16
+np=3
 # # size of starter memory
 smsize=1024
 # start tcp/udp port 

@@ -53,8 +53,6 @@ int iacpbludp_init_gmm(void)
     SEGMENT[SEGDL][1] = SEGMENT[SEGDL][0] + iacp_starter_memory_size_dl;
     SEGMENT[SEGCL][0] = (uintptr_t)malloc(iacp_starter_memory_size_cl);
     SEGMENT[SEGCL][1] = SEGMENT[SEGCL][0] + iacp_starter_memory_size_cl;
-    SEGMENT[SEGVD][0] = (uintptr_t)malloc(iacp_starter_memory_size_vd);
-    SEGMENT[SEGVD][1] = SEGMENT[SEGVD][0] + iacp_starter_memory_size_vd;
     
     sprintf(s, "/proc/%d/maps", getpid());
     if((fp = fopen(s, "r")) == NULL){
@@ -100,7 +98,6 @@ int iacpbludp_init_gmm(void)
 
 int iacpbludp_finalize_gmm(void)
 {
-    free((uintptr_t*)SEGMENT[SEGVD][0]);
     free((uintptr_t*)SEGMENT[SEGCL][0]);
     free((uintptr_t*)SEGMENT[SEGDL][0]);
     free((uintptr_t*)SEGMENT[SEGST][0]);
@@ -110,7 +107,6 @@ int iacpbludp_finalize_gmm(void)
 
 void iacpbludp_abort_gmm(void)
 {
-    free((uintptr_t*)SEGMENT[SEGVD][0]);
     free((uintptr_t*)SEGMENT[SEGCL][0]);
     free((uintptr_t*)SEGMENT[SEGDL][0]);
     free((uintptr_t*)SEGMENT[SEGST][0]);
@@ -131,11 +127,6 @@ acp_ga_t iacp_query_starter_ga_dl(int rank)
 acp_ga_t iacp_query_starter_ga_cl(int rank)
 {
     return (acp_ga_t)(((uint64_t)(rank + 1) << (BIT_SEG + BIT_OFFSET)) | ((uint64_t)SEGCL << BIT_OFFSET));
-}
-
-acp_ga_t iacp_query_starter_ga_vd(int rank)
-{
-    return (acp_ga_t)(((uint64_t)(rank + 1) << (BIT_SEG + BIT_OFFSET)) | ((uint64_t)SEGVD << BIT_OFFSET));
 }
 
 acp_atkey_t acp_register_memory(void* addr, size_t size, int color)

@@ -5,7 +5,6 @@
 
 size_t iacp_starter_memory_size_dl = 0;
 size_t iacp_starter_memory_size_cl = 0;
-size_t iacp_starter_memory_size_vd = 0;
 
 int main(int argc, char **argv){
   
@@ -89,3 +88,11 @@ int main(int argc, char **argv){
     
     return 0;
 }
+
+
+int iacp_init_dl(){return 0;}
+int iacp_init_cl(){return 0;}
+int iacp_finalize_dl(){return 0;}
+int iacp_finalize_cl(){return 0;}
+void iacp_abort_cl(){return;}
+void iacp_abort_dl(){return;}

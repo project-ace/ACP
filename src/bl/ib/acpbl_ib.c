@@ -16,7 +16,8 @@
 //#define DEBUG
 //#define DEBUG_L2
 //#define DEBUG_L3
-//#define MUL_MOD_CL
+#define MUL_MOD_CL
+#define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define size */
 #define MAX_RM_SIZE      255U
@@ -264,15 +265,8 @@ void acp_abort(const char *str){
     fflush(stdout);
 #endif
     
-#ifdef MUL_MOD_VD
-    iacp_abort_vd();
-#endif
-#ifdef MUL_MOD_CL
     iacp_abort_cl();
-#endif
-#ifdef MUL_MOD_DL
     iacp_abort_dl();
-#endif
 
     /* close IB resouce */
     if (res.mr != NULL) {
@@ -476,7 +470,7 @@ acp_ga_t acp_query_starter_ga(int rank){
     return ga;
 }
 
-acp_ga_t iacp_query_starter_dl_ga(int rank){
+acp_ga_t iacp_query_starter_ga_dl(int rank){
     
     acp_ga_t ga; /* global address */
     uint32_t gmtag = TAG_SM; /* general tag of startar memory */
@@ -525,19 +519,18 @@ acp_ga_t iacp_query_starter_ga_cl(int rank){
   
     return ga;
 }
-
+/*
 acp_ga_t iacp_query_starter_ga_vd(int rank){
   
-    acp_ga_t ga; /* global address */
-    uint32_t gmtag = TAG_SM;/* general tag of startar memory */
-    uint32_t color = 0;/* color is 0 on starter memory */
-    uint64_t offset; /* offset of ga */
+    acp_ga_t ga; 
+    uint32_t gmtag = TAG_SM;
+    uint32_t color = 0;
+    uint64_t offset; 
     
-    /* initialzie ga */
     ga = ACP_GA_NULL;
     
-    /* set ga */
     offset = offset_acp_buf_vd;
+
     ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)gmtag << OFFSET_BITS)
@@ -550,7 +543,7 @@ acp_ga_t iacp_query_starter_ga_vd(int rank){
   
     return ga;
 }
-
+*/
 acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
   
     acp_ga_t ga; /* global address */
@@ -3471,33 +3464,27 @@ int iacp_init(void){
     /* adjust sysmem to 8 byte alignment */
     
     alm8_add = acp_smsize & 7;
+    /*
     if (alm8_add != 0) {
         alm8_add = 8 - alm8_add;
     }
+    */
     acp_smsize_adj = acp_smsize + alm8_add ;
     
     alm8_add = iacp_starter_memory_size_dl & 7;
-    if (alm8_add != 0) {
-        alm8_add = 8 - alm8_add;
-    }
+    alm8_add_func(alm8_add);
     acp_smdlsize_adj = iacp_starter_memory_size_dl + alm8_add;
 
     alm8_add = iacp_starter_memory_size_cl & 7;
-    if (alm8_add != 0) {
-        alm8_add = 8 - alm8_add;
-    }
+    alm8_add_func(alm8_add);
     acp_smclsize_adj = iacp_starter_memory_size_cl + alm8_add;
-    
+    /*
     alm8_add = iacp_starter_memory_size_vd & 7;
-    if (alm8_add != 0) {
-        alm8_add = 8 - alm8_add;
-    }
+    alm8_add_func(alm8_add);
     acp_smvdsize_adj = iacp_starter_memory_size_vd + alm8_add;
-    
+    */
     alm8_add = ((acp_numprocs * 3 + 1) & 7);
-    if (alm8_add != 0) {
-        alm8_add = 8 - alm8_add;
-    }
+    alm8_add_func(alm8_add);
     ncharflagtb_adj = sizeof(char) * ((acp_numprocs * 3 + 1) + alm8_add);
 
 #ifdef DEBUG
@@ -3508,7 +3495,7 @@ int iacp_init(void){
     syssize = acp_smsize_adj + sizeof(RM) * (MAX_RM_SIZE) * 2  +
         sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
         sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + ncharflagtb_adj + 
-        acp_smdlsize_adj + acp_smclsize_adj + acp_smvdsize_adj;	
+        acp_smdlsize_adj + acp_smclsize_adj /*+ acp_smvdsize_adj */;	
     
     /* malloc sysmem */
     sysmem = (char *) malloc(syssize);
@@ -3597,13 +3584,13 @@ int iacp_init(void){
     offset_acp_buf_dl = offset_rrm_get_flag_tb + ncharflagtb_adj;
     acp_buf_cl = (char *)((char *)acp_buf_dl + acp_smdlsize_adj);
     offset_acp_buf_cl = offset_acp_buf_dl + acp_smdlsize_adj;
-    acp_buf_vd = (char *)((char *)acp_buf_cl + acp_smclsize_adj);
-    offset_acp_buf_vd = offset_acp_buf_cl + acp_smclsize_adj;
+    /* acp_buf_vd = (char *)((char *)acp_buf_cl + acp_smclsize_adj);*/
+    /* offset_acp_buf_vd = offset_acp_buf_cl + acp_smclsize_adj;*/
     
 #ifdef DEBUG
     fprintf(stdout, 
-            "sm %p acp_vd_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu\n", 
-            sysmem, (char *)acp_buf_vd + acp_smvdsize_adj, syssize, sysmem + syssize, offset_acp_buf_vd);
+            "sm %p acp_cl_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu\n", 
+            sysmem, (char *)acp_buf_cl + acp_smclsize_adj, syssize, sysmem + syssize, offset_acp_buf_cl);
     fflush(stdout);
 #endif
     /* remote register memory table */
@@ -4032,15 +4019,8 @@ int iacp_init(void){
     
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
     
-#ifdef MUL_MOD_DL  
     if (iacp_init_dl()) return -1;
-#endif
-#ifdef MUL_MOD_CL  
     if (iacp_init_cl()) return -1;
-#endif
-#ifdef MUL_MOD_VD  
-    if (iacp_init_vd()) return -1;
-#endif
 
     return rc;
     
@@ -4177,15 +4157,9 @@ int acp_finalize(){
     fflush(stdout);
 #endif
     
-#ifdef MUL_MOD_VD
-    iacp_finalize_vd();
-#endif
-#ifdef MUL_MOD_CL
     iacp_finalize_cl();
-#endif
-#ifdef MUL_MOD_DL
     iacp_finalize_dl();
-#endif
+
     /* Insert FIN command into cmdq */
     while (tmptail - tmphead == MAX_CMDQ_ENTRY - 1) ;
     

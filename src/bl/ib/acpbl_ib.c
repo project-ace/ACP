@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -12,7 +13,10 @@
 #include "acpbl.h"
 
 /* debug */
-#define DEBUG
+//#define DEBUG
+//#define DEBUG_L2
+//#define DEBUG_L3
+//#define MUL_MOD_CL
 
 /* define size */
 #define MAX_RM_SIZE      255U
@@ -77,10 +81,6 @@
 #define CMD_WAIT_PUT_DST       16U
 #define CMD_WRITEBACK_FIN      17U
 
-/* defina bool */
-#define TRUE    1U
-#define FAULSE  0U
-
 /* resouce info for starter memory */
 typedef struct resource_info{
     int myrank; /* rank ID */
@@ -94,7 +94,7 @@ typedef struct reg_mem{
     char *addr;  /* the front of memory region */
     uint64_t rkey;  /* memory registration key in IB */
     size_t size;  /* the size of memory region */
-    int lock; /* flag utilization of RM */
+    uint64_t lock; /* flag utilization of RM */
 } RM;
 
 typedef struct connect_ib_info{
@@ -140,17 +140,17 @@ typedef union command_format_exstra{
 }CMDE;
 
 typedef struct command_format{
-    uint32_t valid_head; /* validation of CMD for RCMDBUF */
+    uint64_t valid_head; /* validation of CMD for RCMDBUF */
     int rank; /* issued rank */
     uint32_t type; /* command type */
     acp_handle_t ishdl; /* issued handle */
     acp_handle_t ohdl; /* order handle */
     acp_handle_t hdl; /* handle */
-    uint32_t stat; /* command status */
+    uint64_t stat; /* command status */
     acp_ga_t gadst; /* destination of ga */
     acp_ga_t gasrc; /* srouce of ga */
     CMDE cmde; /* Command format exstra for GMA */
-    uint32_t valid_tail; /* validation of CMD for RCMDBUF */
+    uint64_t valid_tail; /* validation of CMD for RCMDBUF */
 }CMD;
 
 /* socket file descripter */
@@ -160,25 +160,31 @@ static int sock_connect;
 static RES res; /* resource of IB */
 static struct ibv_qp **qp; /* QP handle */
 static struct ibv_cq *cq; /* CQ handle */
+static int num_devices; /* # of devices */
 
 static int acp_myrank = -1; /* my rank on acp lib*/
 static int acp_numprocs = -1; /* # of process on acp lib */
 static size_t acp_smsize = -1; /* the size of starter memory on acp lib */
+static size_t acp_smsize_adj; /* adjust the size of starter memory to 8 byte alignment */
+static size_t acp_smdlsize_adj; /* adjust the size of dl starter memory to 8 byte alignment */
+static size_t acp_smclsize_adj; /* adjust the size of cl starter memory to 8 byte alignment */
+static size_t acp_smvdsize_adj; /* adjust the size of vd starter memory to 8 byte alignment */
+static size_t ncharflagtb_adj; /* adjust the size of flag table of char to 8 byte alignment */
 static uint32_t my_port; /* my port */
 static uint32_t dst_port; /* destination port */
 static uint32_t dst_addr; /* destination ip address */
 
 static SMI *smi_tb; /* starter memory info table */
 static CMD tmpcmdq[MAX_CMDQ_ENTRY]; /* temporary comand queue */
-static acp_handle_t tmphead = 1; /* temporary of the head of command queue */
-static acp_handle_t tmptail = 1; /* temporary of the tail of command queue */
-static acp_handle_t head = 1; /* the head of command queue */
-static acp_handle_t tail = 1; /* the tail of command queue */
+static acp_handle_t tmphead; /* temporary of the head of command queue */
+static acp_handle_t tmptail; /* temporary of the tail of command queue */
+static acp_handle_t head; /* the head of command queue */
+static acp_handle_t tail; /* the tail of command queue */
 static RM **rrmtb; /* Remote addr/rkey info table */
 struct ibv_mr *lmrtb[MAX_RM_SIZE]; /* local ibv_mr table */ 
 
-static uint64_t ack_id = MASK_WRID_ACK;
-static uint64_t ack_comp_count = 0;
+static uint64_t ack_id;
+static uint64_t ack_comp_count;
 
 /* system memory is able to rdma access */
 static char *sysmem; /* starter memory address*/
@@ -209,18 +215,48 @@ static char *acp_buf_dl; /* acp starter memory for dl */
 static char *acp_buf_cl; /* acp starter memory for cl */
 static char *acp_buf_vd; /* acp starter memory for vd */
 
+/* offset of each pointers from sysmem top */
+static uint64_t offset_cmdq; /* offset of cmdq from sysmem top */
+
+static uint64_t offset_rcmdbuf; /* offset of recieve buffer for command from sysmem top */
+static uint64_t offset_rcmdbuf_head; /* offset of head of rcmdbuf from sysmem top */
+static uint64_t offset_rcmdbuf_tail; /* offset of tail of rcmdbuf from sysmem top */
+
+static uint64_t offset_head_buf; /* offset of head buffer from sysmem top */
+static uint64_t offset_tail_buf; /* offset of tail buffer from sysmem top */
+
+static uint64_t offset_putcmdbuf; /* offset of writeback buffer from sysmem top */
+
+static uint64_t offset_replaydata; /* offset of replay data for atomic sysmem top */
+
+static uint64_t offset_writebackbuf; /* offset of writeback buffer from sysmem top */
+
+static uint64_t offset_lrmtb; /* offset of Local addr/rkey info table from sysmem top */
+static uint64_t offset_recv_lrmtb; /* offset of recv buffer for local addr/rkey table form sysmem top*/
+
+static uint64_t offset_rrm_get_flag_tb; /* offset of rrm get flag tb from sysmem top */
+static uint64_t offset_rrm_reset_flag_tb; /* offset of rrm reset flag tb sysmem top */
+static uint64_t offset_rrm_ack_flag_tb; /* offset of rrm ack flag tb sysmem top */
+static uint64_t offset_true_flag_buf; /* offset of get rrm flag buf sysmem top */
+
+static uint64_t offset_acp_buf_dl; /* offset of acp starter memory for dl from sysmem top */
+static uint64_t offset_acp_buf_cl; /* offset of acp starter memory for cl from sysmem top */
+static uint64_t offset_acp_buf_vd; /* offset of acp starter memory for vd from sysmem top */
+
+
 /* flags */
-static int writebackbuf_flag = TRUE; /* write enable writebackbuf flag */
-static int tail_buf_flag = TRUE; /* write enable writebackbuf flag */
-static int replaydata_flag = TRUE; /* write enable replaydata flag */
-static int putcmd_flag = TRUE; /* write enable putcmd flag */
+static int writebackbuf_flag = true; /* write enable writebackbuf flag */
+static int tail_buf_flag = true; /* write enable writebackbuf flag */
+static int replaydata_flag = true; /* write enable replaydata flag */
+static int putcmd_flag = true; /* write enable putcmd flag */
 
 static pthread_t comm_thread_id; /* communcation thread ID */
 
+static int executed_acp_init = false; /* check if acp_init executed or not. */ 
 
 void acp_abort(const char *str){
   
-    int i;/* general index */
+    int i; /* general index */
     
     /* release socket file descriptor */
 #ifdef DEBUG
@@ -228,11 +264,16 @@ void acp_abort(const char *str){
     fflush(stdout);
 #endif
     
-#ifdef MUL_MOD
+#ifdef MUL_MOD_VD
     iacp_abort_vd();
+#endif
+#ifdef MUL_MOD_CL
     iacp_abort_cl();
+#endif
+#ifdef MUL_MOD_DL
     iacp_abort_dl();
 #endif
+
     /* close IB resouce */
     if (res.mr != NULL) {
         ibv_dereg_mr(res.mr);
@@ -296,48 +337,19 @@ void acp_abort(const char *str){
         smi_tb = NULL;
     }
     
-    /* set NULL pointer for  sysmem */
-    rcmdbuf = NULL;
-    rcmdbuf_head = NULL; 
-    rcmdbuf_tail = NULL; 
-    head_buf = NULL; 
-    tail_buf = NULL;
-    putcmdbuf = NULL; 
-    replaydata = NULL;
-    writebackbuf = NULL; 
-    lrmtb = NULL; 
-    recv_lrmtb = NULL; 
-    rrm_get_flag_tb = NULL;
-    rrm_reset_flag_tb = NULL;
-    rrm_ack_flag_tb = NULL;
-    true_flag_buf = NULL; 
-    
-    /* initailize acpbl variables */
-    acp_myrank = -1;
-    tmphead = 1;
-    tmptail = 1;
-    head = 1;
-    tail = 1;
-    
-    ack_id = MASK_WRID_ACK;
-    ack_comp_count = 0;
-    
     fprintf(stderr, "acp_abort: %s\n", str);
-    /* abort(); */
-    
 #ifdef DEBUG
     fprintf(stdout, "internal acp_abort fin\n");
     fflush(stdout);
 #endif
-    
-    return;
+    abort(); 
 }
 
 int acp_sync(void){
     
-    int i;/* general index */
-    char dummy1, dummy2;/* dummy buffer */
-    int nprocs;/* my rank ID */
+    int i; /* general index */
+    char dummy1, dummy2; /* dummy buffer */
+    int nprocs; /* my rank ID */
     
 #ifdef DEBUG
     fprintf(stdout, "internal acp_sync\n");
@@ -350,10 +362,16 @@ int acp_sync(void){
     if (nprocs <= 0) {
         return -1;
     }
-    if (nprocs > 0) { /* if nprocs > 0, */
+    if (nprocs >= 2) { /* if nprocs >= 2, */
         for (i = 0; i < nprocs; i++) {
-            write(sock_connect, &dummy1, sizeof(char));
-            recv(sock_accept, &dummy2, sizeof(char), 0);
+            if (write(sock_connect, &dummy1, sizeof(char)) < 0){
+                fprintf(stderr, "acp_sync error: failed to write\n");
+                return -1;
+            }
+            if (recv(sock_accept, &dummy2, sizeof(char), 0) < 0){
+                fprintf(stderr, "acp_sync error: failed to recv\n");
+                return -1;
+            }
         }
     }
     
@@ -367,7 +385,7 @@ int acp_sync(void){
 
 int acp_colors(void){
     
-    return 1;  /* # of color is one  */
+    return num_devices;  
 }
 
 int acp_rank(void){
@@ -382,7 +400,7 @@ int acp_procs(void){
 
 int acp_query_rank(acp_ga_t ga){
     
-    int rank = -1; /* rank of ga */
+    int rank; /* rank of ga */
     
     rank = (int)((ga >> (COLOR_BITS + GMTAG_BITS + OFFSET_BITS)) & RANK_MASK);
     rank--;
@@ -396,7 +414,7 @@ int acp_query_rank(acp_ga_t ga){
 
 int acp_query_color(acp_ga_t ga){
     
-    int color = -1; /* color of ga */
+    int color; /* color of ga */
     
     color = (uint32_t)((ga >> (GMTAG_BITS + OFFSET_BITS)) & COLOR_MASK);
     
@@ -404,11 +422,11 @@ int acp_query_color(acp_ga_t ga){
     fprintf(stdout, "ga %lx color %d\n", ga, color);
     fflush(stdout);
 #endif
-  
+    
     return color;
 }
 
-uint32_t query_gmtag(acp_ga_t ga){
+static uint32_t query_gmtag(acp_ga_t ga){
     
     uint32_t gmtag; /* general tag global memory */
     
@@ -422,8 +440,7 @@ uint32_t query_gmtag(acp_ga_t ga){
     return gmtag;
 }
 
-
-uint64_t query_offset(acp_ga_t ga){
+static uint64_t query_offset(acp_ga_t ga){
     
     uint64_t offset; /* offset of ga */
     
@@ -440,8 +457,8 @@ uint64_t query_offset(acp_ga_t ga){
 acp_ga_t acp_query_starter_ga(int rank){
     
     acp_ga_t ga; /* global address */
-    uint32_t gmtag = TAG_SM;/* general tag of startar memory */
-    uint32_t color = 0;/* color of ga */
+    uint32_t gmtag = TAG_SM; /* general tag of startar memory */
+    uint32_t color = 0; /* color is 0 on starter memory */
     
     /* initialzie ga */
     ga = ACP_GA_NULL;
@@ -463,16 +480,14 @@ acp_ga_t iacp_query_starter_dl_ga(int rank){
     
     acp_ga_t ga; /* global address */
     uint32_t gmtag = TAG_SM; /* general tag of startar memory */
-    uint32_t color = 0; /* color of ga */
+    uint32_t color = 0; /* color is 0 on starter memory */
     uint64_t offset; /* offset of ga */
     
     /* initialzie ga */
     ga = ACP_GA_NULL;
     
     /* set ga */
-    offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
-        sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * acp_numprocs * 3 + sizeof(char);
+    offset = offset_acp_buf_dl;
     ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)gmtag << OFFSET_BITS)
@@ -490,16 +505,13 @@ acp_ga_t iacp_query_starter_ga_cl(int rank){
   
     acp_ga_t ga; /* global address */
     uint32_t gmtag = TAG_SM;/* general tag of startar memory */
-    uint32_t color = 0;/* color of ga */
+    uint32_t color = 0;/* color is 0 on starter memory */
     uint64_t offset; /* offset of ga */
     
     /* initialzie ga */
     ga = ACP_GA_NULL;
     
-    offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
-        sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * acp_numprocs * 3 + sizeof(char) +
-        iacp_starter_memory_size_dl;
+    offset = offset_acp_buf_cl;
     /* set ga */
     ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
@@ -518,17 +530,14 @@ acp_ga_t iacp_query_starter_ga_vd(int rank){
   
     acp_ga_t ga; /* global address */
     uint32_t gmtag = TAG_SM;/* general tag of startar memory */
-    uint32_t color = 0;/* color of ga */
+    uint32_t color = 0;/* color is 0 on starter memory */
     uint64_t offset; /* offset of ga */
     
     /* initialzie ga */
     ga = ACP_GA_NULL;
     
     /* set ga */
-    offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
-        sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * acp_numprocs * 3 + sizeof(char) +
-        iacp_starter_memory_size_dl + iacp_starter_memory_size_cl;
+    offset = offset_acp_buf_vd;
     ga = ((uint64_t)(rank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
         + ((uint64_t)gmtag << OFFSET_BITS)
@@ -547,7 +556,6 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
     acp_ga_t ga; /* global address */
     uint64_t offset = 0; /* 0: offset of ga */
     uint32_t gmtag = 0; /* 0: tag of ga */
-    uint32_t color = 0; /* 0: color of ga */
     int keyrank; /* rank of atkey */
     int myrank; /* rank id */
     
@@ -562,8 +570,9 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
     /* index of atkey */
     gmtag = (atkey >> OFFSET_BITS) & GMTAG_MASK;
     
-    /* if my rank is equal to keyrank */
+    /* if my rank is equal to key rank */
     if (keyrank == myrank) {
+        /* tag of atkey is not active */
         if (lrmtb[gmtag].size == 0) {
             return ACP_GA_NULL;
         }
@@ -574,11 +583,10 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
                     atkey, addr, keyrank, gmtag, lrmtb[gmtag].addr);
             fflush(stdout);
 #endif
+            /* calc offset */
             offset = (char *)addr - (lrmtb[gmtag].addr) ;
-            ga = ((uint64_t)(keyrank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
-                + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
-                + ((uint64_t)gmtag << OFFSET_BITS)
-                + offset;
+            /* set ga. atkey is ga of offset 0 */
+            ga = atkey + offset;
       
 #ifdef DEBUG
             fprintf(stdout, "rank %d acp_query_ga ga %lx\n", myrank, ga);
@@ -587,6 +595,7 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
             return ga;
         }
     }
+    /* key rank is not equal to my rank */
     else {
         return ACP_GA_NULL;
     }
@@ -600,14 +609,14 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     int mr_flags; /* memory register flag */
     
     acp_atkey_t key; /* memory register key */
-    uint32_t gmtag; /* tag in GA */
-    uint64_t offset = 0; /* offset in ga */
-    uint64_t base_offset = 0; /* offset of flag table */
-    char found; /* check flag for key space */
-    char insert; /* check flag for insert RM */
+    uint32_t gmtag; /* tag in key */
+    char found_empty_tag; /* found empty tag flag */
+    char inserted_tag; /* inserted tag flag */
     int nprocs; /* # of processes */
+    
     acp_ga_t dst, src; /* ga of dst and src */
     int myrank; /* my rank ID */
+    
     acp_handle_t handle; /* acp handle */
 
 #ifdef DEBUG
@@ -615,9 +624,17 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     fflush(stdout);
 #endif
     
+    /* if size <= 0, return ACP_GA_NULL.*/
+    if(size <= 0){
+        fprintf(stderr, "size %zu is invalid in acp_bl_ib.\n", size);
+        return ACP_GA_NULL;
+    }
     
-    /* color is only 0 */
-    color = 0; 
+    /* if color < 0 && color >= acp_colors(), return ACP_GA_NULL.*/
+    if (color < 0 && color >= acp_colors()){
+        fprintf(stderr, "color is not exist.\n");
+        return ACP_GA_NULL;
+    }
     
     /* get myrank and nprocs */
     myrank = acp_rank();
@@ -646,23 +663,23 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
             (uintptr_t)addr, mr->lkey, mr->rkey, mr_flags);
     fflush(stdout);
 #endif
-  
+    
     /* search invalid tag, and set tag */
-    found = FAULSE; /* empty tag flag */
-    insert = FAULSE; /* insert tag flag  */
+    found_empty_tag = false; /* initialze a founed empty tag flag */
+    inserted_tag = false; /* initialize a inserted tag flag  */
     for (i = 0;i < MAX_RM_SIZE;i++) {
-        if (lrmtb[i].size == 0) { /* find empty tag */
-            found = TRUE;
-            if (lrmtb[i].lock == FAULSE) { /* find insertable tag */
-                insert = TRUE; /* inserted  */
+        if (lrmtb[i].size == 0) { /* found empty tag */
+            found_empty_tag = true;
+            if (lrmtb[i].lock == false) { /* find insertable tag */
+                inserted_tag = true; /* inserted  */
                 lmrtb[i] = mr;
                 lrmtb[i].rkey = mr->rkey;
                 lrmtb[i].addr = addr;
                 lrmtb[i].size = size;
-                lrmtb[i].lock = TRUE; /* locked this tag */
+                lrmtb[i].lock = true; /* locked this tag */
 #ifdef DEBUG
                 fprintf(stdout, 
-                        "insert data into lrmtb[%d] addr %p size %lu, lock flag %d\n", 
+                        "insert data into lrmtb[%d] addr %p size %lu, lock flag %lu\n", 
                         i, lrmtb[i].addr, lrmtb[i].size, lrmtb[i].lock);
                 fflush(stdout);
 #endif
@@ -670,25 +687,20 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
             }
         }
     }
-  
-    /* not found key space */
-    if (found == FAULSE) {
+    
+    /* empty tag is not found */
+    if (found_empty_tag == false) {
         ibv_dereg_mr(mr);
         return ACP_ATKEY_NULL;
     }
-    else if (found == TRUE && insert == FAULSE) {
-        /* set base offset in order to set a reset flag */
-        base_offset = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
-            sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-            sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2 ;
-        
+    else if (found_empty_tag == true && inserted_tag == false) {
         /* tell to flush rkey cache */
         for (i = 0;i < nprocs;i++) {
-            if ( TRUE == rrm_get_flag_tb[i]) {
+            if ( true == rrm_get_flag_tb[i]) {
                 dst = acp_query_starter_ga(i);
                 src = acp_query_starter_ga(myrank);
-                handle = acp_copy(dst + base_offset + sizeof(char) * (acp_numprocs  + myrank),
-                                  src + base_offset + sizeof(char) * i, 
+                handle = acp_copy(dst + offset_rrm_reset_flag_tb + sizeof(char) * myrank,
+                                  src + offset_rrm_get_flag_tb + sizeof(char) * i, 
                                   sizeof(char), ACP_HANDLE_NULL);
             }
         }
@@ -700,7 +712,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
             if (lrmtb[i].size == 0) {
                 ibv_dereg_mr(lmrtb[i]);
                 lmrtb[i] = NULL;
-                lrmtb[i].lock = FAULSE;
+                lrmtb[i].lock = false;
             }
         }
 #ifdef DEBUG 
@@ -710,79 +722,72 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
         /* wait untitl get rrm flag table == reset rrm flag table */
         while (1) {
 #ifdef DEBUG
-                fprintf(stdout, "getflag ");
-                for (i = 0;i < nprocs;i++) {
-                    fprintf(stdout, "%d ", rrm_get_flag_tb[i]);
-                }
-                fprintf(stdout, "\n");
-                fprintf(stdout, "ackflag ");
-                for (i=0;i < nprocs;i++) {
-                    fprintf(stdout, "%d ", rrm_ack_flag_tb[i]);
-                }
-                fprintf(stdout, "\n");
-                fflush(stdout);
-#endif
-                if (0 == memcmp(rrm_get_flag_tb, rrm_ack_flag_tb, sizeof(char) * nprocs)) {
-                    break;
-                }
+            fprintf(stdout, "getflag ");
+            for (i = 0;i < nprocs;i++) {
+                fprintf(stdout, "%d ", rrm_get_flag_tb[i]);
             }
-            /* initialization rrm flag table */
-            memset(rrm_get_flag_tb, 0, sizeof(char) * nprocs);
-            memset(rrm_ack_flag_tb, 0, sizeof(char) * nprocs);
-            
-            /* insesrt new memory region */
-            for (i = 0;i < MAX_RM_SIZE;i++) {
-                if (lrmtb[i].size == 0) {
-                    found = TRUE;
-                    if (lrmtb[i].lock == FAULSE) {
-                        insert = TRUE;
-                        lmrtb[i] = mr;
-                        lrmtb[i].rkey = mr->rkey;
-                        lrmtb[i].addr = addr;
-                        lrmtb[i].size = size;
-                        lrmtb[i].lock = TRUE;
-#ifdef DEBUG
-                        fprintf(stdout, 
-                                "insert data into lrmtb[%d] addr %p size %lu, lock flag %d\n", 
-                                i, lrmtb[i].addr, lrmtb[i].size, lrmtb[i].lock);
-                        fflush(stdout);
-#endif
-                        break;
-                    }
-                }
+            fprintf(stdout, "\n");
+            fprintf(stdout, "ackflag ");
+            for (i=0;i < nprocs;i++) {
+                fprintf(stdout, "%d ", rrm_ack_flag_tb[i]);
             }
-            /* set acp atkey for new memory region */
-            gmtag = i;
-            key = ((uint64_t)(acp_rank()+1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
-            + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
-            + ((uint64_t)gmtag << OFFSET_BITS)
-            + offset;
-#ifdef DEBUG
-            fprintf(stdout, "rank %d atkey %lx gmtag %d\n", acp_myrank, key, gmtag);
+            fprintf(stdout, "\n");
             fflush(stdout);
 #endif
-            
-            return key;
-    }
-    else {
-        /* set gmtag */
+            if (0 == memcmp(rrm_get_flag_tb, rrm_ack_flag_tb, sizeof(char) * nprocs)) {
+                break;
+            }
+        }
+        /* initialization rrm flag table */
+        memset(rrm_get_flag_tb, 0, sizeof(char) * nprocs);
+        memset(rrm_ack_flag_tb, 0, sizeof(char) * nprocs);
+        
+        /* insesrt new memory region */
+        for (i = 0;i < MAX_RM_SIZE;i++) {
+            if (lrmtb[i].size == 0) {
+                found_empty_tag = true;
+                if (lrmtb[i].lock == false) {
+                    inserted_tag = true;
+                    lmrtb[i] = mr;
+                    lrmtb[i].rkey = mr->rkey;
+                    lrmtb[i].addr = addr;
+                    lrmtb[i].size = size;
+                    lrmtb[i].lock = true;
+#ifdef DEBUG
+                    fprintf(stdout, 
+                            "insert data into lrmtb[%d] addr %p size %lu, lock flag %lu\n", 
+                            i, lrmtb[i].addr, lrmtb[i].size, lrmtb[i].lock);
+                    fflush(stdout);
+#endif
+                        break;
+                }
+            }
+        }
+        /* set acp atkey for new memory region */
         gmtag = i;
-        /* set acp atkey */
-        key = ((uint64_t)(acp_rank()+1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+        key = ((uint64_t)(myrank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
             + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
-            + ((uint64_t)gmtag << OFFSET_BITS)
-            + offset;
+            + ((uint64_t)gmtag << OFFSET_BITS);
+
 #ifdef DEBUG
         fprintf(stdout, "rank %d atkey %lx gmtag %d\n", acp_myrank, key, gmtag);
-        fflush(stdout);
 #endif
-        
         return key;
     }
+    else {
+        /* set acp atkey for new memory region */
+        gmtag = i;
+        key = ((uint64_t)(myrank + 1) << (COLOR_BITS + GMTAG_BITS + OFFSET_BITS))
+            + ((uint64_t)color << (GMTAG_BITS + OFFSET_BITS))
+            + ((uint64_t)gmtag << OFFSET_BITS);
+            
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_register_memoery fin\n");
-    fflush(stdout);
+        fprintf(stdout, "rank %d atkey %lx gmtag %d\n", acp_myrank, key, gmtag);
+        fprintf(stdout, "internal acp_register_memoery fin\n");
+        fflush(stdout);
 #endif
+        return key;
+    }
 }
     
 int acp_unregister_memory(acp_atkey_t atkey){
@@ -822,7 +827,7 @@ void *acp_query_address(acp_ga_t ga){
     uint64_t offset; /* offset of ga */ 
     uint32_t gmtag; /* tag of ga */
     uint32_t color; /* color of ga */
-  
+    
     /* get rank, gm tag, offset, color from ga */
     gmtag = query_gmtag(ga);
     rank = acp_query_rank(ga);
@@ -836,11 +841,11 @@ void *acp_query_address(acp_ga_t ga){
 #endif
     /* if rank of ga is my rank, */
     if (rank == acp_myrank) {
-        /* ga tag is TAG_SM,  */
+        /* this ga tag is TAG_SM,  */
         if (gmtag == TAG_SM) {
             base_addr = sysmem;
         }
-        /* ga tag is general global memory */
+        /* this ga tag is general global memory */
         else {
             if (lrmtb[gmtag].size != 0) {
                 base_addr = (char *)lrmtb[gmtag].addr;
@@ -851,12 +856,12 @@ void *acp_query_address(acp_ga_t ga){
                 fflush(stdout);
 #endif
             }
-            else {
+            else { /* this ga tag is not registered */
                 return NULL;
             }
         }
     }
-    else {
+    else { /* this ga tag is not in local rank */
         return NULL;
     }
     /* set address */
@@ -888,7 +893,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     pcmdq = &tmpcmdq[tmptail4c];
   
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = COPY;
     pcmdq->ohdl = order;
@@ -899,7 +904,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
 #ifdef DEBUG
     fprintf(stdout, 
             "tail %lx tmpcmdq[%lx].hdl = %lx size = %lu\n", 
@@ -941,7 +946,7 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newv
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = CAS4;
     pcmdq->ohdl = order;
@@ -953,7 +958,7 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newv
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -996,7 +1001,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = CAS8;
     pcmdq->ohdl = order;
@@ -1008,7 +1013,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
 
 #ifdef DEBUG
     fprintf(stdout, "tail %lx tmpcmdq[%lx].hdl = %lx data1 %lu data2 %lu\n", 
@@ -1050,7 +1055,7 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = SWAP4;
     pcmdq->ohdl = order;
@@ -1061,7 +1066,7 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1084,9 +1089,9 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
 acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order){
   
     acp_handle_t hdl; /* handle of copy */
-    acp_handle_t tmptail4c;/* tail of cmdq */
-    int myrank;/* my rank */
-    CMD *pcmdq;/* pointer of cmdq */
+    acp_handle_t tmptail4c; /* tail of cmdq */
+    int myrank; /* my rank */
+    CMD *pcmdq; /* pointer of cmdq */
     
 #ifdef DEBUG
     fprintf(stdout, "internal acp_swap8\n");
@@ -1104,7 +1109,7 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
     pcmdq = &tmpcmdq[tmptail4c];
   
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = SWAP8;
     pcmdq->ohdl = order;
@@ -1115,7 +1120,7 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1158,7 +1163,7 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = ADD4;
     pcmdq->ohdl = order;
@@ -1169,7 +1174,7 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1212,7 +1217,7 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = ADD8;
     pcmdq->ohdl = order;
@@ -1223,7 +1228,7 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1266,7 +1271,7 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = XOR4;
     pcmdq->ohdl = order;
@@ -1277,7 +1282,7 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1320,7 +1325,7 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = XOR8;
     pcmdq->ohdl = order;
@@ -1331,7 +1336,7 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1374,7 +1379,7 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = OR4;
     pcmdq->ohdl = order;
@@ -1385,7 +1390,7 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1428,7 +1433,7 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = OR8;
     pcmdq->ohdl = order;
@@ -1439,7 +1444,7 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1482,7 +1487,7 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = AND4;
     pcmdq->ohdl = order;
@@ -1493,7 +1498,7 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1536,7 +1541,7 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     pcmdq = &tmpcmdq[tmptail4c];
     
     /* make a command, and enqueue command Queue. */ 
-    pcmdq->valid_head = TRUE;
+    pcmdq->valid_head = true;
     pcmdq->rank = myrank;
     pcmdq->type = AND8;
     pcmdq->ohdl = order;
@@ -1547,7 +1552,7 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     hdl = tmptail;
     pcmdq->hdl = hdl;
     pcmdq->ishdl = hdl;
-    pcmdq->valid_tail = TRUE;
+    pcmdq->valid_tail = true;
     
 #ifdef DEBUG
     fprintf(stdout, 
@@ -1674,7 +1679,7 @@ int acp_inquire(acp_handle_t handle){
         return 0;
     }
     /* if handle is ACP_HANDLE_ALL, */
-    /*   wait complete all issued copy */
+    /*  wait complete all issued copy */
     if (handle == ACP_HANDLE_ALL) {
         handle = tmptail;
     }
@@ -1702,7 +1707,7 @@ int acp_inquire(acp_handle_t handle){
 }
 
 /* get remote register memory table */
-int getlrm(acp_handle_t handle, int torank){
+static int getlrm(acp_handle_t handle, int torank){
   
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -1742,7 +1747,7 @@ int getlrm(acp_handle_t handle, int torank){
     sr.opcode = IBV_WR_RDMA_READ;
     
     /* Set remote address and rkey in send work request */
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr + acp_smsize;
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_lrmtb;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -1761,7 +1766,7 @@ int getlrm(acp_handle_t handle, int torank){
 }
 
 /* get remote register memory table */
-int writebackcmdq(uint64_t idx){
+static int writebackcmdq(uint64_t idx){
     
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -1817,8 +1822,7 @@ int writebackcmdq(uint64_t idx){
     fflush(stdout);
 #endif
     
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr + 
-        acp_smsize + sizeof(RM) * MAX_RM_SIZE * 2 + sizeof(uint64_t) * 5 + sizeof(CMD) * rcmdqidx;
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_cmdq + sizeof(CMD) * rcmdqidx;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -1835,7 +1839,7 @@ int writebackcmdq(uint64_t idx){
     return rc;
 }
 
-int gethead(acp_handle_t handle, int torank){
+static int gethead(acp_handle_t handle, int torank){
     
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -1874,8 +1878,7 @@ int gethead(acp_handle_t handle, int torank){
     sr.opcode = IBV_WR_RDMA_READ;
     
     /* Set remote address and rkey in send work request */
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr 
-        + acp_smsize + sizeof(RM) * MAX_RM_SIZE * 2; 
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_rcmdbuf_head;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -1892,7 +1895,7 @@ int gethead(acp_handle_t handle, int torank){
     return rc;
 }
 
-int gettail(acp_handle_t handle, int torank){
+static int gettail(acp_handle_t handle, int torank){
     
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -1933,8 +1936,7 @@ int gettail(acp_handle_t handle, int torank){
     sr.send_flags = IBV_SEND_SIGNALED;
    
     /* Set remote address and rkey in send work request */
-    sr.wr.atomic.remote_addr = smi_tb[torank].addr + 
-        acp_smsize + sizeof(RM) * MAX_RM_SIZE * 2 + sizeof(uint64_t);
+    sr.wr.atomic.remote_addr = smi_tb[torank].addr + offset_rcmdbuf_tail;
     sr.wr.atomic.rkey = smi_tb[torank].rkey;
     sr.wr.atomic.compare_add = 1ULL;
     
@@ -1952,7 +1954,7 @@ int gettail(acp_handle_t handle, int torank){
     return rc;
 }
  
-int putrrmgetflag(acp_handle_t handle, int torank){  
+static int putrrmgetflag(acp_handle_t handle, int torank){  
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
     struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
@@ -1996,9 +1998,7 @@ int putrrmgetflag(acp_handle_t handle, int torank){
     sr.opcode = IBV_WR_RDMA_WRITE;
     
     /* Set remote address and rkey in send work request */
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr + 
-        acp_smsize + sizeof(RM) * MAX_RM_SIZE * 2 + sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * myrank;
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_rrm_get_flag_tb + sizeof(char) * myrank;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -2016,7 +2016,7 @@ int putrrmgetflag(acp_handle_t handle, int torank){
     return rc;
 }
 
-int putrrmackflag(acp_handle_t handle, int torank){  
+static int putrrmackflag(acp_handle_t handle, int torank){  
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
     struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
@@ -2036,7 +2036,7 @@ int putrrmackflag(acp_handle_t handle, int torank){
     sge.length = sizeof(char);
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm ack flag length %d ture_flag %d torank %d\n", sge.length, *true_flag_buf, torank);
+    fprintf(stdout, "put rrm ack flag length %d true_flag %d torank %d\n", sge.length, *true_flag_buf, torank);
     fflush(stdout);
 #endif
     
@@ -2057,9 +2057,7 @@ int putrrmackflag(acp_handle_t handle, int torank){
     sr.opcode = IBV_WR_RDMA_WRITE;
     
     /* Set remote address and rkey in send work request */
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr + 
-        acp_smsize + sizeof(RM) * MAX_RM_SIZE * 2 + sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * acp_numprocs * 2 + sizeof(char) * myrank;
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_rrm_ack_flag_tb +  sizeof(char) * myrank;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -2077,7 +2075,7 @@ int putrrmackflag(acp_handle_t handle, int torank){
     return rc;
 }
 
-int putreplaydata(acp_handle_t handle, int dstrank, int dstgmtag, uint64_t dstoffset, int flguint64){
+static int putreplaydata(acp_handle_t handle, int dstrank, int dstgmtag, uint64_t dstoffset, int flguint64){
     
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -2093,7 +2091,7 @@ int putreplaydata(acp_handle_t handle, int dstrank, int dstgmtag, uint64_t dstof
     sge.lkey = res.mr->lkey;
     
     /* set message size */
-    if (TRUE == flguint64) {
+    if (true == flguint64) {
         sge.length = sizeof(uint64_t);
 #ifdef DEBUG
         fprintf(stdout, "put replaydata u64data %lu\n", (uint64_t)*replaydata);
@@ -2155,7 +2153,7 @@ int putreplaydata(acp_handle_t handle, int dstrank, int dstgmtag, uint64_t dstof
     return rc;
 }
 
-int putcmd(acp_handle_t handle, int torank, uint64_t rcmdbid){
+static int putcmd(acp_handle_t handle, int torank, uint64_t rcmdbid){
   
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -2215,8 +2213,7 @@ int putcmd(acp_handle_t handle, int torank, uint64_t rcmdbid){
     sr.opcode = IBV_WR_RDMA_WRITE;
     
     /* Set remote address and rkey in send work request */
-    sr.wr.rdma.remote_addr = smi_tb[torank].addr + acp_smsize + 
-        sizeof(RM) * MAX_RM_SIZE * 2 + sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + sizeof(CMD) * rcmdbid;
+    sr.wr.rdma.remote_addr = smi_tb[torank].addr + offset_rcmdbuf + sizeof(CMD) * rcmdbid;
     sr.wr.rdma.rkey = smi_tb[torank].rkey;
     
     /* post send by ibv_post_send */
@@ -2379,7 +2376,7 @@ int icopy(acp_handle_t handle,
     return rc;
 }
 
-void selectatomic(void *srcaddr, CMD *cmdq){
+static void selectatomic(void *srcaddr, CMD *cmdq){
     
     uint64_t *srcaddr8;
     uint32_t *srcaddr4;
@@ -2448,7 +2445,7 @@ void selectatomic(void *srcaddr, CMD *cmdq){
     return;
 }
 
-void check_cmdq_complete(uint64_t index){
+static void check_cmdq_complete(uint64_t index){
     
     uint64_t idx;/* index for cmdq */
     
@@ -2486,7 +2483,7 @@ void check_cmdq_complete(uint64_t index){
 #endif
 }
 
-void rcmdbuf_update_head(){
+static void rcmdbuf_update_head(){
     
     uint64_t idx; /* index for rcmdb */
     
@@ -2500,7 +2497,7 @@ void rcmdbuf_update_head(){
     idx = *rcmdbuf_head % MAX_RCMDB_SIZE;
     while (*rcmdbuf_head < *rcmdbuf_tail) {
         /* if flag is valid */
-        if (rcmdbuf[idx].valid_head == FAULSE && rcmdbuf[idx].valid_tail == FAULSE && rcmdbuf[idx].stat == CMD_WRITEBACK_FIN) {
+        if (rcmdbuf[idx].valid_head == false && rcmdbuf[idx].valid_tail == false && rcmdbuf[idx].stat == CMD_WRITEBACK_FIN) {
             (*rcmdbuf_head)++;
             idx++;
 #ifdef DEBUG
@@ -2521,7 +2518,7 @@ void rcmdbuf_update_head(){
 #endif
 }
 
-void setrrm(int torank){
+static void setrrm(int torank){
   
     int i; /* general index */
 #ifdef DEBUG
@@ -2534,7 +2531,6 @@ void setrrm(int torank){
         rrmtb[torank] = (RM *)malloc(sizeof(RM) * MAX_RM_SIZE);
         if (rrmtb[torank] == NULL) {
             acp_abort("set rrm error\n");
-            exit(-1);
         }
     }
     for (i = 0; i< MAX_RM_SIZE; i++) {
@@ -2554,7 +2550,7 @@ void setrrm(int torank){
 #endif
 }
 
-void *comm_thread_func(void *dm){
+static void *comm_thread_func(void *dm){
   
     int rc; /* return code for cq */
     int i; /* general index */
@@ -2693,15 +2689,15 @@ void *comm_thread_func(void *dm){
                                 srcrank = acp_query_rank(src);
                                 
                                 /* check enable putflag  */
-                                if (putcmd_flag == TRUE) {
+                                if (putcmd_flag == true) {
 #ifdef DEBUG		  
                                     fprintf(stdout, "idx %lx putcmd_flag %d\n",idx, putcmd_flag);
                                     fprintf(stdout, "myrank %d srcrank %d\n", myrank, srcrank);
                                     fflush(stdout);
 #endif
-                                    putcmd_flag = FAULSE; 
+                                    putcmd_flag = false; 
                                     putcmd(cmdq[idx].hdl, srcrank, *tail_buf);
-                                    tail_buf_flag = TRUE;
+                                    tail_buf_flag = true;
                                 }
                                 else {
                                     cmdq[idx].stat = WAIT_PUT_CMD_FLAG;
@@ -2715,11 +2711,11 @@ void *comm_thread_func(void *dm){
                                 fprintf(stdout, "WAIT_PUT_CMD\n");
                                 fflush(stdout);
 #endif
-                                putcmd_flag = TRUE;
+                                putcmd_flag = true;
                                 cmdq[idx].stat = WAIT_ACK;
                                 break;
                                 
-                            case WAIT_PUT_DST:/* only atomic */
+                            case WAIT_PUT_DST: /* only atomic */
 #ifdef DEBUG
                                 fprintf(stdout, "WAIT_PUT_DST\n");
                                 fflush(stdout);
@@ -2755,8 +2751,8 @@ void *comm_thread_func(void *dm){
                                 fprintf(stdout, "CMD_ISSUED\n");
                                 fflush(stdout);
 #endif
-                                if (writebackbuf_flag == TRUE) {
-                                    writebackbuf_flag = FAULSE;
+                                if (writebackbuf_flag == true) {
+                                    writebackbuf_flag = false;
                                     writebackcmdq(idx);
                                 }
                                 else {
@@ -2812,14 +2808,14 @@ void *comm_thread_func(void *dm){
                                 /* ATOMIC */
                                 else if ((rcmdbuf[idx].type & MASK_ATOMIC) == MASK_ATOMIC) {
                                     if ((rcmdbuf[idx].type & MASK_ATOMIC8 ) == MASK_ATOMIC8 ) {
-                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, TRUE);
+                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, true);
                                     }
                                     else {
-                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, FAULSE);
+                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, false);
                                     }
                                     rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
 #ifdef DEBUG
-                                    fprintf(stdout,"qp section: rcmdbuf[%lx] %d\n", idx, rcmdbuf[idx].stat);
+                                    fprintf(stdout,"qp section: rcmdbuf[%lx] %lu\n", idx, rcmdbuf[idx].stat);
                                     fflush(stdout);
 #endif
                                 }
@@ -2830,9 +2826,9 @@ void *comm_thread_func(void *dm){
                                 fprintf(stdout, "CMD_WAIT_PUT_DST\n");
                                 fflush(stdout);
 #endif
-                                replaydata_flag = TRUE;
-                                if (writebackbuf_flag == TRUE) {
-                                    writebackbuf_flag = FAULSE;
+                                replaydata_flag = true;
+                                if (writebackbuf_flag == true) {
+                                    writebackbuf_flag = false;
                                     writebackcmdq(idx);
                                 }
                                 else {
@@ -2846,9 +2842,9 @@ void *comm_thread_func(void *dm){
                                 fprintf(stdout, "CMD_WRITEBACK_FIN\n");
                                 fflush(stdout);
 #endif
-                                writebackbuf_flag = TRUE;
-                                rcmdbuf[idx].valid_head = FAULSE;
-                                rcmdbuf[idx].valid_tail = FAULSE;
+                                writebackbuf_flag = true;
+                                rcmdbuf[idx].valid_head = false;
+                                rcmdbuf[idx].valid_tail = false;
                                 rcmdbuf_update_head();
                                 break;
                                 
@@ -2893,7 +2889,7 @@ void *comm_thread_func(void *dm){
             tail++;
             tmphead++;
 #ifdef DEBUG
-            fprintf(stdout, "cmdq section: tmphead %lx, tmptail %lx head %lx tail %lx\n", tmphead, tmptail, head, tail);
+            fprintf(stdout, "tmpcmdq section: tmphead %lx, tmptail %lx head %lx tail %lx\n", tmphead, tmptail, head, tail);
             fflush(stdout);
 #endif
         }
@@ -2904,7 +2900,7 @@ void *comm_thread_func(void *dm){
                 idx = index % MAX_CMDQ_ENTRY;
 #ifdef DEBUG_L2
                 fprintf(stdout, 
-                        "cmdq setion: head %ld tail %ld cmdq[%ld].stat %d\n", 
+                        "cmdq section: head %ld tail %ld cmdq[%ld].stat %lx\n", 
                         head, tail, index, cmdq[idx].stat);
                 fflush(stdout);
 #endif
@@ -3030,8 +3026,8 @@ void *comm_thread_func(void *dm){
                             }
                             /* remote to remote copy */
                             else if (myrank != srcrank && myrank !=dstrank) {
-                                if (tail_buf_flag == TRUE) {
-                                    tail_buf_flag = FAULSE;
+                                if (tail_buf_flag == true) {
+                                    tail_buf_flag = false;
                                     gettail(cmdq[idx].hdl, srcrank);
                                 }
                                 else {
@@ -3068,8 +3064,8 @@ void *comm_thread_func(void *dm){
                             else if (myrank == srcrank && myrank != dstrank) {
                                 void *srcaddr;
                                 srcaddr = acp_query_address(src);
-                                if (replaydata_flag == TRUE) {
-                                    replaydata_flag = FAULSE;
+                                if (replaydata_flag == true) {
+                                    replaydata_flag = false;
                                     selectatomic(srcaddr, &cmdq[idx]);
                                 }
                                 else {
@@ -3079,10 +3075,10 @@ void *comm_thread_func(void *dm){
                                 /* if tag point stater memory */
                                 if (dsttag == TAG_SM) {
                                     if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
-                                        putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, TRUE);
+                                        putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, true);
                                     }
                                     else {
-                                        putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, FAULSE);
+                                        putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, false);
                                     }
                                     cmdq[idx].stat =  WAIT_PUT_DST;
                                 }
@@ -3105,10 +3101,10 @@ void *comm_thread_func(void *dm){
                                             fflush(stdout);
 #endif
                                             if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
-                                                putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, TRUE);
+                                                putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, true);
                                             }
                                             else {
-                                                putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, FAULSE);
+                                                putreplaydata(cmdq[idx].hdl, dstrank, dsttag, dstoffset, false);
                                             }
                                             cmdq[idx].stat = WAIT_PUT_DST;
                                         }
@@ -3139,8 +3135,8 @@ void *comm_thread_func(void *dm){
                             }
                             /* remote to remote atomic */
                             else if (myrank != srcrank) {
-                                if (tail_buf_flag == TRUE) {
-                                    tail_buf_flag = FAULSE;
+                                if (tail_buf_flag == true) {
+                                    tail_buf_flag = false;
                                     gettail(cmdq[idx].hdl, srcrank);
                                 }
                                 else {
@@ -3157,10 +3153,10 @@ void *comm_thread_func(void *dm){
                         fprintf(stdout, "wait_put_cmd_flag bool %d\n", putcmd_flag);
                         fflush(stdout);
 #endif
-                        if (putcmd_flag == TRUE) {
-                            putcmd_flag = FAULSE; 
+                        if (putcmd_flag == true) {
+                            putcmd_flag = false; 
                             putcmd(cmdq[idx].hdl, srcrank, *tail_buf);
-                            tail_buf_flag = TRUE;
+                            tail_buf_flag = true;
                             cmdq[idx].stat = WAIT_PUT_CMD;
                         }
                     }
@@ -3182,7 +3178,7 @@ void *comm_thread_func(void *dm){
         index = *rcmdbuf_head;
         while (index <  *rcmdbuf_tail) {
             idx = index % MAX_RCMDB_SIZE;
-            if (rcmdbuf[idx].valid_head == TRUE && rcmdbuf[idx].valid_tail == TRUE) {
+            if (rcmdbuf[idx].valid_head == true && rcmdbuf[idx].valid_tail == true) {
                 if (rcmdbuf[idx].stat == CMD_UNISSUED) {
 #ifdef DEBUG_L2
                     fprintf(stdout, "rcmdq section: CMD_UNISSUED\n");
@@ -3219,8 +3215,8 @@ void *comm_thread_func(void *dm){
                             fprintf(stdout, "local copy:dadr %p sadr %p\n", dstaddr, srcaddr);
                             fflush(stdout);
 #endif
-                            if (writebackbuf_flag == TRUE) {
-                                writebackbuf_flag = FAULSE;
+                            if (writebackbuf_flag == true) {
+                                writebackbuf_flag = false;
                                 writebackcmdq(idx);
                             }
                             else {
@@ -3294,8 +3290,8 @@ void *comm_thread_func(void *dm){
                         if (myrank == srcrank) {
                             void *srcaddr; 
                             srcaddr = acp_query_address(src);
-                            if (replaydata_flag == TRUE) {
-                                replaydata_flag = FAULSE;
+                            if (replaydata_flag == true) {
+                                replaydata_flag = false;
                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                 fprintf(stdout, 
@@ -3312,10 +3308,10 @@ void *comm_thread_func(void *dm){
                                 /* if tag point stater memory */
                                 if (dsttag == TAG_SM) {
                                     if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
-                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, TRUE);
+                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, true);
                                     }
                                     else {
-                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, FAULSE);
+                                        putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, false);
                                     }
                                     rcmdbuf[idx].stat =  CMD_WAIT_PUT_DST;
                                 }
@@ -3338,10 +3334,10 @@ void *comm_thread_func(void *dm){
                                             fflush(stdout);
 #endif
                                             if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
-                                                putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, TRUE);
+                                                putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, true);
                                             }
                                             else {
-                                                putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, FAULSE);
+                                                putreplaydata(rcmdbuf[idx].hdl, dstrank, dsttag, dstoffset, false);
                                             }
                                             rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
                                         }
@@ -3382,9 +3378,9 @@ void *comm_thread_func(void *dm){
                                     memcpy(&dstaddr, &replaydata, sizeof(uint32_t));
                                 }
                                 
-                                replaydata_flag = TRUE;
-                                if (writebackbuf_flag == TRUE) {
-                                    writebackbuf_flag = FAULSE;
+                                replaydata_flag = true;
+                                if (writebackbuf_flag == true) {
+                                    writebackbuf_flag = false;
                                     writebackcmdq(idx);
                                 }
                                 else {
@@ -3407,14 +3403,14 @@ void *comm_thread_func(void *dm){
         /* PUT RRM ACK SECTION */
         for (i = 0;i < nprocs;i++) {
             /* check rrm reset flag table */
-            if (TRUE == rrm_reset_flag_tb[i]) {
+            if (true == rrm_reset_flag_tb[i]) {
                 /* free remote rkey table */
                 free(rrmtb[i]);
                 rrmtb[i] = NULL;
                 /* put rrm ack flag */
                 putrrmackflag(ack_id, i);
-                /* set FAULSE rrm reset flag table */
-                rrm_reset_flag_tb[i] = FAULSE;
+                /* set false rrm reset flag table */
+                rrm_reset_flag_tb[i] = false;
                 ack_id++;
             }
         }
@@ -3460,10 +3456,61 @@ int iacp_init(void){
     /* allocate the starter memory adn register memory */
     int syssize;
     
-    syssize = acp_smsize + sizeof(RM) * (MAX_RM_SIZE) * 2  +
+    /* initialize head, tail */
+    tmphead = 1;
+    tmptail = 1;
+    head = 1;
+    tail = 1;  
+    
+    /* initialize ack ID  */
+    ack_id = MASK_WRID_ACK;
+    ack_comp_count = 0;
+    
+    int alm8_add;
+    
+    /* adjust sysmem to 8 byte alignment */
+    
+    alm8_add = acp_smsize & 7;
+    if (alm8_add != 0) {
+        alm8_add = 8 - alm8_add;
+    }
+    acp_smsize_adj = acp_smsize + alm8_add ;
+    
+    alm8_add = iacp_starter_memory_size_dl & 7;
+    if (alm8_add != 0) {
+        alm8_add = 8 - alm8_add;
+    }
+    acp_smdlsize_adj = iacp_starter_memory_size_dl + alm8_add;
+
+    alm8_add = iacp_starter_memory_size_cl & 7;
+    if (alm8_add != 0) {
+        alm8_add = 8 - alm8_add;
+    }
+    acp_smclsize_adj = iacp_starter_memory_size_cl + alm8_add;
+    
+    alm8_add = iacp_starter_memory_size_vd & 7;
+    if (alm8_add != 0) {
+        alm8_add = 8 - alm8_add;
+    }
+    acp_smvdsize_adj = iacp_starter_memory_size_vd + alm8_add;
+    
+    alm8_add = ((acp_numprocs * 3 + 1) & 7);
+    if (alm8_add != 0) {
+        alm8_add = 8 - alm8_add;
+    }
+    ncharflagtb_adj = sizeof(char) * ((acp_numprocs * 3 + 1) + alm8_add);
+
+#ifdef DEBUG
+    fprintf(stdout, "RM %lu, CMD %lu\n ", sizeof(RM), sizeof(CMD));
+    fflush(stdout);
+#endif
+    /* sysmem size */
+    syssize = acp_smsize_adj + sizeof(RM) * (MAX_RM_SIZE) * 2  +
         sizeof(uint64_t) * 5 + sizeof(CMD) * MAX_CMDQ_ENTRY + 
-        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + sizeof(char) * acp_numprocs * 3 + sizeof(char) +
-        iacp_starter_memory_size_dl + iacp_starter_memory_size_cl + iacp_starter_memory_size_vd;	
+        sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * 2  + ncharflagtb_adj + 
+        acp_smdlsize_adj + acp_smclsize_adj + acp_smvdsize_adj;	
+    
+    /* malloc sysmem */
     sysmem = (char *) malloc(syssize);
     if (NULL == sysmem ) {
         fprintf(stderr, "failed to malloc %d bytes to memory buffer\n", 
@@ -3476,13 +3523,15 @@ int iacp_init(void){
     memset(sysmem, 0 , syssize);
     
     /* initalize local rkey memory */
-    lrmtb = (RM *) ((char *)sysmem + acp_smsize);
+    lrmtb = (RM *) ((char *)sysmem + acp_smsize_adj);
+    offset_lrmtb = acp_smsize_adj;
     for (i = 0;i < MAX_RM_SIZE;i++) {
         /* entry non active */
         lrmtb[i].size = 0;
     }
     /* initalize revcieve local rkey memory */
     recv_lrmtb = (RM *) ((char *)lrmtb + sizeof(RM) * MAX_RM_SIZE );
+    offset_recv_lrmtb = offset_lrmtb + sizeof(RM) * MAX_RM_SIZE;
     for (i = 0;i < MAX_RM_SIZE;i++) {
         /* entry non active */
         recv_lrmtb[i].size = 0;
@@ -3490,55 +3539,71 @@ int iacp_init(void){
     
     /* initialize write flag of command recv buffer */
     rcmdbuf_head = (uint64_t *)((char *)recv_lrmtb +  sizeof(RM) * MAX_RM_SIZE );
+    offset_rcmdbuf_head = offset_recv_lrmtb + sizeof(RM) * MAX_RM_SIZE;
     *rcmdbuf_head = 0;
     
     /* initialize read flag of command recv buffer */
     rcmdbuf_tail = (uint64_t *)((char *)rcmdbuf_head + sizeof(uint64_t));
+    offset_rcmdbuf_tail = offset_rcmdbuf_head + sizeof(uint64_t);
     *rcmdbuf_tail = 0;
     
     /* initialize local head buffer */
     head_buf = (uint64_t *)((char * )rcmdbuf_tail + sizeof(uint64_t));
+    offset_head_buf = offset_rcmdbuf_tail + sizeof(uint64_t);
     
     /* initialize local tail buffer */
     tail_buf = (uint64_t *)((char *)head_buf + sizeof(uint64_t));
+    offset_tail_buf = offset_head_buf + sizeof(uint64_t);
     
     /* initialize replay data buffer */
     replaydata = (uint64_t *)((char *)tail_buf + sizeof(uint64_t));
+    offset_replaydata = offset_tail_buf + sizeof(uint64_t);
     
     /* initialize command q */
     cmdq = (CMD *)((char *)replaydata + sizeof(uint64_t)); 
+    offset_cmdq = offset_replaydata + sizeof(uint64_t);
     
     /* initialize command recv buffer */
     rcmdbuf = (CMD *)((char *)cmdq + sizeof(CMD) * MAX_CMDQ_ENTRY);
+    offset_rcmdbuf = offset_cmdq + sizeof(CMD) * MAX_CMDQ_ENTRY;
     
     /* initialize writeback buffer */
     writebackbuf = (CMD *)((char *)rcmdbuf + sizeof(CMD) * MAX_RCMDB_SIZE);
+    offset_writebackbuf = offset_rcmdbuf + sizeof(CMD) * MAX_RCMDB_SIZE;
     
     /* initilaize put cmd buffer */
     putcmdbuf = (CMD *)((char*)writebackbuf + sizeof(CMD));
+    offset_putcmdbuf = offset_writebackbuf + sizeof(CMD);
     
     /* initilaize get flag table */
     rrm_get_flag_tb = (char *)((char*)putcmdbuf + sizeof(CMD));
+    offset_rrm_get_flag_tb = offset_putcmdbuf + sizeof(CMD);
     
     /* initilaize reset flag table */
     rrm_reset_flag_tb = (char *)((char*)rrm_get_flag_tb + sizeof(char) * acp_numprocs);
-    
+    offset_rrm_reset_flag_tb = offset_rrm_get_flag_tb + sizeof(char) * acp_numprocs;
+
     /* initialize ack flag table */
     rrm_ack_flag_tb = (char *)((char*)rrm_reset_flag_tb + sizeof(char) * acp_numprocs);
+    offset_rrm_ack_flag_tb = offset_rrm_reset_flag_tb + sizeof(char) * acp_numprocs;
     
     /* set true flag buffer */
     true_flag_buf = (char *)((char*)rrm_ack_flag_tb + sizeof(char) * acp_numprocs);
-    *true_flag_buf = TRUE;
+    offset_true_flag_buf = offset_rrm_ack_flag_tb + sizeof(char) * acp_numprocs;
+    *true_flag_buf = true;
     
     /* set starter memory for multi module */
-    acp_buf_dl = (char *)((char *)true_flag_buf + sizeof(char));
-    acp_buf_cl = (char *)((char *)acp_buf_dl + iacp_starter_memory_size_dl);
-    acp_buf_vd = (char *)((char *)acp_buf_cl + iacp_starter_memory_size_cl);
-  
+    acp_buf_dl = (char *)((char *)rrm_get_flag_tb + ncharflagtb_adj);
+    offset_acp_buf_dl = offset_rrm_get_flag_tb + ncharflagtb_adj;
+    acp_buf_cl = (char *)((char *)acp_buf_dl + acp_smdlsize_adj);
+    offset_acp_buf_cl = offset_acp_buf_dl + acp_smdlsize_adj;
+    acp_buf_vd = (char *)((char *)acp_buf_cl + acp_smclsize_adj);
+    offset_acp_buf_vd = offset_acp_buf_cl + acp_smclsize_adj;
+    
 #ifdef DEBUG
     fprintf(stdout, 
-            "sm %p acp_vd_buf %p syssize %d sm + syssize %p\n", 
-            sysmem, (char *)acp_buf_vd + iacp_starter_memory_size_vd, syssize, sysmem + syssize);
+            "sm %p acp_vd_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu\n", 
+            sysmem, (char *)acp_buf_vd + acp_smvdsize_adj, syssize, sysmem + syssize, offset_acp_buf_vd);
     fflush(stdout);
 #endif
     /* remote register memory table */
@@ -3967,11 +4032,16 @@ int iacp_init(void){
     
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
     
-#ifdef MUL_MOD  
+#ifdef MUL_MOD_DL  
     if (iacp_init_dl()) return -1;
+#endif
+#ifdef MUL_MOD_CL  
     if (iacp_init_cl()) return -1;
+#endif
+#ifdef MUL_MOD_VD  
     if (iacp_init_vd()) return -1;
 #endif
+
     return rc;
     
 exit:
@@ -4055,32 +4125,6 @@ exit:
         free(smi_tb);
         smi_tb = NULL;
     }
-    
-    /* set NULL pointer for  sysmem */
-    rcmdbuf = NULL;
-    rcmdbuf_head = NULL; 
-    rcmdbuf_tail = NULL; 
-    head_buf = NULL; 
-    tail_buf = NULL;
-    putcmdbuf = NULL; 
-    replaydata = NULL;
-    writebackbuf = NULL; 
-    lrmtb = NULL; 
-    recv_lrmtb = NULL; 
-    rrm_get_flag_tb = NULL;
-    rrm_reset_flag_tb = NULL;
-    rrm_ack_flag_tb = NULL;
-    true_flag_buf = NULL; 
-    
-    /* initailize acpbl variables */
-    acp_myrank = -1;
-    tmphead = 1;
-    tmptail = 1;
-    head = 1;
-    tail = 1;
-  
-    ack_id = MASK_WRID_ACK;
-    ack_comp_count = 0;
 
     return rc;
     
@@ -4088,6 +4132,10 @@ exit:
 
 int acp_init(int *argc, char ***argv){
     int rc;/* return code */
+    
+    if (executed_acp_init == true) {
+        return 0;
+    }
     
     if (*argc < 7) return -1;
     
@@ -4109,6 +4157,11 @@ int acp_init(int *argc, char ***argv){
     
     rc = iacp_init();
     
+    /* if acp_init success, executed_acp_init flag is true */
+    if ( rc == 0) {
+        executed_acp_init = true;
+    }
+    
     return rc;
 }
 
@@ -4124,13 +4177,16 @@ int acp_finalize(){
     fflush(stdout);
 #endif
     
-#ifdef MUL_MOD
+#ifdef MUL_MOD_VD
     iacp_finalize_vd();
+#endif
+#ifdef MUL_MOD_CL
     iacp_finalize_cl();
+#endif
+#ifdef MUL_MOD_DL
     iacp_finalize_dl();
 #endif
     /* Insert FIN command into cmdq */
-    /* if queue is full, return ACP_HANDLE_NULL */
     while (tmptail - tmphead == MAX_CMDQ_ENTRY - 1) ;
     
     /* wait all process execute acp_finalize */
@@ -4149,7 +4205,7 @@ int acp_finalize(){
     /* update tmptail */
     tmptail++ ;
     
-    /* complete hdl */
+    /* complete communication thread */
     pthread_join(comm_thread_id, NULL);
     
     /* close IB resouce */
@@ -4215,32 +4271,8 @@ int acp_finalize(){
         free(smi_tb);
         smi_tb = NULL;
     }
-    
-    /* set NULL pointer for  sysmem */
-    rcmdbuf = NULL;
-    rcmdbuf_head = NULL; 
-    rcmdbuf_tail = NULL; 
-    head_buf = NULL; 
-    tail_buf = NULL;
-    putcmdbuf = NULL; 
-    replaydata = NULL;
-    writebackbuf = NULL; 
-    lrmtb = NULL; 
-    recv_lrmtb = NULL; 
-    rrm_get_flag_tb = NULL;
-    rrm_reset_flag_tb = NULL;
-    rrm_ack_flag_tb = NULL;
-    true_flag_buf = NULL; 
-    
     /* initailize acpbl variables */
     acp_myrank = -1;
-    tmphead = 1;
-    tmptail = 1;
-    head = 1;
-    tail = 1;
-  
-    ack_id = MASK_WRID_ACK;
-    ack_comp_count = 0;
 
 #ifdef DEBUG
     fprintf(stdout, "internal acp_finalize fin\n");
@@ -4257,7 +4289,7 @@ int acp_reset(int rank){
     if (rc == -1) {
         return rc;
     }
-    
+    acp_myrank = rank;
     rc = iacp_init();
     
     return rc;

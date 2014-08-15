@@ -7,7 +7,7 @@
 #include <errno.h>
 #include "acpbl.h"
 
-
+size_t iacp_starter_memory_size_cl = 1024;
 
 /* default parameters */
 #define ACPCI_CRBENTRYNUM 8     // Number of entries of crb

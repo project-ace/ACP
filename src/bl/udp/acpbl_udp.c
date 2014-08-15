@@ -24,10 +24,6 @@ static int sock_listen, sock_accept0, sock_accept1, sock_connect;
 static int num_child;
 static uint64_t sync_sequence_number;
 
-size_t iacp_starter_memory_size_dl;
-size_t iacp_starter_memory_size_cl;
-size_t iacp_starter_memory_size_vd;
-
 int iacpbludp_my_rank;
 int iacpbludp_num_procs;
 uint32_t  iacpbludp_taskid;

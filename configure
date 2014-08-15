@@ -13006,7 +13006,7 @@ if test "$top_acp_builddir" != "$top_acp_srcdir"; then
 $as_echo "$as_me: Detected VPATH build" >&6;}
 fi
 
-ac_config_files="$ac_config_files Makefile sample/Makefile src/Makefile src/bl/Makefile src/bl/ib/Makefile src/bl/udp/Makefile src/include/Makefile src/ml/Makefile src/ml/cl/Makefile test/Makefile test/bl/Makefile test/bl/ib/Makefile test/bl/udp/Makefile test/ml/Makefile test/ml/ch/Makefile"
+ac_config_files="$ac_config_files Makefile sample/Makefile src/Makefile src/bl/Makefile src/bl/ib/Makefile src/bl/udp/Makefile src/include/Makefile src/ml/Makefile src/ml/cl/Makefile src/ml/dl/Makefile test/Makefile test/bl/Makefile test/bl/ib/Makefile test/bl/udp/Makefile test/ml/Makefile test/ml/ch/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -14038,6 +14038,7 @@ do
     "src/include/Makefile") CONFIG_FILES="$CONFIG_FILES src/include/Makefile" ;;
     "src/ml/Makefile") CONFIG_FILES="$CONFIG_FILES src/ml/Makefile" ;;
     "src/ml/cl/Makefile") CONFIG_FILES="$CONFIG_FILES src/ml/cl/Makefile" ;;
+    "src/ml/dl/Makefile") CONFIG_FILES="$CONFIG_FILES src/ml/dl/Makefile" ;;
     "test/Makefile") CONFIG_FILES="$CONFIG_FILES test/Makefile" ;;
     "test/bl/Makefile") CONFIG_FILES="$CONFIG_FILES test/bl/Makefile" ;;
     "test/bl/ib/Makefile") CONFIG_FILES="$CONFIG_FILES test/bl/ib/Makefile" ;;

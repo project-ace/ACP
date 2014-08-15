@@ -24,7 +24,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
-#include "acpbl.h"
+#include "acp.h"
 
 int main(int argc, char** argv)
 {
@@ -88,14 +88,5 @@ int main(int argc, char** argv)
 
 }
 
-int iacp_init_dl(void) { return 0; };
-int iacp_init_vd(void) { return 0; };
-int iacp_finalize_dl(void) { return 0; };
-int iacp_finalize_vd(void) { return 0; };
-void iacp_abort_dl(void) { return; };
-void iacp_abort_vd(void) { return; };
-size_t iacp_starter_memory_size_dl = 1024;
-size_t iacp_starter_memory_size_cl = 1024;
-size_t iacp_starter_memory_size_vd = 1024;
   
 

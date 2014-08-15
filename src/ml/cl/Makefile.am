@@ -10,8 +10,5 @@ libacpml_cl_la_SOURCES = \
 			 acpcl.c \
 			 acpbl.h \
 			 acpbl_sync.h \
-			 acpbl_udp.h \
-			 acpbl_udp_gma.h \
-			 acpbl_udp_gmm.h \
 			 acpcl.h
 

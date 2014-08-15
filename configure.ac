@@ -16,13 +16,13 @@ AC_CONFIG_HEADERS([config/config.h])
 AC_CANONICAL_HOST
 
 # Checks for programs.
+AM_PROG_AR
 AC_PROG_CC
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
-AM_PROG_AR
 
 # Check to see if building shared libraries
 libtool_build_shared_libs='no'
@@ -90,6 +90,7 @@ AC_CONFIG_FILES([Makefile
                  src/include/Makefile
                  src/ml/Makefile
                  src/ml/cl/Makefile
+                 src/ml/dl/Makefile
                  test/Makefile
                  test/bl/Makefile
                  test/bl/ib/Makefile

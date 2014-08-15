@@ -3,9 +3,11 @@
 # $COPYRIGHT$
 #
 
-SUBDIRS = cl
+SUBDIRS = cl dl
 
 lib_LTLIBRARIES = libacpml.la
 libacpml_la_SOURCES =
 libacpml_la_LDFLAGS = -version-info $(libacpml_version)
-libacpml_la_LIBADD = cl/libacpml_cl.la
+libacpml_la_LIBADD = \
+		     cl/libacpml_cl.la \
+		     dl/libacpml_dl.la

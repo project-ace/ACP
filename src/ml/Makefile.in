@@ -126,7 +126,7 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libacpml_la_DEPENDENCIES = cl/libacpml_cl.la
+libacpml_la_DEPENDENCIES = cl/libacpml_cl.la dl/libacpml_dl.la
 am_libacpml_la_OBJECTS =
 libacpml_la_OBJECTS = $(am_libacpml_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
@@ -356,11 +356,14 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = cl
+SUBDIRS = cl dl
 lib_LTLIBRARIES = libacpml.la
 libacpml_la_SOURCES = 
 libacpml_la_LDFLAGS = -version-info $(libacpml_version)
-libacpml_la_LIBADD = cl/libacpml_cl.la
+libacpml_la_LIBADD = \
+		     cl/libacpml_cl.la \
+		     dl/libacpml_dl.la
+
 all: all-recursive
 
 .SUFFIXES:

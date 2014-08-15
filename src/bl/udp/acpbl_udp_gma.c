@@ -56,6 +56,10 @@
 
 #define POS_SWID       (POS_DSID + BIT_DSID)
 
+int iacpbludp_init_gma(void);
+int iacpbludp_finalize_gma(void);
+void iacpbludp_abort_gma(void);
+
 static inline uint32_t* dg_task(unsigned char* ptr) { return (uint32_t*)ptr; }
 static inline uint32_t* dg_type(unsigned char* ptr) { return (uint32_t*)(ptr + 4); }
 static inline uint32_t* dg_rank(unsigned char* ptr) { return (uint32_t*)(ptr + 8); }

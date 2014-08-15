@@ -10,13 +10,13 @@
 #define ACPBL_UDP_RANK_ERROR 0xffffffff
 #define ACPBL_UDP_GPID_ERROR 0xffffffff
 
-int iacpbludp_my_rank;
-int iacpbludp_num_procs;
-uint32_t  iacpbludp_taskid;
+extern int iacpbludp_my_rank;
+extern int iacpbludp_num_procs;
+extern uint32_t  iacpbludp_taskid;
 
-uint32_t* iacpbludp_rank_table;
-uint16_t* iacpbludp_port_table;
-uint32_t* iacpbludp_addr_table;
+extern uint32_t* iacpbludp_rank_table;
+extern uint16_t* iacpbludp_port_table;
+extern uint32_t* iacpbludp_addr_table;
 
 #define MY_RANK    iacpbludp_my_rank
 #define NUM_PROCS  iacpbludp_num_procs

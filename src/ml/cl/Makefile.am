@@ -1,0 +1,17 @@
+#
+# Copyright (c) 2012-2014 ACE Project
+# $COPYRIGHT$
+#
+
+AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
+
+noinst_LTLIBRARIES = libacpml_cl.la
+libacpml_cl_la_SOURCES = \
+			 acpcl.c \
+			 acpbl.h \
+			 acpbl_sync.h \
+			 acpbl_udp.h \
+			 acpbl_udp_gma.h \
+			 acpbl_udp_gmm.h \
+			 acpcl.h
+

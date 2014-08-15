@@ -26,8 +26,8 @@
 #define ACPBL_UDP_SW_SIZE 3
 #endif
 
-int iacpbludp_init_gma(void);
-int iacpbludp_finalize_gma(void);
-void iacpbludp_abort_gma(void);
+extern int iacpbludp_init_gma(void);
+extern int iacpbludp_finalize_gma(void);
+extern void iacpbludp_abort_gma(void);
 
 #endif /* acpbl_udp_gma.h */

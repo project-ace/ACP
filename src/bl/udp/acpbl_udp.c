@@ -24,6 +24,18 @@ static int sock_listen, sock_accept0, sock_accept1, sock_connect;
 static int num_child;
 static uint64_t sync_sequence_number;
 
+size_t iacp_starter_memory_size_dl;
+size_t iacp_starter_memory_size_cl;
+size_t iacp_starter_memory_size_vd;
+
+int iacpbludp_my_rank;
+int iacpbludp_num_procs;
+uint32_t  iacpbludp_taskid;
+
+uint32_t* iacpbludp_rank_table;
+uint16_t* iacpbludp_port_table;
+uint32_t* iacpbludp_addr_table;
+
 static int iacp_init(void)
 {
     struct sockaddr_in addr_listen, addr_accept0, addr_accept1, addr_connect;

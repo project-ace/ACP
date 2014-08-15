@@ -16,6 +16,20 @@
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
 
+int iacpbludp_init_gmm(void);
+int iacpbludp_finalize_gmm(void);
+void iacpbludp_abort_gmm(void);
+
+int iacpbludp_bit_rank;
+int iacpbludp_bit_offset;
+uint64_t iacpbludp_mask_rank;
+uint64_t iacpbludp_mask_seg;
+uint64_t iacpbludp_mask_offset;
+
+uint64_t iacpbludp_segment[16][2];
+int iacpbludp_num_segment;
+int iacpbludp_starter_memory_size;
+
 int iacpbludp_init_gmm(void)
 {
     FILE *fp;

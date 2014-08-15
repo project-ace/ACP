@@ -1,19 +1,19 @@
 #ifndef __ACPBL_UDP_GSM_H__
 #define __ACPBL_UDP_GSM_H__
 
-int iacpbludp_init_gmm(void);
-int iacpbludp_finalize_gmm(void);
-void iacpbludp_abort_gmm(void);
+extern int iacpbludp_init_gmm(void);
+extern int iacpbludp_finalize_gmm(void);
+extern void iacpbludp_abort_gmm(void);
 
-int iacpbludp_bit_rank;
-int iacpbludp_bit_offset;
-uint64_t iacpbludp_mask_rank;
-uint64_t iacpbludp_mask_seg;
-uint64_t iacpbludp_mask_offset;
+extern int iacpbludp_bit_rank;
+extern int iacpbludp_bit_offset;
+extern uint64_t iacpbludp_mask_rank;
+extern uint64_t iacpbludp_mask_seg;
+extern uint64_t iacpbludp_mask_offset;
 
-uint64_t iacpbludp_segment[16][2];
-int iacpbludp_num_segment;
-int iacpbludp_starter_memory_size;
+extern uint64_t iacpbludp_segment[16][2];
+extern int iacpbludp_num_segment;
+extern int iacpbludp_starter_memory_size;
 
 #define BIT_RANK    iacpbludp_bit_rank
 #define BIT_SEG     4

@@ -81,17 +81,17 @@ int main(int argc, char** argv)
   return 0;
 }
 
-size_t iacp_starter_memory_size_ds = 1024;
-size_t iacp_starter_memory_size_ch = 1024;
+size_t iacp_starter_memory_size_cl = 1024;
+size_t iacp_starter_memory_size_dl = 1024;
 size_t iacp_starter_memory_size_vd = 1024;
 
-int iacp_init_ds(void) { return 0; };
-int iacp_init_ch(void) { return 0; };
+int iacp_init_cl(void) { return 0; };
+int iacp_init_dl(void) { return 0; };
 int iacp_init_vd(void) { return 0; };
-int iacp_finalize_ds(void) { return 0; };
-int iacp_finalize_ch(void) { return 0; };
+int iacp_finalize_cl(void) { return 0; };
+int iacp_finalize_dl(void) { return 0; };
 int iacp_finalize_vd(void) { return 0; };
-void iacp_abort_ds(void) { return; };
-void iacp_abort_ch(void) { return; };
+void iacp_abort_cl(void) { return; };
+void iacp_abort_dl(void) { return; };
 void iacp_abort_vd(void) { return; };
 

@@ -30,8 +30,8 @@ void iacp_abort_dl(void);
 void iacp_abort_cl(void);
 void iacp_abort_vd(void);
 
-size_t iacp_starter_memory_size_dl;
-size_t iacp_starter_memory_size_cl;
-size_t iacp_starter_memory_size_vd;
+extern size_t iacp_starter_memory_size_dl;
+extern size_t iacp_starter_memory_size_cl;
+extern size_t iacp_starter_memory_size_vd;
 
 #endif /* acpbl.h */

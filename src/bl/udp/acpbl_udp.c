@@ -314,7 +314,7 @@ static int iacp_init(void)
     
     if (iacp_init_dl()) return -1;
     if (iacp_init_cl()) return -1;
-    if (iacp_init_vd()) return -1;
+    /* if (iacp_init_vd()) return -1; */
     
     return 0;
 }
@@ -404,7 +404,7 @@ int acp_finalize(void)
 {
     int r;
     
-    iacp_finalize_vd();
+    /* iacp_finalize_vd(); */
     iacp_finalize_cl();
     iacp_finalize_dl();
     
@@ -433,7 +433,7 @@ int acp_reset(int rank)
 
 void acp_abort(const char* str)
 {
-    iacp_abort_vd();
+    /* iacp_abort_vd(); */
     iacp_abort_cl();
     iacp_abort_dl();
     

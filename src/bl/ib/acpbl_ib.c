@@ -16,7 +16,8 @@
 //#define DEBUG
 //#define DEBUG_L2
 //#define DEBUG_L3
-#define MUL_MOD_CL
+//#define MUL_MOD_CL
+
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define size */
@@ -2312,6 +2313,9 @@ int icopy(acp_handle_t handle,
     sr.wr_id =  handle;
     sr.sg_list = &sge;
     sr.num_sge = 1;
+    if (size == 0){
+        sr.num_sge = 0;
+    }
 #ifdef DEBUG
     fprintf(stdout, "icopy wr_id  %lx handle %lx\n", sr.wr_id, handle);
     fflush(stdout);

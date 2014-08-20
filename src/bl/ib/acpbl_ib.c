@@ -16,7 +16,6 @@
 //#define DEBUG
 //#define DEBUG_L2
 //#define DEBUG_L3
-//#define MUL_MOD_CL
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -3604,6 +3603,7 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
+    memset(rrmtb, 0, sizeof(RM *) * acp_numprocs);
     
     /* generate server socket */
     if ((sock_s = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -4120,16 +4120,23 @@ int acp_init(int *argc, char ***argv){
     if (executed_acp_init == true) {
         return 0;
     }
-    
+    /*
     if (*argc < 7) return -1;
-    
     acp_myrank = strtol((*argv)[1], NULL, 0);
     acp_numprocs = strtol((*argv)[2], NULL, 0);
     acp_smsize = strtol((*argv)[3], NULL, 0);
     my_port = strtol((*argv)[4], NULL, 0);
     dst_port = strtol((*argv)[5], NULL, 0);
     dst_addr = inet_addr((*argv)[6]);
-  
+    */
+    
+    acp_myrank = strtol(getenv("ACP_MYRANK"), NULL ,0);
+    acp_numprocs = strtol(getenv("ACP_NUMPROCS"), NULL, 0);
+    acp_smsize = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
+    my_port = strtol(getenv("ACP_LPORT"), NULL, 0);
+    dst_port = strtol(getenv("ACP_RPORT"), NULL, 0);
+    dst_addr = inet_addr(getenv("ACP_RHOST"));
+    
     /* print acp_init argument */
 #ifdef DEBUG
     fprintf(stdout, 

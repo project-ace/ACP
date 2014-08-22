@@ -32,7 +32,7 @@ int main(int argc, char **argv){
     trank1 = (myrank + 1) % nprocs;
     trank2 = (myrank + 2) % nprocs; 
     tga1 = acp_query_starter_ga(trank1);
-    tga2 = acp_query_starter_ga(trank2);
+    tga2 = acp_query_starter_ga(myrank);
     
     myga = acp_query_starter_ga(myrank);
     sm = (acp_ga_t *)acp_query_address(myga);
@@ -61,16 +61,8 @@ int main(int argc, char **argv){
     
     u64data = 100;
     mygm[1] = 1111;
+    mygm[0] = 100; 
     
-    if (myrank == 2) {
-	mygm[0] = 100; 
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
     acp_sync();
     
     if (myrank == 1) {
@@ -92,15 +84,9 @@ int main(int argc, char **argv){
     u64data = 100;
     u64data2 = 10000;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+    mygm[1] = 1111;
+    mygm[0] = 100;
+    
     acp_sync();
     
     if (myrank == 1) {
@@ -120,16 +106,9 @@ int main(int argc, char **argv){
     printf("rank %d mygm[0] %lu mygm[1] %lu\n", myrank, mygm[0], mygm[1]);  
   
     u64data = 50;
+    mygm[1] = 1111;
+    mygm[0] = 100;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
     acp_sync();
     
     if (myrank == 1) {
@@ -148,16 +127,10 @@ int main(int argc, char **argv){
     acp_sync();
     printf("rank %d mygm[0] %lu mygm[1] %lu\n", myrank, mygm[0], mygm[1]);  
     u64data = 100;
+    mygm[1] = 1111;
+    mygm[0] = 100;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+
     acp_sync();
     
     if (myrank == 1) {
@@ -178,15 +151,8 @@ int main(int argc, char **argv){
     
     u64data = 100;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+    mygm[0] = 100;
+    mygm[1] = 1111;
     acp_sync();
     
     if (myrank == 1) {
@@ -206,15 +172,9 @@ int main(int argc, char **argv){
   
     u64data = 100;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if(myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+    mygm[0] = 100;
+    mygm[1] = 1111;
+    
     acp_sync();
     
     if (myrank == 1) {

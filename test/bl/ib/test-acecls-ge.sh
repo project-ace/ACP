@@ -12,13 +12,14 @@ cat $PBS_NODEFILE
 COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
-COMM=$COMM_DIR/acpbl
+# COMM=$COMM_DIR/acpbl
 # COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_rm
 # COMM=$COMM_DIR/acpbl_atomic
 # COMM=$COMM_DIR/acpbl_atomic8
 # COMM=$COMM_DIR/acpbl_rr
 # COMM=$COMM_DIR/acpbl_rr2
+COMM=$COMM_DIR/acpbl_reset
 
 # # of process
 np=3
@@ -50,7 +51,7 @@ do
         dport=`expr $port + 1`
         IP=1
         echo "ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM"
-ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM 
+	ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM 
     fi
     rank=`expr $rank + 1`
     mport=`expr $mport + 1`

@@ -30,17 +30,16 @@ int main(int argc, char **argv){
     printf("myrank %d nprocs %d\n", myrank, nprocs);
     
     trank1 = (myrank + 1) % nprocs;
-    trank2 = (myrank + 2) % nprocs; 
     tga1 = acp_query_starter_ga(trank1);
-    tga2 = acp_query_starter_ga(trank2);
+    tga2 = acp_query_starter_ga(myrank);
     
     myga = acp_query_starter_ga(myrank);
     sm = (acp_ga_t *)acp_query_address(myga);
     printf("rank %d myga %lx %p\n", myrank, myga, sm);
   
-    mygm = malloc(sizeof(int)*2);
+    mygm = malloc(sizeof(int) * 2);
     
-    key = acp_register_memory(mygm, sizeof(int)*2, color);
+    key = acp_register_memory(mygm, sizeof(int) * 2, color);
     mygmga = acp_query_ga(key, mygm);
     
     printf("my rank = %d mygmga = %lx\n", myrank, mygmga);
@@ -61,21 +60,12 @@ int main(int argc, char **argv){
   
     u32data = 100;
     mygm[1] = 1111;
-    
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-      mygm[0] = -1;
-    }
+    mygm[0] = 100;
+
     acp_sync();
     
     if (myrank == 1) {
-	
-	printf("rank %d trank1 %d trank2 %d tgmga1 %lx tgmga2 %lx myga %lx sm %p\n",
+        printf("rank %d trank1 %d trank2 %d tgmga1 %lx tgmga2 %lx myga %lx sm %p\n",
 	       myrank, trank1, trank2, tgmga1, tgmga2, myga, sm);
 	
 	//acp_add4(tgmga2 + sizeof(int), tgmga1, u32data, ACP_HANDLE_NULL );
@@ -92,15 +82,9 @@ int main(int argc, char **argv){
     u32data = 100;
     u32data2 = 10000;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+    mygm[1] = 1111;
+    mygm[0] = 100;
+    
     acp_sync();
     
     if (myrank == 1) {
@@ -121,15 +105,9 @@ int main(int argc, char **argv){
     
     u32data = 50;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if(myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-    mygm[0] = -1;
-    }
+    mygm[1] = 1111;
+    mygm[0] = 100;
+
     acp_sync();
     
     if (myrank == 1) {
@@ -148,16 +126,9 @@ int main(int argc, char **argv){
     acp_sync();
     printf("rank %d myga[0] %d myga[1] %d\n", myrank, mygm[0], mygm[1]);  
     u32data = 100;
-    
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+
+    mygm[1] = 1111;
+    mygm[0] = 100;
     acp_sync();
     
     if(myrank == 1) {
@@ -177,16 +148,9 @@ int main(int argc, char **argv){
     printf("rank %d myga[0] %d myga[1] %d\n", myrank, mygm[0], mygm[1]);  
     
     u32data = 100;
-    
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if(myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
+    mygm[1] = 1111;
+    mygm[0] = 100;
+
     acp_sync();
     
     if(myrank == 1) {
@@ -205,16 +169,9 @@ int main(int argc, char **argv){
     printf("rank %d myga[0] %d myga[1] %d\n", myrank, mygm[0], mygm[1]);  
     
     u32data = 100;
+    mygm[1] = 1111;
+    mygm[0] = 100;
     
-    if (myrank == 2) {
-	mygm[0] = 100;
-    }
-    else if (myrank == 0) {
-	mygm[0] = -1;
-    }
-    else {
-	mygm[0] = -1;
-    }
     acp_sync();
     
     if(myrank == 1) {

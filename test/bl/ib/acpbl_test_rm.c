@@ -45,7 +45,7 @@ int main(int argc, char **argv){
     for(i=0;i<255;i++){
 	key[i] = acp_register_memory(mygm[i], sizeof(char) * 2, color);
     }
-    
+
     /* first phase */
     printf("++++++++++++++++++++\n");
     mygmga = acp_query_ga(key[0], mygm[0]);

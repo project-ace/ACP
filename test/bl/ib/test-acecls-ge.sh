@@ -46,7 +46,7 @@ do
     if [ $i -lt $np ]
     then
         echo "ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM &"
-        ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM &
+        ssh ${BASE_HOSTNAME}${chid} ACP_MYRANK=$rank ACP_LPORT=$mport ACP_RPORT=$dport ACP_RHOST=${BASE_IPADDR}.$IP ACP_STARTER_MEMSIZE=$smsize ACP_NUMPROCS=$np $COMM  &
     else
         dport=`expr $port + 1`
         IP=1

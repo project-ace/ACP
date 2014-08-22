@@ -2575,6 +2575,10 @@ static void *comm_thread_func(void *dm){
             /* set index by cmdq head */
             index = head;
             if (wc.status == IBV_WC_SUCCESS) {
+#ifdef DEBUG
+                fprintf(stdout, "qp section: cmdq wr_id %lx", wc.wr_id);
+                fflush(stdout);
+#endif
                 /* when ibv_poll_cq is SUCCESS */
                 if ((wc.wr_id & MASK_WRID_RCMDB) == 0) {
 #ifdef DEBUG
@@ -2751,11 +2755,18 @@ static void *comm_thread_func(void *dm){
                 else if ((wc.wr_id & MASK_WRID_ACK) != MASK_WRID_ACK ) {
                     /* set index of rcmd buffer  */
                     index = *rcmdbuf_head;
-                    comp_cqe_flag == false;
-                    while (index < *rcmdbuf_tail && comp_cqe_flag == false) {
-                        idx = index % MAX_RCMDB_SIZE;
+                    comp_cqe_flag = false;
+
 #ifdef DEBUG
-                        fprintf(stdout, "qp section: rcmdbuf wr_id %lx mask %llx\n", wc.wr_id, wc.wr_id & MASK_WRID_RCMDB);
+                        fprintf(stdout, "qp section: rcmdbuf wr_id\n", wc.wr_id);
+                        fflush(stdout);
+#endif 
+
+                    while (index < *rcmdbuf_tail && comp_cqe_flag == false) {
+                        idx = index % MAX_RCMDB_SIZE; 
+#ifdef DEBUG
+                        fprintf(stdout, "qp section: rcmdbuf wr_id %lx mask %llx st %lu\n", wc.wr_id, wc.wr_id & MASK_WRID_RCMDB, rcmdbuf[idx]
+                                .stat);
                         fflush(stdout);
 #endif 
                         if (rcmdbuf[idx].wr_id == wc.wr_id) {

@@ -13,9 +13,9 @@
 #include "acpbl.h"
 
 /* debug */
-//#define DEBUG
-//#define DEBUG_L2
-//#define DEBUG_L3
+#define DEBUG
+#define DEBUG_L2
+#define DEBUG_L3
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -1693,16 +1693,18 @@ int acp_inquire(acp_handle_t handle){
     /* check status of handle if it is COMPLETED or not.*/ 
     if (head <= handle) {
         return 1;
-    }
-    else {
-        return 0;
-    }
-    
 #ifdef DEBUG
     fprintf(stdout, "internal acp_inquire fin\n"); 
     fflush(stdout);
 #endif
-    
+    }
+    else {
+#ifdef DEBUG
+    fprintf(stdout, "internal acp_inquire fin\n"); 
+    fflush(stdout);
+#endif
+        return 0;
+    }
 }
 
 /* get remote register memory table */
@@ -2576,7 +2578,7 @@ static void *comm_thread_func(void *dm){
             index = head;
             if (wc.status == IBV_WC_SUCCESS) {
 #ifdef DEBUG
-                fprintf(stdout, "qp section: cmdq wr_id %lx", wc.wr_id);
+                fprintf(stdout, "qp section: cmdq wr_id %lx\n", wc.wr_id);
                 fflush(stdout);
 #endif
                 /* when ibv_poll_cq is SUCCESS */
@@ -2592,6 +2594,10 @@ static void *comm_thread_func(void *dm){
                         if (cmdq[idx].wr_id == wc.wr_id) {
                             switch (cmdq[idx].stat) {
                             case ISSUED: /* issueing gma command */
+#ifdef DEBUG
+                                fprintf(stdout, "ISSUED\n");
+                                fflush(stdout);
+#endif
                                 cmdq[idx].stat = FINISHED;
                                 check_cmdq_complete(index);
                                 comp_cqe_flag = true;
@@ -2758,8 +2764,8 @@ static void *comm_thread_func(void *dm){
                     comp_cqe_flag = false;
 
 #ifdef DEBUG
-                        fprintf(stdout, "qp section: rcmdbuf wr_id\n", wc.wr_id);
-                        fflush(stdout);
+                    fprintf(stdout, "qp section: rcmdbuf wr_id\n", wc.wr_id);
+                    fflush(stdout);
 #endif 
 
                     while (index < *rcmdbuf_tail && comp_cqe_flag == false) {

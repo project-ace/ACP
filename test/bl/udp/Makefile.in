@@ -19,6 +19,7 @@
 # $COPYRIGHT$
 #
 
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -83,7 +84,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = acpbl_udp_test$(EXEEXT)
+noinst_PROGRAMS = acpbl_udp_test$(EXEEXT) acpbl_udp_test2$(EXEEXT)
 subdir = test/bl/udp
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/depcomp
@@ -106,6 +107,9 @@ AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_acpbl_udp_test2_OBJECTS = acpbl_udp_test2.$(OBJEXT)
+acpbl_udp_test2_OBJECTS = $(am_acpbl_udp_test2_OBJECTS)
+SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -140,8 +144,8 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(acpbl_udp_test_SOURCES)
-DIST_SOURCES = $(acpbl_udp_test_SOURCES)
+SOURCES = $(acpbl_udp_test_SOURCES) $(acpbl_udp_test2_SOURCES)
+DIST_SOURCES = $(acpbl_udp_test_SOURCES) $(acpbl_udp_test2_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -288,9 +292,15 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
+noinst_SCRIPTS = \
+		 test.sh
+
 acpbl_udp_test_SOURCES = acpbl_udp_test.c acp.h
 acpbl_udp_test_LDADD = $(top_builddir)/src/bl/udp/libacpbl_udp.la
 acpbl_udp_test_DEPENDENCIES = $(acpbl_udp_test_LDADD)
+acpbl_udp_test2_SOURCES = acpbl_udp_test2.c acp.h
+acpbl_udp_test2_LDADD = $(top_builddir)/src/bl/udp/libacpbl_udp.la
+acpbl_udp_test2_DEPENDENCIES = $(acpbl_udp_test2_LDADD)
 all: all-am
 
 .SUFFIXES:
@@ -339,6 +349,10 @@ acpbl_udp_test$(EXEEXT): $(acpbl_udp_test_OBJECTS) $(acpbl_udp_test_DEPENDENCIES
 	@rm -f acpbl_udp_test$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(acpbl_udp_test_OBJECTS) $(acpbl_udp_test_LDADD) $(LIBS)
 
+acpbl_udp_test2$(EXEEXT): $(acpbl_udp_test2_OBJECTS) $(acpbl_udp_test2_DEPENDENCIES) $(EXTRA_acpbl_udp_test2_DEPENDENCIES) 
+	@rm -f acpbl_udp_test2$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(acpbl_udp_test2_OBJECTS) $(acpbl_udp_test2_LDADD) $(LIBS)
+
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 
@@ -346,6 +360,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_test2.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -458,7 +473,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS)
 installdirs:
 install: install-am
 install-exec: install-exec-am

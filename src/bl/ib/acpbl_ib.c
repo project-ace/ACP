@@ -315,6 +315,8 @@ void acp_abort(const char *str){
         smi_tb = NULL;
     }
     
+    executed_acp_init = false;
+    
     fprintf(stderr, "acp_abort: %s\n", str);
 #ifdef DEBUG
     fprintf(stdout, "internal acp_abort fin\n");
@@ -2285,6 +2287,7 @@ int icopy(uint64_t wr_id,
     
     /* set message size */
     sge.length = size;
+   
 #ifdef DEBUG
     fprintf(stdout, "copy len %d\n", sge.length);
     fflush(stdout);
@@ -2517,12 +2520,12 @@ static void setrrm(int torank){
         }
     }
     for (i = 0; i< MAX_RM_SIZE; i++) {
-        if (recv_lrmtb[i].valid == true){
+        //if (recv_lrmtb[i].valid == true){
             rrmtb[torank][i].rkey = recv_lrmtb[i].rkey;
             rrmtb[torank][i].addr = recv_lrmtb[i].addr;
             rrmtb[torank][i].size = recv_lrmtb[i].size;
             rrmtb[torank][i].valid = recv_lrmtb[i].valid;
-        }
+            //}
 #ifdef DEBUG
         fprintf(stdout, 
                 "rrtb torank %d tag %d addr %p size %lu rkey %lu valid %lu\n", 
@@ -3020,6 +3023,7 @@ static void *comm_thread_func(void *dm){
                                             fflush(stdout);
 #endif
                                             if (recv_rrm_flag == true){
+                                                recv_rrm_flag = false;
                                                 getlrm(cmdq[idx].wr_id, torank);
                                                 cmdq[idx].stat = WAIT_RRM;
                                             }
@@ -3037,6 +3041,7 @@ static void *comm_thread_func(void *dm){
                                         fflush(stdout);
 #endif
                                         if (recv_rrm_flag == true){
+                                            recv_rrm_flag = false;
                                             getlrm(cmdq[idx].wr_id, torank);
                                             cmdq[idx].stat = WAIT_RRM;
                                         }
@@ -3186,6 +3191,7 @@ static void *comm_thread_func(void *dm){
                                     fflush(stdout);
 #endif
                                     if (recv_rrm_flag == true) {
+                                        recv_rrm_flag = false;
                                         getlrm(rcmdbuf[idx].wr_id, dstrank);
                                         rcmdbuf[idx].stat = CMD_WAIT_RRM;
                                     }
@@ -3203,6 +3209,7 @@ static void *comm_thread_func(void *dm){
                                 fflush(stdout);
 #endif
                                 if (recv_rrm_flag == true) {
+                                    recv_rrm_flag = false;
                                     getlrm(rcmdbuf[idx].wr_id, dstrank);
                                     rcmdbuf[idx].stat = CMD_WAIT_RRM;
                                 }
@@ -3286,6 +3293,7 @@ static void *comm_thread_func(void *dm){
 #endif
                                         
                                         if (recv_rrm_flag == true) {
+                                            recv_rrm_flag = false;
                                             getlrm(rcmdbuf[idx].wr_id, dstrank);
                                             rcmdbuf[idx].stat = CMD_WAIT_RRM;
                                         }
@@ -3305,6 +3313,7 @@ static void *comm_thread_func(void *dm){
                                     fflush(stdout);
 #endif
                                     if (recv_rrm_flag == true) {
+                                        recv_rrm_flag = false;
                                         getlrm(rcmdbuf[idx].wr_id, dstrank);
                                         rcmdbuf[idx].stat = CMD_WAIT_RRM;
                                     }
@@ -3380,6 +3389,9 @@ int iacp_init(void){
     /* initialize head, tail */
     head = 1;
     tail = 1;  
+    
+    putcmd_flag = true; /* write enable putcmd flag */
+    recv_rrm_flag = true; /* get enable recv rrm falg */
     
     /* initialize ack ID  */
     ack_id = MASK_WRID_ACK;
@@ -3667,6 +3679,8 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
+    memset(qp, 0, sizeof(struct ibv_qp *) * acp_numprocs);
+    
     memset(&qp_init_attr, 0, sizeof(qp_init_attr));
     qp_init_attr.qp_type = IBV_QPT_RC;
     qp_init_attr.sq_sig_all = 1; /* if work request COMPLETE, CQE enqueue cq. */
@@ -3726,6 +3740,7 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
+    memset(smi_tb, 0, sizeof(SMI) * acp_numprocs);
     
 #ifdef DEBUG
     fprintf(stdout, "local address = %lx\n", local_data.addr);
@@ -4011,9 +4026,8 @@ exit:
         free(smi_tb);
         smi_tb = NULL;
     }
-
-    return rc;
     
+    return rc;
 }
 
 int acp_init(int *argc, char ***argv){
@@ -4149,9 +4163,8 @@ int acp_finalize(){
         free(smi_tb);
         smi_tb = NULL;
     }
-    /* initailize acpbl variables */
-    acp_myrank = -1;
 
+    executed_acp_init = false;
 #ifdef DEBUG
     fprintf(stdout, "internal acp_finalize fin\n");
     fflush(stdout);

@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
-#include "acpcl.h"
+#include <acp.h>
+#include "acpbl.h"
+#include "acpbl_sync.h"
 
 size_t iacp_starter_memory_size_cl = 1024;
 

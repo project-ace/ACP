@@ -80,8 +80,8 @@ extern "C" {
  * the processes complete initialization. In this function, 
  * the initialization functions of the modules of the 
  * middle layer are invoked.
- * @param argc A pointer for the number of arguments of the main function
- * @param argv A pointer for the array of arguments of the main function
+ * @param argc A pointer for the number of arguments of the main function.
+ * @param argv A pointer for the array of arguments of the main function.
  * @retval 0 Success
  * @retval -1 Fail
  * @ENDL
@@ -165,7 +165,7 @@ extern int acp_reset(int rank);
  * to the error number ACP_ERRNO. ACP_ERRNO holds a number 
  * that shows the reason of the fail of the functions of ACP basic layer.
  *
- * @param str additional error message
+ * @param str Additional error message.
  * @ENDL
  */
 extern void acp_abort(const char* str);
@@ -205,7 +205,7 @@ extern int acp_sync(void);
  *
  * Returns the rank number of the process that called this function.
  *
- * @retval >0 Rank number of the process
+ * @retval >=0 Rank number of the process.
  * @retval -1 Fail
  * @ENDL
  */
@@ -225,7 +225,7 @@ extern int acp_rank(void);
  *
  * Returns the number of the processes.
  * 
- * @retval >1 Number of processes
+ * @retval >=1 Number of processes.
  * @retval -1 Fail
  * @ENDL
  */
@@ -315,8 +315,8 @@ extern acp_ga_t acp_query_starter_ga(int rank);
  * @param size Size of the region to be registered.
  * @param color Color number that will be used for GMA with the global memory.
  * 
- * @retval atkey Address translation key
- * @retval ACP_ATKEY_NULL Fail
+ * @retval ACP_ATKEY_NULL Fail.
+ * @retval otherwise Address translation key.
  * @ENDL
  */
 extern acp_atkey_t acp_register_memory(void *addr, size_t size, int color);
@@ -336,7 +336,7 @@ extern acp_atkey_t acp_register_memory(void *addr, size_t size, int color);
  *
  * Unregister the memory region with the specified address translation key.
  *
- * @param atkey Address translation key
+ * @param atkey Address translation key.
  * @retval 0 Success
  * @retval -1 Fail
  * @ENDL
@@ -362,11 +362,11 @@ extern int acp_unregister_memory(acp_atkey_t atkey);
  * Returns the global address of the specified logical address 
  * translated by the specified address translation key.
  *
- * @param atkey Address translation key
- * @param addr Logical address
+ * @param atkey Address translation key.
+ * @param addr Logical address.
  * 
- * @retval ga Global address of starter memory
  * @retval ACP_GA_NULL Fail
+ * @retval otherwise Global address of starter memory.
  * @ENDL
  */
 extern acp_ga_t acp_query_ga(acp_atkey_t atkey, void *addr);
@@ -391,9 +391,9 @@ extern acp_ga_t acp_query_ga(acp_atkey_t atkey, void *addr);
  * global address is different from the caller. 
  * It can be used for retrieving logical address of the starter memory.
  *
- * @param ga Global address
- * @retval address Logical address
+ * @param ga Global address.
  * @retval NULL Fail
+ * @retval otherwise Logical address.
  * @ENDL
  */
 extern void* acp_query_address(acp_ga_t ga);
@@ -408,7 +408,7 @@ extern void* acp_query_address(acp_ga_t ga);
  * 
  * @param ga グローバルアドレス
  * 
- * @retval >0 ランク番号
+ * @retval >=0 ランク番号
  * @retval -1 失敗
  *
  * @EN
@@ -419,9 +419,9 @@ extern void* acp_query_address(acp_ga_t ga);
  * retrieving the rank of the starter memory. 
  * It returns -1 if the ACP_GA_NULL is specified as the global address.
  * 
- * @param ga Global address
+ * @param ga Global address.
  * 
- * @retval >0 Rank number
+ * @retval >=0 Rank number.
  * @retval -1 Fail
  * @ENDL
  */
@@ -437,7 +437,7 @@ extern int acp_query_rank(acp_ga_t ga);
  *
  * @param ga グローバルアドレス
  * 
- * @retval >0 カラー番号
+ * @retval >=0 カラー番号
  * @retval -1 失敗
  *
  * @EN
@@ -448,7 +448,7 @@ extern int acp_query_rank(acp_ga_t ga);
  *
  * @param ga Global address
  * 
- * @retval >0 Color number
+ * @retval >=0 Color number.
  * @retval -1 Fail
  * @ENDL
  */
@@ -460,7 +460,7 @@ extern int acp_query_color(acp_ga_t ga);
  *
  * 最大カラー数を取得する関数。
  * 
- * @retval >1 最大カラー数
+ * @retval >=1 最大カラー数
  * @retval -1 失敗
  *
  * @EN
@@ -468,7 +468,7 @@ extern int acp_query_color(acp_ga_t ga);
  *
  * Returns the maximum number of colors on this environment.
  * 
- * @retval >1 Maximum number of colors
+ * @retval >=1 Maximum number of colors.
  * @retval -1 Fail
  * @ENDL
  */
@@ -531,8 +531,8 @@ extern "C" {
  * @param src Global address of the head of the source region of the copy.
  * @param size Size of the data to be copied.
  * @param order The handle to be used as a condition for starting this GMA. 
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, 
@@ -567,8 +567,8 @@ extern acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src,
  * @param oldval Old value to be compared.
  * @param newval New value to be swapped.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval,
@@ -603,8 +603,8 @@ extern acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval,
  * @param oldval Old value to be compared.
  * @param newval New value to be swapped.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval,
@@ -633,11 +633,11 @@ extern acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval,
  * The values to be swapped is 4byte. Global addresses must be 4byte aligned. 
  * 
  * @param dst Global address to store the result.
- * @param src Global address to apply the operation
- * @param value Value to be swapped
- * @param order The handle to be used as a condition for starting this GMA
- * @retval acp_handle A handle for this GMA GMA.
+ * @param src Global address to apply the operation.
+ * @param value Value to be swapped.
+ * @param order The handle to be used as a condition for starting this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, 
@@ -666,11 +666,11 @@ extern acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src,
  * The values to be swapped is 8byte. Global addresses must be 8byte aligned. 
  * 
  * @param dst Global address to store the result.
- * @param src Global address to apply the operation
- * @param value Value to be swapped
- * @param order The handle to be used as a condition for starting this GMA
- * @retval acp_handle A handle for this GMA
+ * @param src Global address to apply the operation.
+ * @param value Value to be swapped.
+ * @param order The handle to be used as a condition for starting this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, 
@@ -702,8 +702,8 @@ extern acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be added.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, 
@@ -735,8 +735,8 @@ extern acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be added.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, 
@@ -768,8 +768,8 @@ extern acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the XOR operation.
  * @param order The handle to be used as a condition for starting this GMA
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, 
@@ -799,8 +799,8 @@ extern acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the XOR operation.
  * @param order The handle to be used as a condition for starting this GMA
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, 
@@ -832,8 +832,8 @@ extern acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the OR operation.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, 
@@ -865,8 +865,8 @@ extern acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the OR operation.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, 
@@ -898,8 +898,8 @@ extern acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the AND operation.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, 
@@ -931,8 +931,8 @@ extern acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src,
  * @param src Global address to apply the operation.
  * @param value Value to be applied the AND operation.
  * @param order The handle to be used as a condition for starting this GMA.
- * @retval acp_handle A handle for this GMA.
  * @retval ACP_HANDLE_NULL Fail
+ * @retval otherwise A handle for this GMA.
  * @ENDL
  */
 extern acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, 
@@ -1044,10 +1044,10 @@ typedef struct chitem *acp_ch_t;
  * of the communication through this channel. There can be more than one channels 
  * for the same sender-receiver pair.
  *
- * @param sender   rank of the sender process of the channel
- * @param receiver  rank of the receiver process of the channel
- * @retval nonACP_CH_NULL handle of the endpoint of the channel
+ * @param sender   Rank of the sender process of the channel.
+ * @param receiver  Rank of the receiver process of the channel.
  * @retval ACP_CH_NULL fail
+ * @retval otherwise A handle of the endpoint of the channel.
  */
 //extern acp_ch_t acp_create_ch(int src, int dest); [ace-yt3 51]
 extern acp_ch_t acp_create_ch(int sender, int receiver);
@@ -1062,9 +1062,9 @@ extern acp_ch_t acp_create_ch(int sender, int receiver);
  * Behavior of the communication with the handle of the channel endpoint 
  * that has already been freed is undefined.
  *
- * @param ch handle of the channel endpoint to be freed
- * @retval 0 success
- * @retval -1 fail
+ * @param ch Handle of the channel endpoint to be freed.
+ * @retval 0 Success
+ * @retval -1 Fail
  */
 extern int acp_free_ch(acp_ch_t ch);
 
@@ -1077,47 +1077,12 @@ he handle.
  * the free operation. Communication with the handle of the channel endpoint 
  * that has been started to be freed causes an error.
  *
- * @param ch handle of the channel endpoint to be freed
- * @retval nonACP_REQUEST_NULL a handle of the request for waiting the 
- * completion of this operation
- * @retval ACP_REQUEST_NULL fail
+ * @param ch Handle of the channel endpoint to be freed.
+ * @retval ACP_REQUEST_NULL Fail
+ * @retval otherwise A handle of the request for waiting the 
+ * completion of this operation.
  */
 extern acp_request_t acp_nbfree_ch(acp_ch_t ch);
-
-/**
- * @brief Blocking send via channels
- *
- * Performs a blocking send of a message through the channel 
- * specified by the handle. It blocks until the message has been stored somewhere 
- * so that the modification to the send buffer does not collapse the message. 
- * It returns error if the sender of the channel endpoint specified by the handle 
- * is not the caller process.
- *
- * @param ch handle of the channel endpoint to send a message
- * @param buf initial address of the send buffer
- * @param size size in byte of the message
- * @retval 0 success
- * @retval -1 fail
- */
-extern int acp_send_ch(acp_ch_t ch, void * buf, size_t size);
-
-/**
- * @brief Blocking receive via channels
- *
- * Performs a blocking receive of a message from the channel specified by the handle. 
- * It waits for the arrival of the message. It returns error if the receiver of the 
- * channel endpoint specified by the handle is not the caller process. If the message 
- * is smaller than the size of the receive buffer, only the region of the message size, 
- * starting from the initial address of the receive buffer is modified. If the message 
- * is larger than the size of the receive buffer, the exceeded part of the message is discarded.
- *
- * @param ch handle of the channel endpoint to receive a message
- * @param buf initial address of the receive buffer
- * @param size size in byte of the receive buffer
- * @retval >=0 success. size of the received data
- * @retval -1 fail
- */
-extern int acp_recv_ch(acp_ch_t ch, void * buf, size_t size);
 
 /**
  * @brief Non-Blocking send via channels
@@ -1127,12 +1092,12 @@ extern int acp_recv_ch(acp_ch_t ch, void * buf, size_t size);
  * not the caller process. Otherwise, it returns a handle of the request for waiting 
  * the completion of the nonblocking send. 
  *
- * @param ch handle of the channel endpoint to send a message
- * @param buf initial address of the send buffer
- * @param size size in byte of the message
- * @retval nonACP_REQUEST_NULL a handle of the request for waiting the completion 
- * of this operation
- * @retval ACP_REQUEST_NULL fail
+ * @param ch Handle of the channel endpoint to send a message.
+ * @param buf Initial address of the send buffer.
+ * @param size Size in byte of the message.
+ * @retval ACP_REQUEST_NULL Fail
+ * @retval otherwise A handle of the request for waiting the completion 
+ * of this operation.
  */
 extern acp_request_t acp_nbsend_ch(acp_ch_t ch, void * buf, size_t size);
 
@@ -1148,12 +1113,12 @@ extern acp_request_t acp_nbsend_ch(acp_ch_t ch, void * buf, size_t size);
  * If the message is larger than the size of the receive buffer, the exceeded part of 
  * the message is discarded.
  *
- * @param ch handle of the channel endpoint to receive a message
- * @param buf initial address of the receive buffer
- * @param size size in byte of the receive buffer
- * @retval nonACP_REQUEST_NULL a handle of the request for waiting the completion 
- * of this operation
- * @retval ACP_REQUEST_NULL fail
+ * @param ch Handle of the channel endpoint to receive a message.
+ * @param buf Initial address of the receive buffer.
+ * @param size Size in byte of the receive buffer.
+ * @retval ACP_REQUEST_NULL Fail
+ * @retval otherwise a handle of the request for waiting the completion 
+ * of this operation.
  */
 extern acp_request_t acp_nbrecv_ch(acp_ch_t ch, void * buf, size_t size);
 
@@ -1163,9 +1128,9 @@ extern acp_request_t acp_nbrecv_ch(acp_ch_t ch, void * buf, size_t size);
  * Waits for the completion of the nonblocking operation specified by the request handle. 
  * If the operation is a nonblocking receive, it retruns the size of the received data.
  *
- * @param request handle of the request of a nonblocking operation
- * @retval >=0 success. if the operation is a nonblocking receive, the size of the received data.
- * @retval -1 fail
+ * @param request Handle of the request of a nonblocking operation.
+ * @retval >=0 Success. if the operation is a nonblocking receive, the size of the received data.
+ * @retval -1 Fail
  */
 extern size_t acp_wait_ch(acp_request_t request);
 
@@ -1257,11 +1222,11 @@ extern "C" {
  *
  * Creates a vector type data on any process.
  *
- * @param nelem Number of elements
- * @param size Size of element
- * @param rank Rank number
+ * @param nelem Number of elements.
+ * @param size Size of element.
+ * @param rank Rank number.
  * @retval ACP_VECTOR_NULL Fail
- * @retval acp_vector A reference of created vector data.
+ * @retval otherwise A reference of created vector data.
  * @ENDL
  */
 extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
@@ -1303,10 +1268,10 @@ extern void acp_destroy_vector(acp_vector_t vector);
  *
  * @param vector A reference of vector data to duplicate.
  * @param rank A rank number of the process on which a vector type data
- *        is duplicated
+ *        is duplicated.
  *
  * @retval ACP_VECTOR_NULL Fail
- * @retval acp_vector A reference of duplicated vector data.
+ * @retval otherwise A reference of duplicated vector data.
  * @ENDL
  */
 extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
@@ -1325,8 +1290,8 @@ extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
  *
  * 
  *
- * @param v1
- * @param v2
+ * @param v1 A reference of vector data to be swapped.
+ * @param v2 Another reference of vector data to be swapped.
  *
  * @ENDL
  */
@@ -1392,10 +1357,10 @@ extern "C" {
  *
  * Creates a list type data on any process.
  *
- * @param elsize Size of element
- * @param rank Rank number
+ * @param elsize Size of element.
+ * @param rank Rank number.
  * @retval ACP_LIST_NULL Fail
- * @retval acp_list A reference of created list data.
+ * @retval otherwise A reference of created list data.
  * @ENDL
  */
 extern acp_list_t acp_create_list(size_t, int);
@@ -1435,11 +1400,11 @@ extern void acp_destroy_list(acp_list_t list);
  *
  * 
  *
- * @param list A reference of list type data
- * @param it An iterater of list type data
- * @param ptr The pointer of list element
- * @param rank 
- * @retval it 
+ * @param list A reference of list type data.
+ * @param it An iterater of list type data.
+ * @param ptr The pointer of list element.
+ * @param rank Rank of the process in which the element is copied.
+ * @retval it The iterator that points to the inserted element.
  * @ENDL
  */
 extern acp_list_it_t acp_insert_list(acp_list_t list, acp_list_it_t it,
@@ -1460,10 +1425,9 @@ extern acp_list_it_t acp_insert_list(acp_list_t list, acp_list_it_t it,
  *
  * 
  *
- * @param list A reference of list type data
- * @param it An iterater of list type data
- * @param rank 
- * @retval it 
+ * @param list A reference of list type data.
+ * @param it An iterator of list type data.
+ * @retval it The iterator that points to the element which is immediately after the erased one.
  * @ENDL
  */
 extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
@@ -1483,9 +1447,9 @@ extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
  *
  * 
  *
- * @param list A reference of list type data
- * @param ptr A pointer of list type data
- * @param rank 
+ * @param list A reference of list type data.
+ * @param ptr A pointer of list type data.
+ * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
 extern void acp_push_back_list(acp_list_t list, void* ptr, int rank);
@@ -1500,12 +1464,12 @@ extern void acp_push_back_list(acp_list_t list, void* ptr, int rank);
  * @retval it 先頭イテレータ
  *
  * @EN
- * @brief Query for the head iterater of a list
+ * @brief Query for the head iterator of a list
  *
  * 
  *
- * @param list A reference of list type data
- * @retval it The head of iterater
+ * @param list A reference of list type data.
+ * @retval it The head iterator of the list.
  * @ENDL
  */
 extern acp_list_it_t acp_begin_list(acp_list_t list);
@@ -1519,11 +1483,12 @@ extern acp_list_it_t acp_begin_list(acp_list_t list);
  * @param list リスト型データの参照
  *
  * @EN
- * @brief Query for the tail iterater of a list
+ * @brief Query for the tail iterator of a list
  *
  * 
  *
- * @param list A reference of list type data
+ * @param list A reference of list type data.
+ * @retval it The tail iterator of the list.
  * @ENDL
  */
 extern acp_list_it_t acp_end_list(acp_list_t list);
@@ -1539,9 +1504,9 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
  * @EN
  * @brief Increment an iterater of a list data
  *
- * Increments an iterater of a list data
+ * Increments the iterator of a list data.
  *
- * @param list A reference of list type data
+ * @param list A reference of list type data.
  * @ENDL
  */
 extern void acp_increment_list(acp_list_it_t* list);
@@ -1557,9 +1522,9 @@ extern void acp_increment_list(acp_list_it_t* list);
  * @EN
  * @brief Decrement an iterater of a list data
  *
- * Decrements an iterater of a list data
+ * Decrements an iterater of a list data.
  *
- * @param list A reference of list type data
+ * @param list A reference of list type data.
  * @ENDL
  */
 extern void acp_decrement_list(acp_list_it_t* list);

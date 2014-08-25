@@ -8,7 +8,7 @@
 
 /* Command Queue Size in binary exponent */
 #ifndef ACPBL_UDP_CQ_SIZE
-#define ACPBL_UDP_CQ_SIZE 12
+#define ACPBL_UDP_CQ_SIZE 8
 #endif
 
 /* Command Station Size in binary exponent */
@@ -18,7 +18,7 @@
 
 /* Delegate Station Size in binary exponent */
 #ifndef ACPBL_UDP_DS_SIZE
-#define ACPBL_UDP_DS_SIZE 20
+#define ACPBL_UDP_DS_SIZE 4
 #endif
 
 /* Delegate Window Size in binary exponent */

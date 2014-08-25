@@ -10,7 +10,9 @@
 #include <stdlib.h> /* malloc() */
 #include <pthread.h>
 #include <infiniband/verbs.h>
+#include <acp.h>
 #include "acpbl.h"
+#include "acpbl_sync.h"
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 

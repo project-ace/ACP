@@ -11,7 +11,9 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <pthread.h>
+#include <acp.h>
 #include "acpbl.h"
+#include "acpbl_sync.h"
 #include "acpbl_udp.h"
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"

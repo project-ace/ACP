@@ -96,5 +96,6 @@ AC_CONFIG_FILES([Makefile
                  test/bl/ib/Makefile
                  test/bl/udp/Makefile
                  test/ml/Makefile
+                 test/ml/dl/Makefile
                  test/ml/ch/Makefile])
 AC_OUTPUT

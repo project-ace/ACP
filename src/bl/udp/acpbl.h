@@ -11,9 +11,6 @@
 /*****************************************************************************/
 #ifndef __ACPBL_H__
 #define __ACPBL_H__
-#include "acp.h"
-
-#include "acpbl_sync.h"
 
 /* Multi-module support */
 

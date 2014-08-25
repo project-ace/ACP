@@ -57,21 +57,6 @@ int main(int argc, char** argv)
     ga[1] = acp_query_starter_ga(1);
     ga[2] = acp_query_starter_ga(2);
     
-    printf("# Parallel   Local to     Remote Copy\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-    for (i = 0; settings[i][0] >= 0; i++) {
-      b = settings[i][0];
-      r = settings[i][1];
-      acp_copy(ga[1], ga[0], b, ACP_HANDLE_NULL);
-      acp_complete(ACP_HANDLE_ALL);
-      t0 = get_clock();
-      for (j = 0; j < r; j++) {
-        acp_copy(ga[1], ga[0], b, ACP_HANDLE_NULL);
-      }
-      acp_complete(ACP_HANDLE_ALL);
-      t1 = get_clock();
-      printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-    }
-    
     printf("# Sequential Local to     Remote Copy\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
     for (i = 0; settings[i][0] >= 0; i++) {
       b = settings[i][0];
@@ -87,21 +72,6 @@ int main(int argc, char** argv)
       printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
     }
     
-    printf("# Parallel   Remote to    Local Copy\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-    for (i = 0; settings[i][0] >= 0; i++) {
-      b = settings[i][0];
-      r = settings[i][1];
-      acp_copy(ga[0], ga[1], b, ACP_HANDLE_NULL);
-      acp_complete(ACP_HANDLE_ALL);
-      t0 = get_clock();
-      for (j = 0; j < r; j++) {
-        acp_copy(ga[0], ga[1], b, ACP_HANDLE_NULL);
-      }
-      acp_complete(ACP_HANDLE_ALL);
-      t1 = get_clock();
-      printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-    }
-    
     printf("# Sequential Remote to    Local Copy\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
     for (i = 0; settings[i][0] >= 0; i++) {
       b = settings[i][0];
@@ -111,21 +81,6 @@ int main(int argc, char** argv)
       t0 = get_clock();
       for (j = 0; j < r; j++) {
         acp_copy(ga[0], ga[1], b, ACP_HANDLE_ALL);
-      }
-      acp_complete(ACP_HANDLE_ALL);
-      t1 = get_clock();
-      printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-    }
-    
-    printf("# Parallel   Remote to    Remote Copy\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-    for (i = 0; settings[i][0] >= 0; i++) {
-      b = settings[i][0];
-      r = settings[i][1];
-      acp_copy(ga[2], ga[1], b, ACP_HANDLE_NULL);
-      acp_complete(ACP_HANDLE_ALL);
-      t0 = get_clock();
-      for (j = 0; j < r; j++) {
-        acp_copy(ga[2], ga[1], b, ACP_HANDLE_NULL);
       }
       acp_complete(ACP_HANDLE_ALL);
       t1 = get_clock();

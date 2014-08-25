@@ -5,6 +5,7 @@
 #ifndef __ACPCL_H__
 #define __ACPCL_H__
 
+#include <acp.h>
 #include "acpbl.h"
 
 #ifdef __cplusplus

@@ -12,7 +12,9 @@
 #include <poll.h>
 #include <pthread.h>
 #include <sched.h>
+#include <acp.h>
 #include "acpbl.h"
+#include "acpbl_sync.h"
 #include "acpbl_udp.h"
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
@@ -246,7 +248,7 @@ static inline int cqstat_atomic(acp_ga_t dst, acp_ga_t src)
 acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat = cqstat_copy(dst, src, size);
     cq[p].type = TYPE_COPY;
     cq[p].dst  = dst;
@@ -258,7 +260,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
 acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newval, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_CAS4;
     cq[p].dst   = dst;
@@ -271,7 +273,7 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newv
 acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newval, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_CAS8;
     cq[p].dst   = dst;
@@ -284,7 +286,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
 acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_SWAP4;
     cq[p].dst   = dst;
@@ -296,7 +298,7 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
 acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_SWAP8;
     cq[p].dst   = dst;
@@ -308,7 +310,7 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
 acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_ADD4;
     cq[p].dst   = dst;
@@ -320,7 +322,7 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
 acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_ADD8;
     cq[p].dst   = dst;
@@ -332,7 +334,7 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
 acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_XOR4;
     cq[p].dst   = dst;
@@ -344,7 +346,7 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
 acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_XOR8;
     cq[p].dst   = dst;
@@ -356,7 +358,7 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
 acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_OR4;
     cq[p].dst   = dst;
@@ -368,7 +370,7 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
 acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_OR8;
     cq[p].dst   = dst;
@@ -380,7 +382,7 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
 acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_AND4;
     cq[p].dst   = dst;
@@ -392,7 +394,7 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
 acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
 {
     int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL) ? cqwp - 1 : order;
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
     cq[p].stat  = cqstat_atomic(dst, src);
     cq[p].type  = TYPE_AND8;
     cq[p].dst   = dst;
@@ -404,7 +406,7 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
 void acp_complete(acp_handle_t handle)
 {
     if (handle == ACP_HANDLE_NULL) return;
-    if (handle == ACP_HANDLE_ALL) handle = cqwp - 1;
+    if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
     if (handle < cqcp) return;
     if (handle >= cqwp) return;
     if (handle < cqrp) {
@@ -423,7 +425,7 @@ void acp_complete(acp_handle_t handle)
 int acp_inquire(acp_handle_t handle)
 {
     if (handle == ACP_HANDLE_NULL) return 0;
-    if (handle == ACP_HANDLE_ALL) handle = cqwp - 1;
+    if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
     if (handle < cqrp) return 0;
     if (handle >= cqwp) return 0;
     while (cqrp <= handle) {
@@ -829,7 +831,7 @@ static void* comm_thread_func(void *param)
             /* Delegating Copy locally */
             if (cq[p].stat == CQSTAT_COPY2READY && is_ds_not_full()){
                 pos = ds_add(DSSTAT_COPY2_READ, time);
-                rank = cs[pos].rank = ga2rank(cq[p].dst);
+                rank = ds[pos].rank = ga2rank(cq[p].dst);
                 ds[pos].dst  = cq[p].dst;
                 ds[pos].src  = cq[p].src;
                 ds[pos].size = cq[p].size;

@@ -1190,6 +1190,11 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
  * @{
  */
 
+/* Global memory allocator */
+
+acp_ga_t acp_malloc(size_t, int);
+void acp_free(acp_ga_t);
+
 /* Function name concatenation macros */
 
 #define acp_create(type, ...)           acp_create_##type(__VA_ARGS__)
@@ -1218,9 +1223,6 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
 #define acp_greater(type, ...)          acp_greater_##type(__VA_ARGS__)
 #define acp_less_or_equal(type, ...)    acp_less_or_equal_##type(__VA_ARGS__)
 #define acp_greater_or_equal(type, ...) acp_greater_or_equal_##type(__VA_ARGS__)
-
-acp_ga_t acp_malloc(size_t, int);
-void acp_free(acp_ga_t);
 
 /* Vector */
 /** \defgroup vector ACP Middle Layer Dara Library Vector

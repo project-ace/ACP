@@ -12,11 +12,6 @@
 #include <infiniband/verbs.h>
 #include "acpbl.h"
 
-/* debug */
-#define DEBUG
-#define DEBUG_L2
-#define DEBUG_L3
-
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define size */
@@ -1692,11 +1687,11 @@ int acp_inquire(acp_handle_t handle){
     
     /* check status of handle if it is COMPLETED or not.*/ 
     if (head <= handle) {
-        return 1;
 #ifdef DEBUG
     fprintf(stdout, "internal acp_inquire fin\n"); 
     fflush(stdout);
 #endif
+        return 1;
     }
     else {
 #ifdef DEBUG

@@ -2,7 +2,7 @@
 #PBS -N 'test_acpbl_ip'
 #PBS -q Q1
 #PBS -j oe
-#PBS -l nodes=16:ppn=1
+#PBS -l nodes=15:ppn=1
 
 #############################################################################
 cd $PBS_O_WORKDIR
@@ -13,13 +13,13 @@ COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
 # COMM=$COMM_DIR/acpbl
-# COMM=$COMM_DIR/acpbl_ohandle
+COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_rm
 # COMM=$COMM_DIR/acpbl_atomic
 # COMM=$COMM_DIR/acpbl_atomic8
 # COMM=$COMM_DIR/acpbl_rr
 # COMM=$COMM_DIR/acpbl_rr2
-COMM=$COMM_DIR/acpbl_reset
+# COMM=$COMM_DIR/acpbl_reset
 
 # # of process
 np=3
@@ -28,7 +28,8 @@ ACP_MYRANK=$np
 smsize=1024
 ACP_STARTER_MEMSIZE=$smsize
 # start tcp/udp port 
-port=10000
+# port=10000
+port=44256
 
 BASE_HOSTNAME=pc
 BASE_IPADDR=192.168.1

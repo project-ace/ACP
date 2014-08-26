@@ -1,4 +1,4 @@
-####!/usr/bin/ruby
+#!/usr/bin/ruby
 ####!/home/dahon/ruby19/bin/ruby
 ####!/home/dahon/ruby20/bin/ruby
 ####!/home/dahon/ruby21/bin/ruby
@@ -30,14 +30,14 @@ $debug_level     = 10
 $execute_command = false
 ####
 
-$opt_def = [ [ "-np",               "NPROCS",     "BLKVAL" ],
-             [ "--acp-nprocs=" ,    "NPROCS",     "EQVAL"  ],
-             [ "--acp-nodefile=",   "NODEFILE",   "EQVAL"  ],
+$opt_def = [ [ "-np",                   "NPROCS",     "BLKVAL" ],
+             [ "--acp-nprocs=" ,        "NPROCS",     "EQVAL"  ],
+             [ "--acp-nodefile=",       "NODEFILE",   "EQVAL"  ],
              [ "--acp-startermemsize=", "STARTERMEM", "EQVAL"  ],
-             [ "--acp-envnet=",     "ENVNET",     "EQVAL"  ],
-             [ "--help",            "HELP",       "NONE"   ], [ "-h" , "HELP",    "NONE" ],
-             [ "--version",         "VERSION",    "NONE"   ], [ "-v" , "VERSION", "NONE" ],
-             [ "--acp-",            "ERROR",      "NONE"   ] ]
+             [ "--acp-envnet=",         "ENVNET",     "EQVAL"  ],
+             [ "--help",                "HELP",       "NONE"   ], [ "-h" , "HELP",    "NONE" ],
+             [ "--version",             "VERSION",    "NONE"   ], [ "-v" , "VERSION", "NONE" ],
+             [ "--acp-",                "ERROR",      "NONE"   ] ]
 
 class ErrorInvalidOption         < RuntimeError ; end
 class ErrorInvalidOptionArgument < RuntimeError ; end

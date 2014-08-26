@@ -709,7 +709,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
 #ifdef DEBUG
         fprintf(stdout, 
                 "insert data into lrmtb[%d] addr %p size %lu, lock flag %lu valid %lu lock %lu\n", 
-                i, lrmtb[i].addr, lrmtb[i].size, lrmtb[i].lock, lrmtb[i].valid, lrmtb[i].lock);
+                inst_tag_id, lrmtb[inst_tag_id].addr, lrmtb[inst_tag_id].size, lrmtb[inst_tag_id].lock, lrmtb[inst_tag_id].valid, lrmtb[inst_tag_id].lock);
         fflush(stdout);
 #endif
     }
@@ -2279,10 +2279,11 @@ int icopy(uint64_t wr_id,
             sge.lkey = libvmrtb[local_gmtag]->lkey;
         }
         else {
-            fprintf(stderr, "Invalid TAG of This GA");
+            //fprintf(stderr, "Invalid TAG of This GA\n");
             rc = -1;
-            return rc;
+            return rc;//exit(1);
         }
+        
     }
     
     /* set message size */

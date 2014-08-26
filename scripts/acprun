@@ -26,8 +26,8 @@ $str_envtaskid   = "ACP_TASKID"
 $debug_mode      = true  # or false
 $debug_level     = 10
 ####
-#$execute_command  = true ## false
-$execute_command = false
+$execute_command  = true ## false
+#$execute_command = false
 ####
 
 $opt_def = [ [ "-np",                   "NPROCS",     "BLKVAL" ],
@@ -281,10 +281,10 @@ class Acprun
         @arr_rport = [] ; @arr_rhost = []
         for i in 0...@nprocs do @arr_rport << 0 ; @arr_rhost << " " ; end
         for node in 0...@nprocs do
-            @arr_rport[ node ] = @arr_lport  [ node / 2 ]
-            @arr_rport[ node ] = @arr_lport  [ node / 2 ]
-            @arr_rhost[ node ] = @arr_nodeip [ node / 2 ]
-            @arr_rhost[ node ] = @arr_nodeip [ node / 2 ]
+            @arr_rport[ node ] = @arr_lport [ node / 2 ]
+            @arr_rport[ node ] = @arr_lport [ node / 2 ]
+            @arr_rhost[ node ] = @arr_nodeip[ node / 2 ]
+            @arr_rhost[ node ] = @arr_nodeip[ node / 2 ]
         end
     end
 
@@ -295,8 +295,8 @@ class Acprun
             @arr_rport << @arr_lport  [ node + 1 ]
             @arr_rhost << @arr_nodeip [ node + 1 ]
         end
-        @arr_rport << @arr_lport[ 0 ]
-        @arr_rhost << @arr_nodeip  [ 0 ]
+        @arr_rport << @arr_lport [ 0 ]
+        @arr_rhost << @arr_nodeip[ 0 ]
     end
 
     #########################################################
@@ -312,14 +312,14 @@ class Acprun
                             $str_envmyrank, ip,
                             $str_envnprocs, @nprocs,
                             $str_envtaskid, @arr_taskid[ ip ],
-                            $str_envlport,  @arr_lport[ ip ],
-                            $str_envrport,  @arr_rport[ ip ],
-                            $str_envrhost,  @arr_rhost[ ip ],
+                            $str_envlport,  @arr_lport [ ip ],
+                            $str_envrport,  @arr_rport [ ip ],
+                            $str_envrhost,  @arr_rhost [ ip ],
                             $str_envsmsize, @starter_memsize,
                                             @comm_args )
             if !@flg_localmode then
-                #comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\""
-                comm = "ssh " + @arr_nodename[ ip ] + " " + comm
+                comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
+                #comm = "ssh " + @arr_nodename[ ip ] + " " + comm
                 if (ip+1) != @nprocs then
                     comm = comm + " &"
                 end

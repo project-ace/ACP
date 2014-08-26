@@ -4,7 +4,9 @@
 #
 
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
-LDADD = $(top_builddir)/src/bl/ib/libacpbl_ib.la
+LDADD = \
+	$(top_builddir)/src/bl/ib/libacpbl_ib.la \
+	$(top_builddir)/src/ml/libacpml.la
 
 noinst_PROGRAMS = \
 	       acpbl \

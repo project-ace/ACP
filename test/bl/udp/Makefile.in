@@ -103,12 +103,14 @@ CONFIG_CLEAN_VPATH_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
 am_acpbl_udp_test_OBJECTS = acpbl_udp_test.$(OBJEXT)
 acpbl_udp_test_OBJECTS = $(am_acpbl_udp_test_OBJECTS)
+acpbl_udp_test_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_acpbl_udp_test2_OBJECTS = acpbl_udp_test2.$(OBJEXT)
 acpbl_udp_test2_OBJECTS = $(am_acpbl_udp_test2_OBJECTS)
+acpbl_udp_test2_LDADD = $(LDADD)
 SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -293,15 +295,17 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
+LDADD = \
+	$(top_builddir)/src/bl/udp/libacpbl_udp.la \
+	$(top_builddir)/src/ml/libacpml.la
+
 noinst_SCRIPTS = \
 		 test.sh
 
 acpbl_udp_test_SOURCES = acpbl_udp_test.c acp.h
-acpbl_udp_test_LDADD = $(top_builddir)/src/bl/udp/libacpbl_udp.la
-acpbl_udp_test_DEPENDENCIES = $(acpbl_udp_test_LDADD)
+acpbl_udp_test_DEPENDENCIES = $(LDADD)
 acpbl_udp_test2_SOURCES = acpbl_udp_test2.c acp.h
-acpbl_udp_test2_LDADD = $(top_builddir)/src/bl/udp/libacpbl_udp.la
-acpbl_udp_test2_DEPENDENCIES = $(acpbl_udp_test2_LDADD)
+acpbl_udp_test2_DEPENDENCIES = $(LDADD)
 all: all-am
 
 .SUFFIXES:

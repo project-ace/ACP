@@ -6,7 +6,6 @@
 # checked with ruby1.8.7, ruby1.9.3, ruby2.0.0, and ruby2.1.1
 #
 
-require 'optparse'
 require 'resolv'
 
 $envnetwork      = "UDP"
@@ -89,7 +88,7 @@ class Acprun
         port.printf( "    : --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)\n", $envnetwork )
         port.printf( "    : --acp-version\n" )
         port.printf( "    : --acp-help\n" )
-        port.printf( "    : other --acp-* options are judged as error.\n" )
+        port.printf( "    : other --acp-* options are judged as errors.\n" )
         exit
     end
 
@@ -320,8 +319,8 @@ class Acprun
                             $str_envsmsize, @starter_memsize,
                                             @comm_args )
             if !@flg_localmode then
-                comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                #comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\""
+                #comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
+                comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\""
                 if (ip+1) != @nprocs then
                     comm = comm + " &"
                 end
@@ -333,7 +332,7 @@ class Acprun
     #########################################################
     def exec_ssh_commands
         for ip in 0...@nprocs do
-            %x[ #{@comms_ssh[ ip ]} ]
+            system( @comms_ssh[ ip ] )
         end
     end
 end
@@ -343,7 +342,7 @@ end
 ###### MAIN ###################################################################
 ###############################################################################
 ###############################################################################
-acprun = Acprun.new( "UDP" )
+acprun = Acprun.new( $envnetwork )
 
 envnetwork = ENV[ $str_envnetwork ]
 if envnetwork then

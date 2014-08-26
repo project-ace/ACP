@@ -13,14 +13,14 @@ COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
 # COMM=$COMM_DIR/acpbl
-# COMM=$COMM_DIR/acpbl_ohandle
+COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_rm
 # COMM=$COMM_DIR/acpbl_atomic
 # COMM=$COMM_DIR/acpbl_atomic8
 # COMM=$COMM_DIR/acpbl_rr
 # COMM=$COMM_DIR/acpbl_rr2
 # COMM=$COMM_DIR/acpbl_reset
-COMM=$COMM_DIR/acp_tp
+# COMM=$COMM_DIR/acp_tp
 
 # # of process
 np=2

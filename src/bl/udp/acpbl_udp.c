@@ -323,24 +323,37 @@ static int iacp_init(void)
 
 int acp_init(int* argc, char*** argv)
 {
-    if (*argc < 8) return -1;
-    MY_RANK     = strtol((*argv)[1], NULL, 0);
-    NUM_PROCS   = strtol((*argv)[2], NULL, 0);
-    TASKID      = strtol((*argv)[3], NULL, 0);
-    SMEM_SIZE   = strtol((*argv)[4], NULL, 0);
-    my_port     = strtol((*argv)[5], NULL, 0);
-    parent_port = strtol((*argv)[6], NULL, 0);
-    parent_addr = inet_addr((*argv)[7]);
+    MY_RANK     = strtol(getenv("ACP_MYRANK"),          NULL ,0);
+    NUM_PROCS   = strtol(getenv("ACP_NUMPROCS"),        NULL, 0);
+    TASKID      = strtol(getenv("ACP_TASKID"),          NULL, 0);
+    SMEM_SIZE   = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
+    my_port     = strtol(getenv("ACP_LPORT"),           NULL, 0);
+    parent_port = strtol(getenv("ACP_RPORT"),           NULL, 0);
+    parent_addr = inet_addr(getenv("ACP_RHOST"));
     if (parent_addr == 0xffffffff) {
         struct hostent *host;
-        if ((host = gethostbyname((*argv)[7])) == NULL) return -1;
+        if ((host = gethostbyname(getenv("ACP_RHOST"))) == NULL) return -1;
         parent_addr = *(uint32_t *)host->h_addr_list[0];
     }
-    
-    (*argv)[7] = (*argv)[0];
-    *argc -= 7;
-    *argv += 7;
-    
+/* original version
+ *  if (*argc < 8) return -1;
+ *  MY_RANK     = strtol((*argv)[1], NULL, 0);
+ *  NUM_PROCS   = strtol((*argv)[2], NULL, 0);
+ *  TASKID      = strtol((*argv)[3], NULL, 0);
+ *  SMEM_SIZE   = strtol((*argv)[4], NULL, 0);
+ *  my_port     = strtol((*argv)[5], NULL, 0);
+ *  parent_port = strtol((*argv)[6], NULL, 0);
+ *  parent_addr = inet_addr((*argv)[7]);
+ *  if (parent_addr == 0xffffffff) {
+ *      struct hostent *host;
+ *      if ((host = gethostbyname((*argv)[7])) == NULL) return -1;
+ *      parent_addr = *(uint32_t *)host->h_addr_list[0];
+ *  }
+ *  
+ *  (*argv)[7] = (*argv)[0];
+ *  *argc -= 7;
+ *  *argv += 7;
+ */
     debug printf("rank %d - args: procs %d, taskid 0x%x, sseg_size %d, port 0x%x, pport 0x%x, paddr 0x%x\n",
                  MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr);
     

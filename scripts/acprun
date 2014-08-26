@@ -9,6 +9,8 @@
 require 'optparse'
 require 'resolv'
 
+$envnetwork      = "UDP"
+
 $version         = '1.0.0'
 $starter_memsize = 2048
 $portid_start    = 44256
@@ -30,13 +32,13 @@ $execute_command  = true ## false
 #$execute_command = false
 ####
 
-$opt_def = [ [ "-np",                   "NPROCS",     "BLKVAL" ],
+$opt_def = [ [ "-np",                   "NPROCS",     "BLKVAL" ], # only for first argument
              [ "--acp-nprocs=" ,        "NPROCS",     "EQVAL"  ],
              [ "--acp-nodefile=",       "NODEFILE",   "EQVAL"  ],
              [ "--acp-startermemsize=", "STARTERMEM", "EQVAL"  ],
              [ "--acp-envnet=",         "ENVNET",     "EQVAL"  ],
-             [ "--help",                "HELP",       "NONE"   ], [ "-h" , "HELP",    "NONE" ],
-             [ "--version",             "VERSION",    "NONE"   ], [ "-v" , "VERSION", "NONE" ],
+             [ "--help",                "HELP",       "NONE"   ], #[ "-h" , "HELP",    "NONE" ],
+             [ "--version",             "VERSION",    "NONE"   ], #[ "-v" , "VERSION", "NONE" ],
              [ "--acp-",                "ERROR",      "NONE"   ] ]
 
 class ErrorInvalidOption         < RuntimeError ; end
@@ -84,9 +86,9 @@ class Acprun
         port.printf( "opts: -np NPROCS or --acp-nprocs=NPROCS        (default: 1. -np must be first argument)\n" )
         port.printf( "    : --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)\n" )
         port.printf( "    : --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) \n", $starter_memsize )
-        port.printf( "    : --acp-envnet=ENVNETWORK                  (default: UDP. specify UDP or IB)\n" )
-        port.printf( "    : -v or --acp-version\n" )
-        port.printf( "    : -h or --acp-help\n" )
+        port.printf( "    : --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)\n", $envnetwork )
+        port.printf( "    : --acp-version\n" )
+        port.printf( "    : --acp-help\n" )
         port.printf( "    : other --acp-* options are judged as error.\n" )
         exit
     end
@@ -319,7 +321,7 @@ class Acprun
                                             @comm_args )
             if !@flg_localmode then
                 comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                #comm = "ssh " + @arr_nodename[ ip ] + " " + comm
+                #comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\""
                 if (ip+1) != @nprocs then
                     comm = comm + " &"
                 end

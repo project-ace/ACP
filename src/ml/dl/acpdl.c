@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
+#include <acp.h>
 #include "acpdl.h"
 
 size_t iacp_starter_memory_size_dl = 64 * 1024 * 1024;

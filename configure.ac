@@ -23,6 +23,8 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+AC_PATH_PROG([RUBY], ruby)
+AC_SUBST([RUBY])
 
 # Check to see if building shared libraries
 libtool_build_shared_libs='no'

@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <acp.h>
-#include "../bl/acpbl_sync.h"
+#include "acpbl_sync.h"
 
 //#define MHZ 2933.333 //hana Xeon 5160
 #define MHZ 2266.667 //rx200 Xeon E5520

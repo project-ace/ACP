@@ -153,6 +153,7 @@ class Acprun
                     file = optarg
                     if ( file == "" ) then  raise ErrorInvalidOptionArgument ; end
                     @nodefile = file
+                    printf( "nodefile: %s\n", @nodefile )
                 elsif ( flg_opt == "ENVNET" ) then
                     en = optarg
                     if ( en == "" ) then  raise ErrorInvalidOptionArgument ; end

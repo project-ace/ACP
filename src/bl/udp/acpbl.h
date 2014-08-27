@@ -1,14 +1,16 @@
-/*****************************************************************************/
-/***** ACP Basic Layer Header                                            *****/
-/*****                                                                   *****/
-/***** Copyright FUJITSU LIMITED 2014                                    *****/
-/*****                                                                   *****/
-/***** Specification Version: ACP-140312                                 *****/
-/***** Version: 0.0                                                      *****/
-/***** Module Version: 0.0                                               *****/
-/*****                                                                   *****/
-/***** Note:                                                             *****/
-/*****************************************************************************/
+/*
+ * ACP Basic Layer Header
+ * 
+ * Copyright (c) 2014-2014 FUJITSU LIMITED
+ * Copyright (c) 2014      Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
 #ifndef __ACPBL_H__
 #define __ACPBL_H__
 

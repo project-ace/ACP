@@ -1,3 +1,16 @@
+/*
+ * ACP Basic Layer test program for InfiniBand
+ * 
+ * Copyright (c) 2014-2014 Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ * Copyright (c) 2014      FUJITSU LIMITED
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>

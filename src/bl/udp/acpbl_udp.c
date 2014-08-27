@@ -1,3 +1,16 @@
+/*
+ * ACP Basic Layer for UDP
+ * 
+ * Copyright (c) 2014-2014 FUJITSU LIMITED
+ * Copyright (c) 2014      Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

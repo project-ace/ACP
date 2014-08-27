@@ -1,3 +1,16 @@
+/*
+ * ACP Basic Layer GMA header for UDP
+ * 
+ * Copyright (c) 2014-2014 FUJITSU LIMITED
+ * Copyright (c) 2014      Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
 #ifndef __ACPBL_UDP_GMA_H__
 #define __ACPBL_UDP_GMA_H__
 

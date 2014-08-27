@@ -1,20 +1,16 @@
-/*****************************************************************************/
-/***** Advanced Communication Primitives Library Header                  *****/
-/*****                                                                   *****/
-/***** Copyright FUJITSU LIMITED 2014                                    *****/
-/***** Copyright Kyushu University 2014                                  *****/
-/***** Copyright Institute of Systems, Information Technologies          *****/
-/*****           and Nanotechnologies 2014                               *****/
-/*****                                                                   *****/
-/***** Specification Version: ACP-140312                                 *****/
-/***** Version: 0.0                                                      *****/
-/***** Module Version: 0.0                                               *****/
-/*****                                                                   *****/
-/***** This software is released under the BSD License, see LICENSE.     *****/
-/*****                                                                   *****/
-/***** Note:                                                             *****/
-/*****                                                                   *****/
-/*****************************************************************************/
+/*
+ * Advanced Communication Primitives Library Header
+ * 
+ * Copyright (c) 2014-2014 FUJITSU LIMITED
+ * Copyright (c) 2014      Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
 
 /**
  * \file acp.h

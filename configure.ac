@@ -1,5 +1,12 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
+#
+# Copyright (c) 2014      Kyushu University 
+# Copyright (c) 2014      Institute of Systems, Information Technologies 
+#                         and Nanotechnologies 2014
+# Copyright (c) 2014      FUJITSU LIMITED
+#
+# This software is released under the BSD License, see LICENSE. 
 
 AC_PREREQ(2.60)
 AC_INIT(acp, 0.99, [http://ace.cc.kyushu-u.ac.jp])

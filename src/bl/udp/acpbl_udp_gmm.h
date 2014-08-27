@@ -1,5 +1,18 @@
-#ifndef __ACPBL_UDP_GSM_H__
-#define __ACPBL_UDP_GSM_H__
+/*
+ * ACP Basic Layer GMM header for UDP
+ * 
+ * Copyright (c) 2014-2014 FUJITSU LIMITED
+ * Copyright (c) 2014      Kyushu University
+ * Copyright (c) 2014      Institute of Systems, Information Technologies
+ *                         and Nanotechnologies 2014
+ *
+ * This software is released under the BSD License, see LICENSE.
+ *
+ * Note:
+ *
+ */
+#ifndef __ACPBL_UDP_GMM_H__
+#define __ACPBL_UDP_GMM_H__
 
 extern int iacpbludp_init_gmm(void);
 extern int iacpbludp_finalize_gmm(void);

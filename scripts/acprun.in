@@ -1,14 +1,11 @@
-#!/usr/bin/ruby
-####!/home/dahon/ruby19/bin/ruby
-####!/home/dahon/ruby20/bin/ruby
-####!/home/dahon/ruby21/bin/ruby
+#!@RUBY@
 #
 # checked with ruby1.8.7, ruby1.9.3, ruby2.0.0, and ruby2.1.1
 #
 
 require 'resolv'
 
-$envnetwork      = "UDP"
+$envnetwork      = "@NETDEV@"
 
 $version         = '1.0.0'
 $starter_memsize = 2048

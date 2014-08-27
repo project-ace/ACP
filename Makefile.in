@@ -249,6 +249,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
+NETDEV = @NETDEV@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
@@ -327,7 +328,7 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = src sample test
+SUBDIRS = src test sample scripts
 EXTRA_DIST = README INSTALL VERSION Doxyfile Doxyfile.jp License \
 	     ChangeLog
 

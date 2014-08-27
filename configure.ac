@@ -46,6 +46,11 @@ AC_CHECK_LIB([ibverbs], [ibv_get_device_list], [
 	      ibverbs_libs='yes'
 	      ])
 AM_CONDITIONAL(WITH_INFINIBAND, test "${ibverbs_libs}" = 'yes')
+if test "${ibverbs_libs}" = 'yes'; then
+	AC_SUBST(NETDEV,'IB')
+else
+	AC_SUBST(NETDEV,'UDP')
+fi
 AC_CHECK_LIB([pthread], [pthread_create])
 
 # Checks for header files.
@@ -85,6 +90,7 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  sample/Makefile
+                 scripts/Makefile
                  src/Makefile
                  src/bl/Makefile
                  src/bl/ib/Makefile

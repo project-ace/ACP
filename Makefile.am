@@ -3,7 +3,7 @@
 # $COPYRIGHT$
 #
 
-SUBDIRS = src sample test
+SUBDIRS = src test sample scripts
 EXTRA_DIST = README INSTALL VERSION Doxyfile Doxyfile.jp License \
 	     ChangeLog
 

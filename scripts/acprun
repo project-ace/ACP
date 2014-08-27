@@ -215,7 +215,7 @@ class Acprun
                     @arr_nodename << nodename
                 end
             rescue RuntimeError
-                $stderr.printf( "%s: error processing file %s\n", @nodefile )
+                $stderr.printf( "%s: error processing file %s\n", @myname, @nodefile )
                 exit
             end
         end

@@ -503,7 +503,8 @@ uninstall-am: uninstall-binSCRIPTS
 	uninstall-am uninstall-binSCRIPTS
 
 acprun: acprun.in
-	( cd $(top_builddir) && ./config.status --file=${subdir}/acprun:${subdir}/acprun.in )
+	( cd $(top_builddir) && ./config.status --file=${subdir}/acprun:${subdir}/acprun.in ) \
+	&& chmod 755 ${subdir}/acprun
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

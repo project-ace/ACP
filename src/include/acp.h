@@ -13,8 +13,8 @@
  */
 
 /**
- * \file acp.h
- *  @brief A header file for ACP.
+ * @file acp.h
+ * @brief A header file for ACP.
  *         
  *  This is the ACP header file.
  *
@@ -26,7 +26,8 @@
 /*****************************************************************************/
 /***** Basic Layer                                                       *****/
 /*****************************************************************************/
-/** \defgroup acpbl ACP Basic Layer
+/**
+ * @defgroup acpbl ACP Basic Layer
  *
  * ACP basic layer is a thin abstraction of underlying communication devices.
  *
@@ -39,12 +40,11 @@
 
 /* Infrastructure */
 
-/** \defgroup infrastructure ACP Basic Layer Infrastructure
+/**
+ * @defgroup infrastructure ACP Basic Layer Infrastructure
  * @ingroup acpbl
  *
  * These functions perform the infrastructure of ACP Basic Layer.
- *
- * .............
  *
  * @{
  */
@@ -233,12 +233,11 @@ extern int acp_procs(void);
 /* @} */ /* Infrastructure */
 
 /* Global memory management */
-/** \defgroup GMM ACP Basic Layer Global Memory Management
+/**
+ * @defgroup GMM ACP Basic Layer Global Memory Management
  * @ingroup acpbl
  *
  * Functions for global memory management.
- *
- * .......
  *
  * @{
  */

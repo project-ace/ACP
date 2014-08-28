@@ -1,0 +1,146 @@
+.TH "ACP Basic Layer Infrastructure" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ACP Basic Layer Infrastructure \- 
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBacp_init\fP (int *argc, char ***argv)"
+.br
+.RI "\fIACP initialization\&. \fP"
+.ti -1c
+.RI "int \fBacp_finalize\fP (void)"
+.br
+.RI "\fIACP finalization\&. \fP"
+.ti -1c
+.RI "int \fBacp_reset\fP (int rank)"
+.br
+.RI "\fIACP Re-initialization\&. \fP"
+.ti -1c
+.RI "void \fBacp_abort\fP (const char *str)"
+.br
+.RI "\fIACP abort\&. \fP"
+.ti -1c
+.RI "int \fBacp_sync\fP (void)"
+.br
+.RI "\fIACP Syncronization\&. \fP"
+.ti -1c
+.RI "int \fBacp_rank\fP (void)"
+.br
+.RI "\fIQuery for the process rank\&. \fP"
+.ti -1c
+.RI "int \fBacp_procs\fP (void)"
+.br
+.RI "\fIQuery for the number of processes\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+These functions perform the infrastructure of ACP Basic Layer\&. 
+.SH "Function Documentation"
+.PP 
+.SS "void acp_abort (const char *str)"
+
+.PP
+ACP abort\&. Aborts the ACP library\&. It prints out the error message specified as the argument and the system message according to the error number ACP_ERRNO\&. ACP_ERRNO holds a number that shows the reason of the fail of the functions of ACP basic layer\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstr\fP Additional error message\&. 
+.RE
+.PP
+
+.SS "int acp_finalize (void)"
+
+.PP
+ACP finalization\&. Finalizes the ACP library\&. All of the resources allocated in the library before this function are freed\&. It returns after all of the processes complete finalization\&. In this function, the finalization functions of the modules of the middle layer are invoked\&.
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_init (int *argc, char ***argv)"
+
+.PP
+ACP initialization\&. Initializes the ACP library\&. Must be invoked before other functions of ACP\&. argc and argv are the pointers for the arguments of the main function\&. It returns after all of the processes complete initialization\&. In this function, the initialization functions of the modules of the middle layer are invoked\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIargc\fP A pointer for the number of arguments of the main function\&. 
+.br
+\fIargv\fP A pointer for the array of arguments of the main function\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_procs (void)"
+
+.PP
+Query for the number of processes\&. Returns the number of the processes\&.
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=1\fP Number of processes\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_rank (void)"
+
+.PP
+Query for the process rank\&. Returns the rank number of the process that called this function\&.
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=0\fP Rank number of the process\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_reset (intrank)"
+
+.PP
+ACP Re-initialization\&. Re-initializes the ACP library\&. As rank, the new rank number of this process after this function is specified\&. All of the resources allocated in the library before this function are freed\&. The starter memory of each process is cleared to be zero\&. This function returns after all of the processes complete re-initialization\&. In this function, the functions for the initialization and the finalization of the modules of the middle layer are invoked\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIrank\fP New rank number of this process after re-initialization\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_sync (void)"
+
+.PP
+ACP Syncronization\&. Synchronizes among all of the processes\&. Returns after all of the processes call this function\&.
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

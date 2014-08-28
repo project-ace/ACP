@@ -1,0 +1,124 @@
+.TH "ACP Middle Layer Data Library" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ACP Middle Layer Data Library \- 
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Vector\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library List\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Deque\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Set\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Map\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBacp_create\fP(type,\&.\&.\&.)   acp_create_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_destroy\fP(type,\&.\&.\&.)   acp_destroy_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_duplicate\fP(type,\&.\&.\&.)   acp_duplicate_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_swap\fP(type,\&.\&.\&.)   acp_swap_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_clear\fP(type,\&.\&.\&.)   acp_clear_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_insert\fP(type,\&.\&.\&.)   acp_insert_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_erase\fP(type,\&.\&.\&.)   acp_erase_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_push_back\fP(type,\&.\&.\&.)   acp_push_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_pop_back\fP(type,\&.\&.\&.)   acp_pop_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_element\fP(type,\&.\&.\&.)   acp_element_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_front\fP(type,\&.\&.\&.)   acp_front_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_back\fP(type,\&.\&.\&.)   acp_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_begin\fP(type,\&.\&.\&.)   acp_begin_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_end\fP(type,\&.\&.\&.)   acp_end_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_rbegin\fP(type,\&.\&.\&.)   acp_rbegin_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_rend\fP(type,\&.\&.\&.)   acp_rend_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_increment\fP(type,\&.\&.\&.)   acp_increment_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_decrement\fP(type,\&.\&.\&.)   acp_decrement_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_max_size\fP(type,\&.\&.\&.)   acp_max_size_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_empty\fP(type,\&.\&.\&.)   acp_empty_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_equal\fP(type,\&.\&.\&.)   acp_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_not_equal\fP(type,\&.\&.\&.)   acp_not_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_less\fP(type,\&.\&.\&.)   acp_less_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_greater\fP(type,\&.\&.\&.)   acp_greater_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_less_or_equal\fP(type,\&.\&.\&.)   acp_less_or_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_greater_or_equal\fP(type,\&.\&.\&.)   acp_greater_or_equal_##type(__VA_ARGS__)"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_malloc\fP (size_t, int)"
+.br
+.ti -1c
+.RI "void \fBacp_free\fP (\fBacp_ga_t\fP)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+This library provides various data handling functions: Vector, List, Deque, Set, Map
+.PP
+\&.\&.\&.\&.\&.\&.\&.\&.\&.\&.\&. 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

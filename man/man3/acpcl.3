@@ -1,0 +1,174 @@
+.TH "ACP Middle Layer Communication Library" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ACP Middle Layer Communication Library \- 
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef struct chreqitem * \fBacp_request_t\fP"
+.br
+.ti -1c
+.RI "typedef struct chitem * \fBacp_ch_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "acp_ch_t \fBacp_create_ch\fP (int sender, int receiver)"
+.br
+.RI "\fICreates an endpoint of a channel to transfer messages from sender to receiver\&. \fP"
+.ti -1c
+.RI "int \fBacp_free_ch\fP (acp_ch_t ch)"
+.br
+.RI "\fIFrees the endpoint of the channel specified by the handle\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbfree_ch\fP (acp_ch_t ch)"
+.br
+.RI "\fIStarts a nonblocking free of the endpoint of the channel specified by t he handle\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbsend_ch\fP (acp_ch_t ch, void *buf, size_t size)"
+.br
+.RI "\fINon-Blocking send via channels\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbrecv_ch\fP (acp_ch_t ch, void *buf, size_t size)"
+.br
+.RI "\fINon-Blocking receive via channels\&. \fP"
+.ti -1c
+.RI "size_t \fBacp_wait_ch\fP (acp_request_t request)"
+.br
+.RI "\fIWaits for the completion of the nonblocking operation\&. \fP"
+.ti -1c
+.RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+This library provides \fIChannel\fP interface and \fIcollective\fP communication interface\&.
+.PP
+\&.\&.\&.\&.\&.\&.\&.\&.\&. 
+.SH "Function Documentation"
+.PP 
+.SS "acp_ch_t acp_create_ch (intsender, intreceiver)"
+
+.PP
+Creates an endpoint of a channel to transfer messages from sender to receiver\&. Creates an endpoint of a channel to transfer messages from sender to receiver, and returns a handle of it\&. It returns error if sender and receiver is same, or the caller process is neither the sender nor the receiver\&. This function does not wait for the completion of the connection between sender and receiver\&. The connection will be completed by the completion of the communication through this channel\&. There can be more than one channels for the same sender-receiver pair\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIsender\fP Rank of the sender process of the channel\&. 
+.br
+\fIreceiver\fP Rank of the receiver process of the channel\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_CH_NULL\fP fail 
+.br
+\fIotherwise\fP A handle of the endpoint of the channel\&. 
+.RE
+.PP
+
+.SS "int acp_free_ch (acp_ch_tch)"
+
+.PP
+Frees the endpoint of the channel specified by the handle\&. Frees the endpoint of the channel specified by the handle\&. It waits for the completion of negotiation with the counter peer of the channel for disconnection\&. It returns error if the caller process is neither the sender nor the receiver\&. Behavior of the communication with the handle of the channel endpoint that has already been freed is undefined\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIch\fP Handle of the channel endpoint to be freed\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "acp_request_t acp_nbfree_ch (acp_ch_tch)"
+
+.PP
+Starts a nonblocking free of the endpoint of the channel specified by t he handle\&. It returns error if the caller process is neither the sender nor the receiver\&. Otherwise, it returns a handle of the request for waiting the completion of the free operation\&. Communication with the handle of the channel endpoint that has been started to be freed causes an error\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIch\fP Handle of the channel endpoint to be freed\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_REQUEST_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle of the request for waiting the completion of this operation\&. 
+.RE
+.PP
+
+.SS "acp_request_t acp_nbrecv_ch (acp_ch_tch, void *buf, size_tsize)"
+
+.PP
+Non-Blocking receive via channels\&. Starts a nonblocking receive of a message through the channel specified by the handle\&. It returns error if the receiver of the channel endpoint specified by the handle is not the caller process\&. Otherwise, it returns a handle of the request for waiting the completion of the nonblocking receive\&. If the message is smaller than the size of the receive buffer, only the region of the message size, starting from the initial address of the receive buffer is modified\&. If the message is larger than the size of the receive buffer, the exceeded part of the message is discarded\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIch\fP Handle of the channel endpoint to receive a message\&. 
+.br
+\fIbuf\fP Initial address of the receive buffer\&. 
+.br
+\fIsize\fP Size in byte of the receive buffer\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_REQUEST_NULL\fP Fail 
+.br
+\fIotherwise\fP a handle of the request for waiting the completion of this operation\&. 
+.RE
+.PP
+
+.SS "acp_request_t acp_nbsend_ch (acp_ch_tch, void *buf, size_tsize)"
+
+.PP
+Non-Blocking send via channels\&. Starts a nonblocking send of a message through the channel specified by the handle\&. It returns error if the sender of the channel endpoint specified by the handle is not the caller process\&. Otherwise, it returns a handle of the request for waiting the completion of the nonblocking send\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIch\fP Handle of the channel endpoint to send a message\&. 
+.br
+\fIbuf\fP Initial address of the send buffer\&. 
+.br
+\fIsize\fP Size in byte of the message\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_REQUEST_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle of the request for waiting the completion of this operation\&. 
+.RE
+.PP
+
+.SS "size_t acp_wait_ch (acp_request_trequest)"
+
+.PP
+Waits for the completion of the nonblocking operation\&. Waits for the completion of the nonblocking operation specified by the request handle\&. If the operation is a nonblocking receive, it retruns the size of the received data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIrequest\fP Handle of the request of a nonblocking operation\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=0\fP Success\&. if the operation is a nonblocking receive, the size of the received data\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

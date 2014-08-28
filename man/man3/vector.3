@@ -1,0 +1,181 @@
+.TH "ACP Middle Layer Dara Library Vector" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ACP Middle Layer Dara Library Vector \- 
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBacp_vector_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_vector_it_t\fP   int"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t nelem, size_t size, int rank)"
+.br
+.RI "\fIVector creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.RI "\fIVector destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_vector_t\fP \fBacp_duplicate_vector\fP (\fBacp_vector_t\fP vector, int rank)"
+.br
+.RI "\fIVector duplicate\&. \fP"
+.ti -1c
+.RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP v1, \fBacp_vector_t\fP v2)"
+.br
+.RI "\fIVector swap\&. \fP"
+.ti -1c
+.RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "void \fBacp_insert_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP, void *)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_element_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_front_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_back_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_rbegin_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_rend_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP *)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP *)"
+.br
+.ti -1c
+.RI "int \fBacp_max_size_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_not_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_less_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_greater_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_less_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_greater_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+ACP Middle Layer Dara Library Vector 
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define acp_vector_it_t   int"
+Iterater of Vector type\&. 
+.SS "#define acp_vector_t   \fBacp_ga_t\fP"
+Vector type\&. 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_vector_t\fP acp_create_vector (size_tnelem, size_tsize, intrank)"
+
+.PP
+Vector creation\&. Creates a vector type data on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fInelem\fP Number of elements\&. 
+.br
+\fIsize\fP Size of element\&. 
+.br
+\fIrank\fP Rank number\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_VECTOR_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created vector data\&. 
+.RE
+.PP
+
+.SS "void acp_destroy_vector (\fBacp_vector_t\fPvector)"
+
+.PP
+Vector destruction\&. Destroies a vector type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIvector\fP A reference of vector data\&. 
+.RE
+.PP
+
+.SS "\fBacp_vector_t\fP acp_duplicate_vector (\fBacp_vector_t\fPvector, intrank)"
+
+.PP
+Vector duplicate\&. Duplicate a specified vector type data on any processes\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIvector\fP A reference of vector data to duplicate\&. 
+.br
+\fIrank\fP A rank number of the process on which a vector type data is duplicated\&.
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_VECTOR_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of duplicated vector data\&. 
+.RE
+.PP
+
+.SS "void acp_swap_vector (\fBacp_vector_t\fPv1, \fBacp_vector_t\fPv2)"
+
+.PP
+Vector swap\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIv1\fP A reference of vector data to be swapped\&. 
+.br
+\fIv2\fP Another reference of vector data to be swapped\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

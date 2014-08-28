@@ -1,0 +1,438 @@
+.TH "doc/src/acp.h" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+doc/src/acp.h \- 
+A header file for ACP\&.  
+
+.SH SYNOPSIS
+.br
+.PP
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBACP_ATKEY_NULL\fP   0LLU"
+.br
+.ti -1c
+.RI "#define \fBACP_GA_NULL\fP   0LLU"
+.br
+.ti -1c
+.RI "#define \fBACP_HANDLE_ALL\fP   0xffffffffffffffffLLU"
+.br
+.ti -1c
+.RI "#define \fBACP_HANDLE_CONT\fP   0xfffffffffffffffeLLU"
+.br
+.ti -1c
+.RI "#define \fBACP_HANDLE_NULL\fP   0x0000000000000000LLU"
+.br
+.ti -1c
+.RI "#define \fBacp_create\fP(type,\&.\&.\&.)   acp_create_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_destroy\fP(type,\&.\&.\&.)   acp_destroy_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_duplicate\fP(type,\&.\&.\&.)   acp_duplicate_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_swap\fP(type,\&.\&.\&.)   acp_swap_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_clear\fP(type,\&.\&.\&.)   acp_clear_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_insert\fP(type,\&.\&.\&.)   acp_insert_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_erase\fP(type,\&.\&.\&.)   acp_erase_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_push_back\fP(type,\&.\&.\&.)   acp_push_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_pop_back\fP(type,\&.\&.\&.)   acp_pop_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_element\fP(type,\&.\&.\&.)   acp_element_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_front\fP(type,\&.\&.\&.)   acp_front_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_back\fP(type,\&.\&.\&.)   acp_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_begin\fP(type,\&.\&.\&.)   acp_begin_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_end\fP(type,\&.\&.\&.)   acp_end_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_rbegin\fP(type,\&.\&.\&.)   acp_rbegin_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_rend\fP(type,\&.\&.\&.)   acp_rend_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_increment\fP(type,\&.\&.\&.)   acp_increment_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_decrement\fP(type,\&.\&.\&.)   acp_decrement_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_max_size\fP(type,\&.\&.\&.)   acp_max_size_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_empty\fP(type,\&.\&.\&.)   acp_empty_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_equal\fP(type,\&.\&.\&.)   acp_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_not_equal\fP(type,\&.\&.\&.)   acp_not_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_less\fP(type,\&.\&.\&.)   acp_less_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_greater\fP(type,\&.\&.\&.)   acp_greater_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_less_or_equal\fP(type,\&.\&.\&.)   acp_less_or_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_greater_or_equal\fP(type,\&.\&.\&.)   acp_greater_or_equal_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_vector_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_vector_it_t\fP   int"
+.br
+.ti -1c
+.RI "#define \fBacp_list_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_list_it_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_deque_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_deque_it_t\fP   int"
+.br
+.ti -1c
+.RI "#define \fBacp_set_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_set_it_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_map_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_map_it_t\fP   \fBacp_ga_t\fP"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef uint64_t \fBacp_atkey_t\fP"
+.br
+.ti -1c
+.RI "typedef uint64_t \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "typedef int64_t \fBacp_handle_t\fP"
+.br
+.ti -1c
+.RI "typedef struct chreqitem * \fBacp_request_t\fP"
+.br
+.ti -1c
+.RI "typedef struct chitem * \fBacp_ch_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "int \fBacp_init\fP (int *argc, char ***argv)"
+.br
+.RI "\fIACP initialization\&. \fP"
+.ti -1c
+.RI "int \fBacp_finalize\fP (void)"
+.br
+.RI "\fIACP finalization\&. \fP"
+.ti -1c
+.RI "int \fBacp_reset\fP (int rank)"
+.br
+.RI "\fIACP Re-initialization\&. \fP"
+.ti -1c
+.RI "void \fBacp_abort\fP (const char *str)"
+.br
+.RI "\fIACP abort\&. \fP"
+.ti -1c
+.RI "int \fBacp_sync\fP (void)"
+.br
+.RI "\fIACP Syncronization\&. \fP"
+.ti -1c
+.RI "int \fBacp_rank\fP (void)"
+.br
+.RI "\fIQuery for the process rank\&. \fP"
+.ti -1c
+.RI "int \fBacp_procs\fP (void)"
+.br
+.RI "\fIQuery for the number of processes\&. \fP"
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_query_starter_ga\fP (int rank)"
+.br
+.RI "\fIQuery for the global address of the starter memory\&. \fP"
+.ti -1c
+.RI "\fBacp_atkey_t\fP \fBacp_register_memory\fP (void *addr, size_t size, int color)"
+.br
+.RI "\fIMemory registration\&. \fP"
+.ti -1c
+.RI "int \fBacp_unregister_memory\fP (\fBacp_atkey_t\fP atkey)"
+.br
+.RI "\fIMemory unregistration\&. \fP"
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_query_ga\fP (\fBacp_atkey_t\fP atkey, void *addr)"
+.br
+.RI "\fIQuery for the global address\&. \fP"
+.ti -1c
+.RI "void * \fBacp_query_address\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the logical address\&. \fP"
+.ti -1c
+.RI "int \fBacp_query_rank\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the rank of the global address\&. \fP"
+.ti -1c
+.RI "int \fBacp_query_color\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the color of the global address\&. \fP"
+.ti -1c
+.RI "int \fBacp_colors\fP (void)"
+.br
+.RI "\fIQuery for the maximum number of colors\&. \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_copy\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, size_t size, \fBacp_handle_t\fP order)"
+.br
+.RI "\fICopy\&. \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_cas4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t oldval, uint32_t newval, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Compare and Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_cas8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t oldval, uint64_t newval, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Compare and Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_swap4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_swap8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_add4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Add \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_add8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Add \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_xor4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Exclusive OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_xor8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_or4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_or8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_and4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte AND \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_and8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte AND \fP"
+.ti -1c
+.RI "void \fBacp_complete\fP (\fBacp_handle_t\fP handle)"
+.br
+.RI "\fICompletion of GMA\&. \fP"
+.ti -1c
+.RI "int \fBacp_inquire\fP (\fBacp_handle_t\fP handle)"
+.br
+.RI "\fIQuery for the completion of GMA\&. \fP"
+.ti -1c
+.RI "acp_ch_t \fBacp_create_ch\fP (int sender, int receiver)"
+.br
+.RI "\fICreates an endpoint of a channel to transfer messages from sender to receiver\&. \fP"
+.ti -1c
+.RI "int \fBacp_free_ch\fP (acp_ch_t ch)"
+.br
+.RI "\fIFrees the endpoint of the channel specified by the handle\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbfree_ch\fP (acp_ch_t ch)"
+.br
+.RI "\fIStarts a nonblocking free of the endpoint of the channel specified by t he handle\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbsend_ch\fP (acp_ch_t ch, void *buf, size_t size)"
+.br
+.RI "\fINon-Blocking send via channels\&. \fP"
+.ti -1c
+.RI "acp_request_t \fBacp_nbrecv_ch\fP (acp_ch_t ch, void *buf, size_t size)"
+.br
+.RI "\fINon-Blocking receive via channels\&. \fP"
+.ti -1c
+.RI "size_t \fBacp_wait_ch\fP (acp_request_t request)"
+.br
+.RI "\fIWaits for the completion of the nonblocking operation\&. \fP"
+.ti -1c
+.RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_malloc\fP (size_t, int)"
+.br
+.ti -1c
+.RI "void \fBacp_free\fP (\fBacp_ga_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t nelem, size_t size, int rank)"
+.br
+.RI "\fIVector creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.RI "\fIVector destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_vector_t\fP \fBacp_duplicate_vector\fP (\fBacp_vector_t\fP vector, int rank)"
+.br
+.RI "\fIVector duplicate\&. \fP"
+.ti -1c
+.RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP v1, \fBacp_vector_t\fP v2)"
+.br
+.RI "\fIVector swap\&. \fP"
+.ti -1c
+.RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "void \fBacp_insert_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP, void *)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_element_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_front_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_back_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_rbegin_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_rend_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP *)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP *)"
+.br
+.ti -1c
+.RI "int \fBacp_max_size_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_not_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_less_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_greater_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_less_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "int \fBacp_greater_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.br
+.ti -1c
+.RI "\fBacp_list_t\fP \fBacp_create_list\fP (size_t, int)"
+.br
+.RI "\fIList creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIList destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it, void *ptr, int rank)"
+.br
+.RI "\fIInsert a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, void *ptr, int rank)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIQuery for the head iterator of a list\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_end_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIQuery for the tail iterator of a list\&. \fP"
+.ti -1c
+.RI "void \fBacp_increment_list\fP (\fBacp_list_it_t\fP *list)"
+.br
+.RI "\fIIncrement an iterater of a list data\&. \fP"
+.ti -1c
+.RI "void \fBacp_decrement_list\fP (\fBacp_list_it_t\fP *list)"
+.br
+.RI "\fIDecrement an iterater of a list data\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+A header file for ACP\&. 
+
+This is the ACP header file\&. 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

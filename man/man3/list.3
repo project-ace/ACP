@@ -1,0 +1,209 @@
+.TH "ACP Middle Layer Dara Library List" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+ACP Middle Layer Dara Library List \- 
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBacp_list_t\fP   \fBacp_ga_t\fP"
+.br
+.ti -1c
+.RI "#define \fBacp_list_it_t\fP   \fBacp_ga_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_list_t\fP \fBacp_create_list\fP (size_t, int)"
+.br
+.RI "\fIList creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIList destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it, void *ptr, int rank)"
+.br
+.RI "\fIInsert a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, void *ptr, int rank)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIQuery for the head iterator of a list\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_end_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIQuery for the tail iterator of a list\&. \fP"
+.ti -1c
+.RI "void \fBacp_increment_list\fP (\fBacp_list_it_t\fP *list)"
+.br
+.RI "\fIIncrement an iterater of a list data\&. \fP"
+.ti -1c
+.RI "void \fBacp_decrement_list\fP (\fBacp_list_it_t\fP *list)"
+.br
+.RI "\fIDecrement an iterater of a list data\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+ACP Middle Layer Dara Library List 
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define acp_list_it_t   \fBacp_ga_t\fP"
+Iterater of list data type\&. 
+.SS "#define acp_list_t   \fBacp_ga_t\fP"
+List data type\&. 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_list_it_t\fP acp_begin_list (\fBacp_list_t\fPlist)"
+
+.PP
+Query for the head iterator of a list\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIit\fP The head iterator of the list\&. 
+.RE
+.PP
+
+.SS "\fBacp_list_t\fP acp_create_list (size_t, int)"
+
+.PP
+List creation\&. Creates a list type data on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIelsize\fP Size of element\&. 
+.br
+\fIrank\fP Rank number\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_LIST_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created list data\&. 
+.RE
+.PP
+
+.SS "void acp_decrement_list (\fBacp_list_it_t\fP *list)"
+
+.PP
+Decrement an iterater of a list data\&. Decrements an iterater of a list data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+
+.SS "void acp_destroy_list (\fBacp_list_t\fPlist)"
+
+.PP
+List destruction\&. Destroies a list type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list data\&. 
+.RE
+.PP
+
+.SS "\fBacp_list_it_t\fP acp_end_list (\fBacp_list_t\fPlist)"
+
+.PP
+Query for the tail iterator of a list\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIit\fP The tail iterator of the list\&. 
+.RE
+.PP
+
+.SS "\fBacp_list_it_t\fP acp_erase_list (\fBacp_list_t\fPlist, \fBacp_list_it_t\fPit)"
+
+.PP
+Erase a list element\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.br
+\fIit\fP An iterator of list type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIit\fP The iterator that points to the element which is immediately after the erased one\&. 
+.RE
+.PP
+
+.SS "void acp_increment_list (\fBacp_list_it_t\fP *list)"
+
+.PP
+Increment an iterater of a list data\&. Increments the iterator of a list data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+
+.SS "\fBacp_list_it_t\fP acp_insert_list (\fBacp_list_t\fPlist, \fBacp_list_it_t\fPit, void *ptr, intrank)"
+
+.PP
+Insert a list element\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.br
+\fIit\fP An iterater of list type data\&. 
+.br
+\fIptr\fP The pointer of list element\&. 
+.br
+\fIrank\fP Rank of the process in which the element is copied\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIit\fP The iterator that points to the inserted element\&. 
+.RE
+.PP
+
+.SS "void acp_push_back_list (\fBacp_list_t\fPlist, void *ptr, intrank)"
+
+.PP
+Erase a list element\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIlist\fP A reference of list type data\&. 
+.br
+\fIptr\fP A pointer of list type data\&. 
+.br
+\fIrank\fP Rank of the process in which the element is copied\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACE Project from the source code\&.

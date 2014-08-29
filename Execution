@@ -1,66 +1,45 @@
 ===========================================================================
 
-Running Open MPI Applications
+Running user ACP application
 -----------------------------
 
-Open MPI supports both mpirun and mpiexec (they are exactly
-equivalent) to launch MPI applications.  For example:
+ACP library supports acprun program to launch ACP appliations. For example:
 
-  shell$ mpirun -np 2 hello_world_mpi
-  or
-  shell$ mpiexec -np 1 hello_world_mpi : -np 1 hello_world_mpi
+  shell$ acprun -np 2 hello_world_acp   .
 
-are equivalent.  Some of mpiexec's switches (such as -host and -arch)
-are not yet functional, although they will not error if you try to use
-them.
+This launches two hello_world_acp applications on localhost.
+Option "-np 2" is same as long option "--acp-nprocs=2".
+Please note that "-np nprocs" has to be 'first' option of acprun command.
+There are no such limitations for long option.
 
-The rsh launcher (which defaults to using ssh) accepts a -hostfile
-parameter (the option "-machinefile" is equivalent); you can specify a
--hostfile parameter indicating an standard mpirun-style hostfile (one
-hostname per line):
+You can specify a --acp-nodefile=nodefile option to indicate hostnames
+ on which hello_world_acp command will be launched.
 
-  shell$ mpirun -hostfile my_hostfile -np 2 hello_world_mpi
+If you want launch two processes on pc01 and pc02, use following command:
 
-If you intend to run more than one process on a node, the hostfile can
-use the "slots" attribute.  If "slots" is not specified, a count of 1
-is assumed.  For example, using the following hostfile:
+  shell$ acprun -np 2 --acp-nodefile=nodefile hello_world_acp   
 
+with the following nodefile:
 ---------------------------------------------------------------------------
-node1.example.com
-node2.example.com
-node3.example.com slots=2
-node4.example.com slots=4
+pc01
+pc01
+pc02
+pc02
 ---------------------------------------------------------------------------
 
-  shell$ mpirun -hostfile my_hostfile -np 8 hello_world_mpi
+To specify network device, for example infiniband (or udp, tofu),
+use --acp-envent=ib (or udp, tofu) option as follows:
 
-will launch MPI_COMM_WORLD rank 0 on node1, rank 1 on node2, ranks 2
-and 3 on node3, and ranks 4 through 7 on node4.
+  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-nodefile=ib hello_world_acp   
 
-Other starters, such as the resource manager / batch scheduling
-environments, do not require hostfiles (and will ignore the hostfile
-if it is supplied).  They will also launch as many processes as slots
-have been allocated by the scheduler if no "-np" argument has been
-provided.  For example, running a SLURM job with 8 processors:
+If you want control starter memory size of ACP basic layar library,
+use --acp-startermemsize=size (byte unit) option as follows:
 
-  shell$ salloc -n 8 mpirun a.out
-
-The above command will reserve 8 processors and run 1 copy of mpirun,
-which will, in turn, launch 8 copies of a.out in a single
-MPI_COMM_WORLD on the processors that were allocated by SLURM.
-
-Note that the values of component parameters can be changed on the
-mpirun / mpiexec command line.  This is explained in the section
-below, "The Modular Component Architecture (MCA)".
-
-Open MPI supports oshrun to launch OSHMEM applications. For example:
-
-   shell$ oshrun -np 2 hello_world_oshmem
-
-OSHMEM applications may also be launched directly by resource managers such as
-SLURM. For example, when OMPI is configured --with-pmi and --with-slurm one maylaunch OSHMEM applications via srun
-
-   shell$ srun -N 2 hello_world_oshmem
+  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-nodefile=ib --acp-startermemsize=4096 hello_world_acp   
 
 
+Notice:
+  1.  Other "--acp-*" options are parsed as errors in regard to invalid option,
+      even though that option is used as user program option.
+  2.  Tofu network deveice may not supported in this version.
 ===========================================================================

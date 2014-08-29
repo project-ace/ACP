@@ -1,0 +1,65 @@
+===========================================================================
+
+Compiling ACP Applications
+-------------------------------
+
+ACP provides "wrapper" compilers that should be used for
+compiling ACP applications:
+
+C:          acpcc, acpgcc
+C++:        acpc++, acpcxx
+Fortran:    acpfc (not provided yet)
+
+For example:
+
+  shell$ mpicc hello_world_mpi.c -o hello_world_mpi -g
+  shell$
+
+For OSHMEM applications:
+
+  shell$ oshcc hello_shmem.c -o hello_shmem -g
+  shell$ 
+
+All the wrapper compilers do is add a variety of compiler and linker
+flags to the command line and then invoke a back-end compiler.  To be
+specific: the wrapper compilers do not parse source code at all; they
+are solely command-line manipulators, and have nothing to do with the
+actual compilation or linking of programs.  The end result is an MPI
+executable that is properly linked to all the relevant libraries.
+
+Customizing the behavior of the wrapper compilers is possible (e.g.,
+changing the compiler [not recommended] or specifying additional
+compiler/linker flags); see the Open MPI FAQ for more information.
+
+Alternatively, Open MPI also installs pkg-config(1) configuration
+files under $libdir/pkgconfig.  If pkg-config is configured to find
+these files, then compiling / linking Open MPI programs can be
+performed like this:
+
+  shell$ gcc hello_world_mpi.c -o hello_world_mpi -g \
+              `pkg-config ompi-c --cflags --libs`
+  shell$
+
+Open MPI supplies multiple pkg-config(1) configuration files; one for
+each different wrapper compiler (language):
+
+------------------------------------------------------------------------
+ompi       Synonym for "ompi-c"; Open MPI applications using the C
+           MPI bindings
+ompi-c     Open MPI applications using the C MPI bindings
+ompi-cxx   Open MPI applications using the C or C++ MPI bindings
+ompi-fort  Open MPI applications using the Fortran MPI bindings
+------------------------------------------------------------------------
+
+The following pkg-config(1) configuration files *may* be installed,
+depending on which command line options were specified to Open MPI's
+configure script.  They are not necessary for MPI applications, but
+may be used by applications that use Open MPI's lower layer support
+libraries.
+
+orte:       Open MPI Run-Time Environment applicaions
+opal:       Open Portable Access Layer applications
+
+===========================================================================
+
+Running Open MPI Applications

@@ -43,7 +43,7 @@ case $COMMAND in
 		;;
 esac
 
-while [ -n "$1" ]; do
+while [ $# -ge 1 ]; do
 	case $1 in
 		--help)
 		${COMPILER} --help
@@ -77,8 +77,14 @@ while [ -n "$1" ]; do
 		LIBS="$LIBS $1"
 		shift;;
 		-[A-z]*)
-		OPTIONS="$OPTIONS $1 $2"
-		shift 2;;
+		if [ "$2" = -[A-z]* ]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		else
+			OPTIONS="$OPTIONS $1 $2"
+			shift 2
+		fi
+		;;
 		--[A-z]*)
 		OPTIONS="$OPTIONS $1"
 		shift;;
@@ -91,9 +97,11 @@ while [ -n "$1" ]; do
 		SOURCES="$SOURCES $1"
 		shift;;
 		*)
-		;;
+		shift;;
 	esac
 done
+
+[ -z "$SOURCES" ] && exit 0
 
 case $NETDEV in
 	UDP | udp)

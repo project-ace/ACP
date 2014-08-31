@@ -25,7 +25,7 @@ COMM=$COMM_DIR/acpbl
 
 
 # # of process
-np=8
+np=3
 ACP_MYRANK=$np
 # # size of starter memory
 smsize=10240000

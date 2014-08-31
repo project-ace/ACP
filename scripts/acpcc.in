@@ -19,7 +19,7 @@ LIBS_IB="-lacpml -lacpbl_ib"
 LIBS_TOFU="-lacpml -lacpbl_tofu"
 OPTIONS=
 SOURCES=
-OUTFILE=
+OUTFILE="a.out"
 MODE="link"
 
 case $COMMAND in

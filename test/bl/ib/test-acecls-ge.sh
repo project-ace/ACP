@@ -2,7 +2,7 @@
 #PBS -N 'test_acpbl_ip'
 #PBS -q Q1
 #PBS -j oe
-#PBS -l nodes=15:ppn=1
+#PBS -l nodes=8:ppn=1
 
 #############################################################################
 cd $PBS_O_WORKDIR
@@ -12,9 +12,10 @@ cat $PBS_NODEFILE
 COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
-# COMM=$COMM_DIR/acpbl
-COMM=$COMM_DIR/acpbl_ohandle
+COMM=$COMM_DIR/acpbl
+# COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_rm
+# COMM=$COMM_DIR/acp_bw
 # COMM=$COMM_DIR/acpbl_atomic
 # COMM=$COMM_DIR/acpbl_atomic8
 # COMM=$COMM_DIR/acpbl_rr
@@ -22,11 +23,12 @@ COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_reset
 # COMM=$COMM_DIR/acp_tp
 
+
 # # of process
-np=2
+np=8
 ACP_MYRANK=$np
 # # size of starter memory
-smsize=1024
+smsize=10240000
 ACP_STARTER_MEMSIZE=$smsize
 # start tcp/udp port 
 port=10000

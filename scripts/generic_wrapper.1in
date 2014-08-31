@@ -9,7 +9,7 @@
 .
 .SH OPTIONS
 .TP
--ndev 
+.B -ndev
 Switch the network device.
 \fIib\fR: InfiniBand
 \fIudp\fR: UDP
@@ -33,64 +33,10 @@ themselves; they only add in command line flags and invoke the
 back-end compiler.
 .
 .
-.SS Background
-Open MPI is comprised of three software layers: OPAL (Open Portable
-Access Layer), ORTE (Open Run-Time Environment), and OMPI (Open MPI).
-There are wrapper compilers for each layer; each layer's wrapper only
-links in the libraries relevant for that layer.  Specifically, each
-layer provides the following wrapper compilers:
-.
-.TP 4
-OPAL
-\fIopalcc\fR and \fIopalc++\fR
-.
-.TP
-ORTE
-\fIortecc\fR and \fIortec++\fR
-.
-.TP
-OMPI
-\fImpicc\fR, \fImpic++\fR, \fImpicxx\fR, \fImpiCC\fR (only on systems with
-case-senstive file systems), and \fImpifort\fR (and its legacy/deprecated
-names \fImpif77\fR and \fImpif90\fR).  Note
-that \fImpic++\fR, \fImpicxx\fR, and \fImpiCC\fR all invoke the same
-underlying C++ compiler with the same options.  All are provided as
-compatibility with other MPI implementations.
-.
-.
-.SS Fortran Notes
-.PP
-The Fortran wrapper compiler for MPI (\fImpifort\fR, and its
-legacy/deprecated names \fImpif77\fR and \fImpif90\fR) can compile and
-link MPI applications that use any/all of the MPI Fortran bindings:
-.IR mpif.h ,
-the
-.I mpi
-module, and the
-.I mpi_f08
-module (assuming Open MPI was installed with support for each of these
-Fortran bindings).  Specifically: it is no longer necessary to use
-different wrapper compilers for applications that use
-.I mpif.h
-vs. applications that use the
-.I mpi
-module -- just use
-.I mpifort
-for all Fortran MPI applications.
-.
-.PP
-Note, however, that the Fortran compiler may require additional
-command-line options to enforce a specific Fortran dialect.  For
-example, in some versions of the IBM XLF compiler, if xlf90 is the
-underlying Fortran compiler,
-.IR -qfixed
-may be necessary to compile fixed-format Fortran source files.
-.
-.PP 
-Finally, note that
-.I mpifort
-will be inoperative and will return an error on use if Fortran support
-was not built into the MP Ilayer.
+.SS Wrapper compilers
+\fIacpcc\fR, \fIacpgc\fR, \fIacpc++\fR, \fIacpcxx\fR, and \fIacpfc\fR 
+(not provided yet).  Note that \fIacpc++\fR, and \fIacpcxx\fR all invoke 
+the same underlying C++ compiler with the same options.
 .
 .
 .SS Overview
@@ -116,23 +62,6 @@ the wrapper compilers depends on how #PROJECT# was configured and
 built; the values can change between different installations of the
 same version of #PROJECT#.
 .
-.PP
-Indeed, since the wrappers are simply thin shells on top of an
-underlying compiler, there are very, very few compelling reasons
-\fInot\fR to use \fI#COMMAND#\fR.  When it is not possible to use the
-wrappers directly, the \fI-showme:compile\fR and \fI-showme:link\fR
-options should be used to determine what flags the wrappers would have
-used.  For example:
-.
-.PP
-shell$ cc -c file1.c `mpicc -showme:compile`
-.
-.PP
-shell$ cc -c file2.c `mpicc -showme:compile`
-.
-.PP
-shell$ cc file1.o file2.o `mpicc -showme:link` -o my_mpi_program
-.
 .
 .SH NOTES
 .PP
@@ -142,25 +71,7 @@ compiler flags specified (for example, with the GNU compilers on
 Linux, a different library path may be used if -m32 is seen versus
 -m64 being seen).  This is not the default behavior in a standard
 build, but can be activated (for example, in a binary package
-providing both 32 and 64 bit support).  More information can be found
-at:
-.PP
-  https://svn.open-mpi.org/trac/ompi/wiki/compilerwrapper3264
-.
-.
-.SH FILES
-.PP
-The string that the wrapper compilers insert into the command line
-before invoking the underlying compiler are stored in a text file
-created by #PROJECT# and installed to
-\fI$pkgdata/#COMMAND#-wrapper-data.txt\fR, where \fI$pkgdata\fR
-is typically \fI$prefix/share/openmpi\fR, and \fI$prefix\fR is the top
-installation directory of #PROJECT#.
-.
-.PP
-It is rarely necessary to edit this file, but it can be examined to
-gain insight into what flags the wrappers are placing on the command
-line.
+providing both 32 and 64 bit support).
 .
 .
 .SH ENVIRONMENT VARIABLES
@@ -172,11 +83,6 @@ the user in the CC, CXX, F77, and/or FC environment variables
 before "configure" was invoked.  Additionally, other arguments
 specific to the compiler may have been selected by configure.
 .
-.PP
-These values can be selectively overridden by either editing the text
-files containing this configuration information (see the \fBFILES\fR
-section), or by setting selected environment variables of the
-form "#PROJECT_SHORT#_value".
 .
 .PP
 Valid value names are:

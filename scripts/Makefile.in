@@ -19,6 +19,9 @@
 # $COPYRIGHT$
 #
 
+# Version numbers are described in the Libtool current:revision:age
+# format.
+
 VPATH = @srcdir@
 am__is_gnu_make = test -n '$(MAKEFILE_LIST)' && test -n '$(MAKELEVEL)'
 am__make_running_with_option = \
@@ -83,8 +86,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+DIST_COMMON = $(top_srcdir)/config/versions $(srcdir)/Makefile.in \
+	$(srcdir)/Makefile.am
 subdir = scripts
-DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
 	$(top_srcdir)/config/ltoptions.m4 \
@@ -248,9 +252,9 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
-libacpbl_ib_version = @libacpbl_ib_version@
-libacpbl_udp_version = @libacpbl_udp_version@
-libacpml_version = @libacpml_version@
+libacpbl_ib_version = 0:0:0
+libacpbl_udp_version = 0:0:0
+libacpml_version = 0:0:0
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -273,13 +277,16 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 bin_SCRIPTS = acprun acpcc
-CLEANFILES = acprun acpcc
+CLEANFILES = acprun acpcc acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 EXTRA_DIST = acprun.in acpcc.in
-man_MANS = acpcc.1 acpgcc.1 acpc++.1 acpcxx.1
+
+# acp date for man
+ACP_DATE = 'Aug 31, 2014'
+man_MANS = acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 all: all-am
 
 .SUFFIXES:
-$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am $(top_srcdir)/config/versions $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -300,6 +307,7 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	    echo ' cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe)'; \
 	    cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@ $(am__depfiles_maybe);; \
 	esac;
+$(top_srcdir)/config/versions:
 
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
@@ -474,7 +482,7 @@ clean-am: clean-generic clean-libtool mostlyclean-am
 
 distclean: distclean-am
 	-rm -f Makefile
-distclean-am: clean-am distclean-generic
+distclean-am: clean-am distclean-generic distclean-local
 
 dvi: dvi-am
 
@@ -541,16 +549,16 @@ uninstall-man: uninstall-man1
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	cscopelist-am ctags-am distclean distclean-generic \
-	distclean-libtool distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binSCRIPTS install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-exec-hook install-html install-html-am \
-	install-info install-info-am install-man install-man1 \
-	install-pdf install-pdf-am install-ps install-ps-am \
-	install-strip installcheck installcheck-am installdirs \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags-am uninstall uninstall-am uninstall-binSCRIPTS \
+	distclean-libtool distclean-local distdir dvi dvi-am html \
+	html-am info info-am install install-am install-binSCRIPTS \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-exec-hook install-html \
+	install-html-am install-info install-info-am install-man \
+	install-man1 install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags-am uninstall uninstall-am uninstall-binSCRIPTS \
 	uninstall-local uninstall-man uninstall-man1
 
 acprun: acprun.in
@@ -574,28 +582,62 @@ uninstall-local-always:
 install-exec-hook: install-exec-hook-always
 uninstall-local: uninstall-local-always
 
-acpcc.1: generic_wrapper.1
+acpcc.1: generic_wrapper.1in
 	rm -f acpcc.1
 	sed -e 's/#COMMAND#/acpcc/g' \
 	  -e 's/#PACKAGE_NAME#/@PACKAGE_NAME@/g' \
 	  -e 's/#PACKAGE_VERSION#/@PACKAGE_VERSION@/g' \
-	  -e 's/#ACP_DATE#/@ACP_RELEASE_DATE@/g' \
+	  -e "s/#ACP_DATE#/$(ACP_DATE)/g" \
 	  -e 's/#PROJECT#/ACP/g' \
 	  -e 's/#PROJECT_SHORT#/ACP/g' \
 	  -e 's/#LANGUAGE#/C/g' \
 	  < generic_wrapper.1in > acpcc.1
 
-acpgcc.1: generic_wrapper.1
+acpgcc.1: generic_wrapper.1in
 	rm -f acpgcc.1
-	sed -e 's/#COMMAND#/acpgcc/g' -e 's/#PROJECT#/ACP/g' -e 's/#PROJECT_SHORT#/ACP/g' -e 's/#LANGUAGE#/C/g' < generic_wrapper.1in > acpgcc.1
+	sed -e 's/#COMMAND#/acpcc/g' \
+	  -e 's/#PACKAGE_NAME#/@PACKAGE_NAME@/g' \
+	  -e 's/#PACKAGE_VERSION#/@PACKAGE_VERSION@/g' \
+	  -e "s/#ACP_DATE#/$(ACP_DATE)/g" \
+	  -e 's/#PROJECT#/ACP/g' \
+	  -e 's/#PROJECT_SHORT#/ACP/g' \
+	  -e 's/#LANGUAGE#/C/g' \
+	  < generic_wrapper.1in > acpgcc.1
 
-acpc++.1: generic_wrapper.1
+acpc++.1: generic_wrapper.1in
 	rm -f acpc++.1
-	sed -e 's/#COMMAND#/acpc++/g' -e 's/#PROJECT#/ACP/g' -e 's/#PROJECT_SHORT#/ACP/g' -e 's/#LANGUAGE#/C/g' < generic_wrapper.1in > acpc++.1
+	sed -e 's/#COMMAND#/acpcc/g' \
+	  -e 's/#PACKAGE_NAME#/@PACKAGE_NAME@/g' \
+	  -e 's/#PACKAGE_VERSION#/@PACKAGE_VERSION@/g' \
+	  -e "s/#ACP_DATE#/$(ACP_DATE)/g" \
+	  -e 's/#PROJECT#/ACP/g' \
+	  -e 's/#PROJECT_SHORT#/ACP/g' \
+	  -e 's/#LANGUAGE#/C++/g' \
+	  < generic_wrapper.1in > acpc++.1
 
-acpcxx.1: generic_wrapper.1
+acpcxx.1: generic_wrapper.1in
 	rm -f acpcxx.1
-	sed -e 's/#COMMAND#/acpcxx/g' -e 's/#PROJECT#/ACP/g' -e 's/#PROJECT_SHORT#/ACP/g' -e 's/#LANGUAGE#/C/g' < generic_wrapper.1in > acpcxx.1
+	sed -e 's/#COMMAND#/acpcc/g' \
+	  -e 's/#PACKAGE_NAME#/@PACKAGE_NAME@/g' \
+	  -e 's/#PACKAGE_VERSION#/@PACKAGE_VERSION@/g' \
+	  -e "s/#ACP_DATE#/$(ACP_DATE)/g" \
+	  -e 's/#PROJECT#/ACP/g' \
+	  -e 's/#PROJECT_SHORT#/ACP/g' \
+	  -e 's/#LANGUAGE#/C++/g' \
+	  < generic_wrapper.1in > acpcxx.1
+acprun.1: acprun.1in
+	rm -f acprun.1
+	sed -e 's/#COMMAND#/acpcc/g' \
+	  -e 's/#PACKAGE_NAME#/@PACKAGE_NAME@/g' \
+	  -e 's/#PACKAGE_VERSION#/@PACKAGE_VERSION@/g' \
+	  -e "s/#ACP_DATE#/$(ACP_DATE)/g" \
+	  -e 's/#PROJECT#/ACP/g' \
+	  -e 's/#PROJECT_SHORT#/ACP/g' \
+	  -e 's/#LANGUAGE#/C/g' \
+	  < acprun.1in > acprun.1
+
+distclean-local:
+	rm -f *.1
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

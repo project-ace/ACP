@@ -3860,7 +3860,8 @@ int iacp_init(void){
         
         /* set attribution for RTR */
         attr.qp_state = IBV_QPS_RTR;
-        attr.path_mtu = IBV_MTU_256;
+        //attr.path_mtu = IBV_MTU_256;
+        attr.path_mtu = IBV_MTU_2048;
         attr.dest_qp_num = remote_qp_num[acp_myrank];
         attr.rq_psn = 0;
         attr.max_dest_rd_atomic = 1;

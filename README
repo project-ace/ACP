@@ -33,7 +33,7 @@ install tree.
 See INSTALL for more details.
 
 
-2. Running user ACP Applications
+2. Compiling user ACP Applications
 --------------------------------
 ACP provides "wrapper" compilers that should be used for
 compiling ACP applications:
@@ -59,8 +59,8 @@ changing the compiler [not recommended] or specifying additional
 compiler/linker flags);
 
 
-3. Execution user ACP Applications
-----------------------------------
+3. Running user ACP Applications
+--------------------------------
 ACP library supports acprun program to launch ACP appliations. For example:
 
   shell$ acprun -np 2 hello_world_acp   .

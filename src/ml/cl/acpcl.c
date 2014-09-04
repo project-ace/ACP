@@ -687,6 +687,7 @@ static void progress_send(acp_ch_t ch)
         ch->shdl[sbufidx] = acp_copy(CHRBSLOTGA(ch->remotega, tail, ch->buf_entrysz),
                                      CHSBSLOTGA(ch->localga, sbufidx, ch->buf_entrysz),
                                      msgsz, ACP_HANDLE_NULL);
+        req->hdl = ch->shdl[sbufidx];
 #ifdef DEBUG
         printf("%d: progress_send: acp_copy to %p from %p size %d\n", 
                myrank, CHRBSLOTGA(ch->remotega, tail, ch->buf_entrysz),

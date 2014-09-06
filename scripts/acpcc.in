@@ -94,7 +94,7 @@ while [ $# -ge 1 ]; do
 		*.f90|*.f95|*.f03|*.f08|*.F90|*.F95|*.F03|*.F08 | \
 		*.s|*.S|*.sx | \
 		*.o)
-		SOURCES="$SOURCES $1"
+		[ -z "$SOURCES" ] && SOURCES="$1" || SOURCES="$SOURCES $1"
 		shift;;
 		*)
 		shift;;
@@ -102,6 +102,12 @@ while [ $# -ge 1 ]; do
 done
 
 [ -z "$SOURCES" ] && exit 0
+
+if [ "$MODE" = "compile" -a "${OUTRILE}" = "a.out" ]; then
+	OUTFILE="${SOURCES%.*}.o"
+	echo "$OUTFILE"
+	exit 1
+fi
 
 case $NETDEV in
 	UDP | udp)

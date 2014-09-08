@@ -13,10 +13,60 @@
 Switch the network device.
 \fIib\fR: InfiniBand
 \fIudp\fR: UDP
+.
+.
+.TP
+--showme
+This option comes in several different variants (see below).  None of
+the variants invokes the underlying compiler; they all provide
+information on how the underlying compiler would have been invoked had
+.I --showme
+not been used.
+The basic
+.I --showme
+option outputs the command line that would be executed to compile the
+program.  \fBNOTE:\fR If a non-filename argument is passed on the
+command line, the \fI-showme\fR option will \fInot\fR display any
+additional flags.  For example, both "#COMMAND# --showme" and
+"#COMMAND# --showme my_source.c" will show all the wrapper-supplied
+flags.
+.TP
+--showme:compile
+Output the compiler flags that would have been supplied to the
+#LANGUAGE# compiler.
+.TP
+--showme:link
+Output the linker flags that would have been supplied to the
+#LANGUAGE# compiler.
+.TP
+--showme:command
+Outputs the underlying #LANGUAGE# compiler command (which may be one
+or more tokens).
+.TP
+--showme:incdirs
+Outputs a space-delimited (but otherwise undecorated) list of
+directories that the wrapper compiler would have provided to the
+underlying #LANGUAGE# compiler to indicate where relevant header files
+are located.
+.TP
+--showme:libdirs
+Outputs a space-delimited (but otherwise undecorated) list of
+directories that the wrapper compiler would have provided to the
+underlying linker to indicate where relevant libraries are located.
+.TP
+--showme:libs
+Outputs a space-delimited (but otherwise undecorated) list of library
+names that the wrapper compiler would have used to link an
+application.  For example: "pthread acpml acpbl_udp".
+.TP
+--showme:version
+Outputs the version number of ACP Library.
+.TP
+--showme:help
+Output a brief usage help message.
 .PP
 See the man page for your underlying #LANGUAGE# compiler for other
 options that can be passed through #COMMAND#.
-.
 .
 .SH DESCRIPTION
 .PP
@@ -62,6 +112,23 @@ the wrapper compilers depends on how #PROJECT# was configured and
 built; the values can change between different installations of the
 same version of #PROJECT#.
 .
+.PP
+Indeed, since the wrappers are simply thin shells on top of an
+underlying compiler, there are very, very few compelling reasons
+\fInot\fR to use \fI#COMMAND#\fR.  When it is not possible to use the
+wrappers directly, the \fI-showme:compile\fR and \fI-showme:link\fR
+options should be used to determine what flags the wrappers would have
+used.  For example:
+.
+.PP
+shell$ cc -c file1.c `acpcc -showme:compile`
+.
+.PP
+shell$ cc -c file2.c `acpcc -showme:compile`
+.
+.PP
+shell$ cc file1.o file2.o `acpcc -showme:link` -o my_acp_program
+.
 .
 .SH NOTES
 .PP
@@ -78,7 +145,7 @@ providing both 32 and 64 bit support).
 .PP 
 By default, the wrappers use the compilers that were selected when
 #PROJECT# was configured.  These compilers were either found
-automatically by Open MPI's "configure" script, or were selected by
+automatically by ACP Library's "configure" script, or were selected by
 the user in the CC, CXX, F77, and/or FC environment variables 
 before "configure" was invoked.  Additionally, other arguments
 specific to the compiler may have been selected by configure.

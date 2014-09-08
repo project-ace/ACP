@@ -21,6 +21,36 @@ OPTIONS=
 SOURCES=
 OUTFILE="a.out"
 MODE="link"
+VERSION="@VERSION@"
+
+[[ `uname -s` == "Darwin" ]] && RPATH= || RPATH="-Wl,rpath -Wl,$LIBDIR"
+
+show_help()
+{
+  echo "$COMMAND [-showme[:<command,compile,link,incdirs,"
+  echo "              libdirs,libs,version,help>]] args" 
+  echo "" 
+  echo "  -showme:command    Show command used to invoke real compiler"
+  echo "  -showme:compile    Show flags added when compiling"
+  echo "  -showme:link       Show flags added when linking"
+  echo "  -showme:incdirs    Show list of include dirs added when compiling"
+  echo "  -showme:libdirs    Show list of library dirs added when linking"
+  echo "  -showme:libs       Show list of libraries added when linking"
+  echo "  -showme:version    Show version of ACP Library"
+  echo "  -showme:help       This help message"
+}
+
+case $NETDEV in
+	UDP | udp)
+		DEF_LIBS="$LIBS $LIBS_UDP"
+		;;
+	INFINIBAND | inifiniband | IB | ib)
+		DEF_LIBS="$LIBS $LIBS_IB"
+		;;
+	TOFU | tofu)
+		DEF_LIBS="$LIBS $LIBS_TOFU"
+		;;
+esac
 
 case $COMMAND in
 	acpcc | acpgcc)
@@ -47,6 +77,42 @@ while [ $# -ge 1 ]; do
 	case $1 in
 		--help)
 		${COMPILER} --help
+		exit 0
+		;;
+		--showme)
+		echo "$COMPILER -I$INCLUDEDIR $RPATH -L$LIBDIR $DEF_LIBS"
+		exit 0
+		;;
+		--showme:compile)
+		echo "-I$INCLUDEDIR"
+		exit 0
+		;;
+		--showme:link)
+		echo "$RPATH -L$LIBDIR $DEF_LIBS"
+		exit 0
+		;;
+		--showme:command)
+		echo "$COMPILER"
+		exit 0
+		;;
+		--showme:incdirs)
+		echo "$INCLUDEDIR"
+		exit 0
+		;;
+		--showme:libdirs)
+		echo "$LIBDIR"
+		exit 0
+		;;
+		--showme:libs)
+		echo "$DEF_LIBS" | sed -e "s,-l,,g"
+		exit 0
+		;;
+		--showme:version)
+		echo "$COMMAND: ACP Library $VERSION"
+		exit 0
+		;;
+		--showme:help)
+		show_help
 		exit 0
 		;;
 		-c)
@@ -127,7 +193,7 @@ esac
 
 ##### COMPILE #####
 if test "$MODE" = 'link'; then
-	$COMPILER -I $INCLUDEDIR $OPTIONS -o $OUTFILE $SOURCES -L $LIBDIR $LIBS
+	$COMPILER -I $INCLUDEDIR $OPTIONS -o $OUTFILE $SOURCES $RPATH -L $LIBDIR $LIBS
 else
 	$COMPILER -I $INCLUDEDIR $OPTIONS -c -o $OUTFILE $SOURCES
 fi

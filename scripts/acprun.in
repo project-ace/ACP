@@ -14,7 +14,7 @@ require 'resolv'
 
 $envnetwork      = "@NETDEV@"
 
-$version         = '1.0.0'
+$version         = "@VERSION@"
 $starter_memsize = 2048
 $portid_start    = 44256
 $taskid          = 100

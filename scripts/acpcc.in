@@ -23,7 +23,7 @@ OUTFILE="a.out"
 MODE="link"
 VERSION="@VERSION@"
 
-[[ `uname -s` == "Darwin" ]] && RPATH= || RPATH="-Wl,rpath -Wl,$LIBDIR"
+[[ `uname -s` == "Darwin" ]] && RPATH= || RPATH="-Wl,-rpath -Wl,$LIBDIR"
 
 show_help()
 {

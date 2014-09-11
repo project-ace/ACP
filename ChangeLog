@@ -1,7 +1,9 @@
 2014-09-10  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 1.0.0-rc2
-	* fix acpcc: set rpath option to link mode
+	* fix acpcc: set rpath option to link mode and ndev option handling
+	* fix acprun: modified as acprun can launch commands correctly in
+	  localmode.
 
 2014-08-31  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 

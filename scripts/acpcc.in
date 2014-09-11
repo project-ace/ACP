@@ -169,10 +169,8 @@ done
 
 [ -z "$SOURCES" ] && exit 0
 
-if [ "$MODE" = "compile" -a "${OUTRILE}" = "a.out" ]; then
+if [ "$MODE" = "compile" -a "${OUTFILE}" = "a.out" ]; then
 	OUTFILE="${SOURCES%.*}.o"
-	echo "$OUTFILE"
-	exit 1
 fi
 
 case $NETDEV in

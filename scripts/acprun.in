@@ -13,6 +13,7 @@
 require 'resolv'
 
 $envnetwork      = "@NETDEV@"
+$remoteshell     = "ssh"
 
 $version         = "@VERSION@"
 $starter_memsize = 2048
@@ -325,10 +326,13 @@ class Acprun
                                             @comm_args )
             if !@flg_localmode then
                 #comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                comm = "ssh " + @arr_nodename[ ip ] + " \"" + comm + "\""
-                if (ip+1) != @nprocs then
-                    comm = comm + " &"
-                end
+                #comm = $remoteshell + " " + @arr_nodename[ ip ] + " \"" + comm + "\""
+                comm = $remoteshell + " " + @arr_nodeip[ ip ] + " \"" + comm + "\""
+            end
+            if ip == (@nprocs-1) then
+                comm = comm + "\n"
+            else
+                comm = comm + " &"
             end
             @comms_ssh << comm
         end

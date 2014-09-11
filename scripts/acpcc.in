@@ -125,8 +125,8 @@ while [ $# -ge 1 ]; do
 		OUTFILE="${1##*=}"
 		shift;;
 		-ndev)
-		NETDEV="$1"
-		shift;;
+		NETDEV="$2"
+		shift 2;;
 		-I)
 		INCLUDEDIR="$INCLUDEDIR $1 $2"
 		shift 2;;

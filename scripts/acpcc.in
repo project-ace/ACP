@@ -40,6 +40,21 @@ show_help()
   echo "  -showme:help       This help message"
 }
 
+check_source()
+{
+  case $1 in
+	*.[ci] | \
+	*.cc|*.cp|*.cxx|*.cpp|*.CPP|*.c++*|.C,ii | \
+	*.f|*.for|*.ftn|*.F|*.FOR|*.fpp|*.FPP|*.FTN| \
+	*.f90|*.f95|*.f03|*.f08|*.F90|*.F95|*.F03|*.F08 | \
+	*.s|*.S|*.sx | \
+	*.o)
+	return 0;;
+	*)
+	return -1;;
+  esac
+}
+
 case $NETDEV in
 	UDP | udp)
 		DEF_LIBS="$LIBS $LIBS_UDP"
@@ -143,12 +158,27 @@ while [ $# -ge 1 ]; do
 		LIBS="$LIBS $1"
 		shift;;
 		-[A-z]*)
-		if [ "$2" = -[A-z]* ]; then
+		if [ $# -eq 1 ]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x-[A-z] ]]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x-[A-z]* ]]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x--[A-z]* ]]; then
 			OPTIONS="$OPTIONS $1"
 			shift
 		else
-			OPTIONS="$OPTIONS $1 $2"
-			shift 2
+			check_source $2
+			if [ $? -eq 0 ]; then
+				OPTIONS="$OPTIONS $1"
+				shift
+			else
+				OPTIONS="$OPTIONS $1 $2"
+				shift 2
+			fi
 		fi
 		;;
 		--[A-z]*)

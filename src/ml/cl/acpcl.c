@@ -300,7 +300,7 @@ static void handl_conchlist(void)
 {
     acp_ch_t ch, nextch, tmpch;
     conninfo_t *conninfo;
-    int myrank, idx;
+    int myrank, idx, offset;
     uint64_t head, tail, crbidx;
     crbmsg_t *msg;
 
@@ -442,9 +442,10 @@ static void handl_conchlist(void)
                     memset (ch->chbody, 0, sizeof(uint64_t) * 3 + ch->rbuf_entrynum * ch->buf_entrysz);
 
                     /* use the first slot of the receive queue for sending back localga */
-                    *((acp_ga_t *)CHRBSLOTADDR(ch->chbody, 0, ch->buf_entrysz)) = ch->localga;
+                    *((acp_ga_t *)CHMSGBODY(CHRBSLOTADDR(ch->chbody, 0, ch->buf_entrysz))) = ch->localga;
+                    offset = (int)CHMSGBODY(0);
                     acp_copy(ch->remotega + CONNINFO_REMGA_OFFSET,
-                             CHRBSLOTGA(ch->localga, 0, ch->buf_entrysz),
+                             CHRBSLOTGA(ch->localga, 0, ch->buf_entrysz) + offset,
                              sizeof(acp_ga_t), ACP_HANDLE_NULL);
 
 #ifdef DEBUG

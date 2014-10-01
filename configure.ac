@@ -53,11 +53,18 @@ AC_CHECK_LIB([ibverbs], [ibv_get_device_list], [
 	      ibverbs_libs='yes'
 	      ])
 AM_CONDITIONAL(WITH_INFINIBAND, test "${ibverbs_libs}" = 'yes')
-if test "${ibverbs_libs}" = 'yes'; then
+
+AC_ARG_WITH(ndev, AC_HELP_STRING([--with-ndev=NAME],
+	    [default network device [ndev]]))
+
+if test x"$with_ndev" = x'udp'; then
+	AC_SUBST(NETDEV,'UDP')
+elif test "${ibverbs_libs}" = 'yes'; then
 	AC_SUBST(NETDEV,'IB')
 else
 	AC_SUBST(NETDEV,'UDP')
 fi
+
 AC_CHECK_LIB([pthread], [pthread_create])
 
 # Checks for header files.

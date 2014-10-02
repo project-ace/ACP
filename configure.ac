@@ -55,7 +55,7 @@ AC_CHECK_LIB([ibverbs], [ibv_get_device_list], [
 AM_CONDITIONAL(WITH_INFINIBAND, test "${ibverbs_libs}" = 'yes')
 
 AC_ARG_WITH(ndev, AC_HELP_STRING([--with-ndev=NAME],
-	    [default network device [ndev]]))
+	    [the priority order of default network device [ib, udp]]))
 
 if test x"$with_ndev" = x'udp'; then
 	AC_SUBST(NETDEV,'UDP')

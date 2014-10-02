@@ -1427,7 +1427,8 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-ndev=NAME        default network device [ndev]
+  --with-ndev=NAME        the priority order of default network device [ib,
+                          udp]
 
 Some influential environment variables:
   CC          C compiler command

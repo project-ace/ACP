@@ -67,7 +67,10 @@ int main(int argc, char** argv)
     //  acp_sync();
   fflush(stdout);  
 
+  if ((rank == 0) || (rank == 1)){
     acp_wait_ch(req);
+  }
+
   fflush(stdout);  
 
   if (rank == 1){
@@ -98,6 +101,8 @@ int main(int argc, char** argv)
   acp_finalize();
   printf("%d finalize done\n", rank);
   fflush(stdout);  
+
+  return 0;
 
 }
 

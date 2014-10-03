@@ -27,9 +27,7 @@
 
 int main(int argc, char** argv)
 {
-  int rank, a;
-  acp_ch_t ch;
-  acp_request_t req;
+  int rank;
   
   acp_init(&argc, &argv);
   rank = acp_rank();
@@ -43,5 +41,6 @@ int main(int argc, char** argv)
   printf("%d finalize done\n", rank);
   fflush(stdout);  
 
+  return 0;
 }
 

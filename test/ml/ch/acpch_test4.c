@@ -47,38 +47,36 @@ int main(int argc, char** argv)
   
   acp_init(&argc, &argv);
 
-  fflush(stdout);  
   rank = acp_rank();
 
-  if ((rank == 1) || (rank == 0)){
-    ch = acp_create_ch(0, 1);
-  fflush(stdout);  
+  if ((rank == 1) || (rank == 0)) {
+      ch = acp_create_ch(0, 1);
   }
-  if (rank == 0){
-    for (i = 0; i < 1024; i++){
-	a[i] = i;
+
+  if (rank == 0) {
+      for (i = 0; i < 1024; i++) {
+          a[i] = i;
       }
-    req = acp_nbsend_ch(ch, a, sizeof(int)*1024);
+      req = acp_nbsend_ch(ch, a, sizeof(int)*1024);
   }
   //  sleep(5);
   //  acp_sync();
-    if (rank == 1){
-      for (i = 0; i < 1024; i++){
-	a[i] = 0;
+  if (rank == 1) {
+      for (i = 0; i < 1024; i++) {
+          a[i] = 0;
       }
       req = acp_nbrecv_ch(ch, a, sizeof(int)*1024);
-    }
-    //  acp_sync();
-  fflush(stdout);  
+  }
 
+  if (rank < 2) {
     acp_wait_ch(req);
-  fflush(stdout);  
+  }
 
   if (rank == 1){
       printf("got %d\n", a[1023]);
+      fflush(stdout);  
   }
 
-  fflush(stdout);  
 
   acp_sync();
 
@@ -86,14 +84,11 @@ int main(int argc, char** argv)
   fflush(stdout);  
 
 
-  if ((rank == 1) || (rank == 0)){
-    req = acp_nbfree_ch(ch);
-
-    acp_wait_ch(req);
+  if (rank < 2) {
+      req = acp_nbfree_ch(ch);
+      acp_wait_ch(req);
   }
   
-
-
   acp_sync();
 
   printf("%d sync 1 done\n", rank);
@@ -102,6 +97,8 @@ int main(int argc, char** argv)
   acp_finalize();
   printf("%d finalize done\n", rank);
   fflush(stdout);  
+
+  return 0;
 
 }
 

@@ -123,5 +123,6 @@ int main(int argc, char** argv)
   printf("%d finalize done\n", rank);
   fflush(stdout);  
 
+  return 0;
 }
 

@@ -22,6 +22,7 @@
 #include <string.h> /* memset() */
 #include <stdlib.h> /* malloc() */
 #include <pthread.h>
+#include <errno.h>
 #include <infiniband/verbs.h>
 #include <acp.h>
 #include "acpbl.h"
@@ -354,11 +355,11 @@ int acp_sync(void){
     if (nprocs >= 2) { /* if nprocs >= 2, */
         for (i = 0; i < nprocs; i++) {
             if (write(sock_connect, &dummy1, sizeof(char)) < 0){
-                fprintf(stderr, "acp_sync error: failed to write\n");
+                perror("acp_sync error: failed to write\n");
                 return -1;
             }
             if (recv(sock_accept, &dummy2, sizeof(char), 0) < 0){
-                fprintf(stderr, "acp_sync error: failed to recv\n");
+                perror("acp_sync error: failed to recv\n");
                 return -1;
             }
         }
@@ -3544,10 +3545,12 @@ int iacp_init(void){
     myaddr.sin_port = my_port;
   
     /* bind socket file descriptor*/
-    if (bind(sock_s, (struct sockaddr*)&myaddr, sizeof(myaddr)) < 0) {
-        fprintf(stderr, "bind() failed\n");
-        rc = -1;
-        goto exit;
+    while (bind(sock_s, (struct sockaddr*)&myaddr, sizeof(myaddr)) < 0) {
+        if (errno != EADDRINUSE) {
+            perror("bind() failed\n");
+            rc = -1;
+            goto exit;
+        }
     }
     
     if (listen(sock_s, 2) < 0) {
@@ -3861,7 +3864,8 @@ int iacp_init(void){
         /* set attribution for RTR */
         attr.qp_state = IBV_QPS_RTR;
         //attr.path_mtu = IBV_MTU_256;
-        attr.path_mtu = IBV_MTU_2048;
+        //attr.path_mtu = IBV_MTU_2048;
+        attr.path_mtu = res.port_attr.active_mtu;
         attr.dest_qp_num = remote_qp_num[acp_myrank];
         attr.rq_psn = 0;
         attr.max_dest_rd_atomic = 1;

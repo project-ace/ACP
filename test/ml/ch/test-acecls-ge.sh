@@ -9,14 +9,14 @@ cd $PBS_O_WORKDIR
 pwd
 cat $PBS_NODEFILE
 
-COMM_DIR=${HOME}/work/ace/ACE/devel/test/ml/ch
+COMM_DIR=${HOME}/ACE/devel/test/ml/ch
 
 # input 
 # COMM=$COMM_DIR/acpch_ib_test0
 # COMM=$COMM_DIR/acpch_ib_test1
- COMM=$COMM_DIR/acpch_ib_test2
-#COMM=$COMM_DIR/acpch_ib_test3
-#COMM=$COMM_DIR/acpch_ib_test4
+#COMM=$COMM_DIR/acpch_ib_test2
+# COMM=$COMM_DIR/acpch_ib_test3
+COMM=$COMM_DIR/acpch_ib_test4
 
 # # of process
 np=2

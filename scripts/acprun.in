@@ -29,8 +29,8 @@ $str_envnprocs   = "ACP_NUMPROCS"
 $str_envsmsize   = "ACP_STARTER_MEMSIZE"
 $str_envtaskid   = "ACP_TASKID"
 
-$debug_mode      = true  # or false
-$debug_level     = 10
+$debug_mode      = false  # or true
+$debug_level     = 10     # change to >200
 ####
 $execute_command  = true ## false
 #$execute_command = false
@@ -52,9 +52,10 @@ class ErrorInvalidOptionArgument < RuntimeError ; end
 #########################################################
 #########################################################
 class Acprun
-    attr_accessor :myname,     :starter_memsize, :nprocs,         :arr_taskid, :nodefile,
-                  :arr_myrank, :arr_lport,       :arr_rport,      :arr_rhost,  :mult,
-                  :nodenames,  :nodeips,         :flg_envnetwork, :comm_args,  :comms_ssh
+    attr_accessor :myname,       :starter_memsize, :nprocs,         :arr_taskid, :nodefile,
+                  :cwd,
+                  :arr_myrank,   :arr_lport,       :arr_rport,      :arr_rhost,  :mult,
+                  :arr_nodename, :arr_nodeip,      :flg_envnetwork, :comm_args,  :comms_ssh
     # private
     #     :lst_for_gen_arr_lport, :flg_localmode
 
@@ -158,7 +159,6 @@ class Acprun
                     file = optarg
                     if ( file == "" ) then  raise ErrorInvalidOptionArgument ; end
                     @nodefile = file
-                    printf( "nodefile: %s\n", @nodefile )
                 elsif ( flg_opt == "ENVNET" ) then
                     en = optarg
                     if ( en == "" ) then  raise ErrorInvalidOptionArgument ; end
@@ -220,9 +220,14 @@ class Acprun
                     @arr_nodename << nodename
                 end
             rescue RuntimeError
-                $stderr.printf( "%s: error processing file %s\n", @myname, @nodefile )
+                $stderr.printf( "%s: error, while processing nodefile %s\n", @myname, @nodefile )
                 exit
             end
+        end
+        if ( @arr_nodename.length < @nprocs ) then
+            $stderr.printf( "%s: error. lines of nodename < nprocs: %d < %d\n",
+                            @myname, @arr_nodename.length, @nprocs )
+            exit
         end
         #p nodenames
     end
@@ -315,7 +320,8 @@ class Acprun
     def gen_ssh_commands
         @comms_ssh = []
         for ip in 0...@nprocs do
-            comm = sprintf( "%s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s",
+            comm = sprintf( "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s",
+                            @cwd,
                             $str_envmyrank, ip,
                             $str_envnprocs, @nprocs,
                             $str_envtaskid, @arr_taskid[ ip ],
@@ -353,6 +359,7 @@ end
 ###############################################################################
 acprun = Acprun.new( $envnetwork )
 
+acprun.cwd = ENV[ "PWD" ]
 envnetwork = ENV[ $str_envnetwork ]
 if envnetwork then
     acprun.set_envnetwork( envnetwork )
@@ -379,9 +386,10 @@ acprun.gen_ssh_commands
 ###################
 if $debug_mode then
     if $debug_level > 200 then
+        printf( "nodefile: %s\n", @nodefile )
         printf( "Remaining args: %s\n", ARGV )
         for i in 0...(acprun.nprocs) do
-            printf( "%20s%20s\n", acprun.nodenames[ i ], acprun.nodeips[ i ] )
+            printf( "%20s%20s\n", acprun.arr_nodename[ i ], acprun.arr_nodeip[ i ] )
         end
         for i in 0...acprun.nprocs do
             printf( "lports: %d : %20s%20s%20s\n",

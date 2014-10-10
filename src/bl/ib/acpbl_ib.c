@@ -1605,9 +1605,9 @@ void acp_complete(acp_handle_t handle){
 #endif
         return;
     }
-    /* if handle is ACP_HANDLE_ALL, */
+    /* if handle is ACP_HANDLE_ALL or ACP_HANDLE_CONT, */
     /* wait complete all issued copy */
-    if (handle == ACP_HANDLE_ALL) {
+    if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) {
         handle = tail - 1;
     }
 
@@ -1661,9 +1661,9 @@ int acp_inquire(acp_handle_t handle){
 #endif
         return 0;
     }
-    /* if handle is ACP_HANDLE_ALL, */
+    /* if handle is ACP_HANDLE_ALL or ACP_HANDLE_CONT, */
     /*  wait complete all issued copy */
-    if (handle == ACP_HANDLE_ALL) {
+    if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) {
         handle = tail - 1;
     }
 
@@ -2939,7 +2939,7 @@ static void *comm_thread_func(void *dm){
                         fflush(stdout);
 #endif
                         /* order handling */
-                        if (cmdq[idx].ohdl == ACP_HANDLE_ALL){
+                        if (cmdq[idx].ohdl == ACP_HANDLE_ALL || cmdq[idx].ohdl == ACP_HANDLE_CONT){
                             cmdq[idx].ohdl = cmdq[idx].ishdl - 1;
                         }
                         if (cmdq[idx].ohdl >= head) {

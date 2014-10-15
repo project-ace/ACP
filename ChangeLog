@@ -1,3 +1,15 @@
+2014-10-15  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 1.0.0
+	* fix acpcl.c: SEGV
+	* fix acpbl_ib.c: bind error
+	* add configure.ac: --with-ndev=NAME option
+	* modified acprun:
+	  1. if # of nodefile lines < nprocs           => error
+          2. added cd command in ssh command sequence. => remote application 
+	     is executed in the same directory where batch command is 
+	     executed in the localhost.
+
 2014-09-12  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 1.0.0-rc3

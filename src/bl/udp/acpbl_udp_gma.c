@@ -1430,7 +1430,7 @@ static void* comm_thread_func(void *param)
             if (time >= ds[i].time) {
                 if (ds[i].stat == DSSTAT_COPY_READ || ds[i].stat == DSSTAT_COPY2_READ) {
                     /* Fill stream window */
-                    while (ds[i].size > ds[i].offset && is_sw_not_full(i)) {
+                    while ((ds[i].size > ds[i].offset || ds[i].offset == 0) && is_sw_not_full(i)) {
                         j = sw_add(i, time);
                         len = ds[i].size - ds[i].offset;
                         if (len > MAX_DATA_SIZE) len = MAX_DATA_SIZE;
@@ -1438,7 +1438,7 @@ static void* comm_thread_func(void *param)
                         ds[i].sw[j].dst = ga2address(ds[i].dst + ds[i].offset);
                         ds[i].sw[j].src = ds[i].src + ds[i].offset;
                         ds[i].sw[j].len = len;
-                        ds[i].offset += len;
+                        ds[i].offset += len ? len : 1;
                     }
                     
                 } else if (ds[i].stat == DSSTAT_ATOMIC_WRITE || ds[i].stat == DSSTAT_COPY_END || ds[i].stat == DSSTAT_ATOMIC_END) {

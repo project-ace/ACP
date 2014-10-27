@@ -30,6 +30,7 @@
 
 /* max size = 1GB */
 #define APT_CPY_SZX (1<<30)
+//#define APT_CPY_SZX (1<<20)
 #define APT_CPY_OFX (APT_CPY_SZX-1)
 
 /* error code */
@@ -340,6 +341,7 @@ int apt_p0021(
   }
   else {stg+=25;}
 
+  acp_sync();
   if(rank == 0) {
 	res = acp_unregister_memory(skey);
 	if(res != 0) {err_code=ERR_APT_0021_13;goto E_END;}
@@ -585,7 +587,8 @@ int apt_p0022(
 	}
 	ssj = 0; /* start from j=0 */
   }
-
+  
+  acp_sync();
   res = acp_unregister_memory(skey);
   if(res != 0) {err_code=ERR_APT_0022_14;goto E_END;}
   res = acp_unregister_memory(rkey);
@@ -727,8 +730,12 @@ int apt_p0024(
   acp_handle_t hnd;
 
   stg = apt->cfg->stg_sta;
+
   res = apt_ip(apt, &rank, &pno);
   if(res != 0) {err_code |= ERR_APT_0024_1;goto E_END;}
+
+ printf("START 24 : %d stg %d\n",rank,stg);
+ fflush(stdout);
 
   /* rank 0 use send buffer */
   if(rank == 0) {
@@ -776,6 +783,8 @@ int apt_p0024(
 	  printf("INF : %d stg %d sz %016x\n",rank,stg,sz);
 	}
 #endif
+ printf("INF : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	/* initialize send buffer */
 	if(rank == 0)
 	{
@@ -787,14 +796,22 @@ int apt_p0024(
     res = acp_sync(); /* wait initialize */
     if(res != 0) {err_code=ERR_APT_0024_15;goto E_END;}
 
+ printf("INF2 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	if(rank == 0) {
 	  /* copy : rank 0 send buf. -> rank 1 receive buf. */
 	  hnd = acp_copy(rrg, sbg, sz, ACP_HANDLE_NULL);
+ printf("INF3 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	  if(hnd == ACP_HANDLE_NULL) {err_code=ERR_APT_0024_10;goto E_END;}
 	  acp_complete(hnd);
 
+ printf("INF4 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	  /* copy : rank 1 receive buf. -> rank 0 receive buf. */
 	  hnd = acp_copy(rbg, rrg, sz, ACP_HANDLE_NULL);
+ printf("INF5 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	  if(hnd == ACP_HANDLE_NULL) {err_code=ERR_APT_0024_11;goto E_END;}
 	  acp_complete(hnd);
 
@@ -808,10 +825,15 @@ int apt_p0024(
 		  err_code=ERR_APT_0024_12;goto E_END;
 		}
 	  }
+ printf("INF6 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	}
+ printf("INF7 : %d stg %d sz %016x\n",rank,stg,sz);
+ fflush(stdout);
 	stg++;
   }
-
+  
+  acp_sync();
   if(rank == 0) {
 	res = acp_unregister_memory(skey);
 	if(res != 0) {err_code=ERR_APT_0024_13;goto E_END;}

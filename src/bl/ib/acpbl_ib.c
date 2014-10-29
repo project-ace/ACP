@@ -32,7 +32,8 @@
 
 /* define size */
 #define MAX_RM_SIZE     255U
-#define MAX_CQ_SIZE     1024U
+//#define MAX_CQ_SIZE     1024U
+#define MAX_CQ_SIZE     4096U
 #define MAX_CMDQ_ENTRY  4096U
 #define MAX_RCMDB_SIZE  4096U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU
@@ -938,7 +939,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     CMD *pcmdq;/* pointer of cmdq */
     
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_cas8\n");
+    fprintf(stdout, "%d internal acp_cas8\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -973,8 +974,8 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     pcmdq->valid_tail = true;
 
 #ifdef DEBUG
-    fprintf(stdout, "tail %lx cmdq[%lx].wr_id = %lx data1 %lu data2 %lu\n", 
-            tail, tail4c, pcmdq->wr_id,   pcmdq->cmde.cas8_cmd.data1, pcmdq->cmde.cas8_cmd.data2);
+    fprintf(stdout, "%d: tail %lx cmdq[%lx].wr_id = %lx data1 %lu data2 %lu\n", 
+            acp_rank(), tail, tail4c, pcmdq->wr_id,   pcmdq->cmde.cas8_cmd.data1, pcmdq->cmde.cas8_cmd.data2);
     fflush(stdout);
 #endif
   
@@ -982,7 +983,7 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     tail++;
     
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_cas8 fin\n");
+    fprintf(stdout, "%d: internal acp_cas8 fin\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -1866,7 +1867,7 @@ static int gethead(acp_handle_t idx, int torank){
     /* set message size */
     sge.length = sizeof(uint64_t);
 #ifdef DEBUG
-    fprintf(stdout, "get head length %d\n", sge.length);
+    fprintf(stdout, "%d: get head length %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
   
@@ -1879,7 +1880,7 @@ static int gethead(acp_handle_t idx, int torank){
     sr.sg_list = &sge;
     sr.num_sge = 1;
 #ifdef DEBUG
-    fprintf(stdout, "get head sr.wr_id %lx wr_id %lx\n", sr.wr_id, cmdq[idx].wr_id);
+    fprintf(stdout, "%d: get head sr.wr_id %lx wr_id %lx tail_buf %ld\n", acp_rank(), sr.wr_id, cmdq[idx].wr_id, cmdq[idx].tail_buf);
     fflush(stdout);
 #endif
     
@@ -1893,11 +1894,11 @@ static int gethead(acp_handle_t idx, int torank){
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "get head ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: get head ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -1923,7 +1924,7 @@ static int gettail(acp_handle_t idx, int torank){
     sge.length = sizeof(uint64_t);
     
 #ifdef DEBUG
-    fprintf(stdout, "get tail length %d\n", sge.length);
+    fprintf(stdout, "%d: get tail length %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
     
@@ -1936,7 +1937,7 @@ static int gettail(acp_handle_t idx, int torank){
     sr.sg_list = &sge;
     sr.num_sge = 1;
 #ifdef DEBUG
-    fprintf(stdout, "get tail sr.wr_id %lx wr_id %lx\n", sr.wr_id, cmdq[idx].wr_id);
+    fprintf(stdout, "%d: get tail sr.wr_id %lx wr_id %lx\n", acp_rank(), sr.wr_id, cmdq[idx].wr_id);
     fflush(stdout);
 #endif
     
@@ -1952,11 +1953,11 @@ static int gettail(acp_handle_t idx, int torank){
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "get tail ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: get tail ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -1985,7 +1986,7 @@ static int putrrmgetflag(uint64_t wr_id, int torank){
     sge.length = sizeof(char);
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm get flag length %d\n", sge.length);
+    fprintf(stdout, "%d: put rrm get flag length %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
     
@@ -1999,7 +2000,7 @@ static int putrrmgetflag(uint64_t wr_id, int torank){
     sr.num_sge = 1;
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm get flag sr.wr_id %lx wr_id %lx\n", sr.wr_id, wr_id);
+    fprintf(stdout, "%d: put rrm get flag sr.wr_id %lx wr_id %lx\n", acp_rank(), sr.wr_id, wr_id);
     fflush(stdout);
 #endif
     
@@ -2013,12 +2014,12 @@ static int putrrmgetflag(uint64_t wr_id, int torank){
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm get flag ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: put rrm get flag ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -2045,7 +2046,7 @@ static int putrrmackflag(uint64_t wr_id, int torank){
     sge.length = sizeof(char);
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm ack flag length %d true_flag %d torank %d\n", sge.length, *true_flag_buf, torank);
+    fprintf(stdout, "%d: put rrm ack flag length %d true_flag %d torank %d\n", acp_rank(), sge.length, *true_flag_buf, torank);
     fflush(stdout);
 #endif
     
@@ -2058,7 +2059,7 @@ static int putrrmackflag(uint64_t wr_id, int torank){
     sr.num_sge = 1;
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm ack flag sr.wr_id %lx wr_id %lx\n", sr.wr_id, wr_id);
+    fprintf(stdout, "%d: put rrm ack flag sr.wr_id %lx wr_id %lx\n", acp_rank(), sr.wr_id, wr_id);
     fflush(stdout);
 #endif
     
@@ -2077,7 +2078,7 @@ static int putrrmackflag(uint64_t wr_id, int torank){
     }
     
 #ifdef DEBUG
-    fprintf(stdout, "put rrm ack flag ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: put rrm ack flag ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -2102,19 +2103,19 @@ static int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint64_t ds
     if (true == flguint64) {
         sge.length = sizeof(uint64_t);
 #ifdef DEBUG
-        fprintf(stdout, "put replydata u64data %lu\n", (uint64_t)rcmdbuf[idx].replydata);
+        fprintf(stdout, "%d: put replydata u64data %lu\n", acp_rank(), (uint64_t)rcmdbuf[idx].replydata);
         fflush(stdout);
 #endif
     }
     else {
         sge.length = sizeof(uint32_t);
 #ifdef DEBUG
-        fprintf(stdout, "put replydata u32data %u\n", (uint32_t)rcmdbuf[idx].replydata);
+        fprintf(stdout, "%d: put replydata u32data %u\n", acp_rank(), (uint32_t)rcmdbuf[idx].replydata);
         fflush(stdout);
 #endif  
     }
 #ifdef DEBUG
-    fprintf(stdout, "put replydata length %d\n", sge.length);
+    fprintf(stdout, "%d: put replydata length %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
     
@@ -2127,7 +2128,7 @@ static int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint64_t ds
     sr.sg_list = &sge;
     sr.num_sge = 1;
 #ifdef DEBUG
-    fprintf(stdout, "put replydata sr.wr_id %lx wr_id %lx\n", sr.wr_id, rcmdbuf[idx].wr_id);
+    fprintf(stdout, "%d: put replydata sr.wr_id %lx wr_id %lx\n", acp_rank(), sr.wr_id, rcmdbuf[idx].wr_id);
     fflush(stdout);
 #endif
     
@@ -2149,11 +2150,11 @@ static int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint64_t ds
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[dstrank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "put replydata ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: put replydata ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     return rc;
@@ -2177,14 +2178,14 @@ static int putcmd(acp_handle_t idx, int torank, uint64_t rcmdbid){
     sge.addr = (uintptr_t)&putcmdbuf[idx];
     sge.lkey = res.mr->lkey;
 #ifdef DEBUG
-    fprintf(stdout, "putcmd rcmdbid %lx\n", rcmdbid);
+    fprintf(stdout, "%d: putcmd rcmdbid %lx\n", acp_rank(), rcmdbid);
     fflush(stdout);
 #endif
     /* set message size */
     sge.length = sizeof(CMD);
     
 #ifdef DEBUG
-    fprintf(stdout, "putcmd length %d\n", sge.length);
+    fprintf(stdout, "%d: putcmd length %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
     
@@ -2197,7 +2198,7 @@ static int putcmd(acp_handle_t idx, int torank, uint64_t rcmdbid){
     sr.sg_list = &sge;
     sr.num_sge = 1;
 #ifdef DEBUG
-    fprintf(stdout, "putcmd sr.wr_id %lx wr_id %lx\n", sr.wr_id, cmdq[idx].wr_id);
+    fprintf(stdout, "%d: putcmd sr.wr_id %lx wr_id %lx\n", acp_rank(), sr.wr_id, cmdq[idx].wr_id);
     fflush(stdout);   
 #endif
     
@@ -2212,11 +2213,11 @@ static int putcmd(acp_handle_t idx, int torank, uint64_t rcmdbid){
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "putcmd ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, "%d: putcmd ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -2243,7 +2244,7 @@ int icopy(uint64_t wr_id,
     myrank = acp_rank();
     
 #ifdef DEBUG
-    fprintf(stdout, "internal icopy\n");
+    fprintf(stdout, "%d: internal icopy\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -2272,7 +2273,7 @@ int icopy(uint64_t wr_id,
         torank = srcrank;
     }
 #ifdef DEBUG
-    fprintf(stdout, "target rank %d\n", torank);
+    fprintf(stdout, "%d: target rank %d\n", acp_rank(), torank);
     fflush(stdout);
 #endif
     
@@ -2302,7 +2303,7 @@ int icopy(uint64_t wr_id,
     sge.length = size;
    
 #ifdef DEBUG
-    fprintf(stdout, "copy len %d\n", sge.length);
+    fprintf(stdout, "%d: copy len %d\n", acp_rank(), sge.length);
     fflush(stdout);
 #endif
     
@@ -2318,7 +2319,7 @@ int icopy(uint64_t wr_id,
         sr.num_sge = 0;
     }
 #ifdef DEBUG
-    fprintf(stdout, "icopy wr_id  %lx wr_id %lx\n", sr.wr_id, wr_id);
+    fprintf(stdout, "%d: icopy wr_id  %lx wr_id %lx\n", acp_rank(), sr.wr_id, wr_id);
     fflush(stdout);
 #endif
     
@@ -2344,13 +2345,13 @@ int icopy(uint64_t wr_id,
     
     if (myrank == srcrank) {
 #ifdef DEBUG
-        fprintf(stdout, "put addr %lx rkey = %u\n", sr.wr.rdma.remote_addr, sr.wr.rdma.rkey);
+        fprintf(stdout, "%d: put addr %lx rkey = %u\n", acp_rank(), sr.wr.rdma.remote_addr, sr.wr.rdma.rkey);
     fflush(stdout);
 #endif
     }
     else if (myrank == dstrank) {
 #ifdef DEBUG
-        fprintf(stdout, "get addr %lx rkey = %u\n", sr.wr.rdma.remote_addr, sr.wr.rdma.rkey);
+        fprintf(stdout, "%d: get addr %lx rkey = %u\n", acp_rank(), sr.wr.rdma.remote_addr, sr.wr.rdma.rkey);
         fflush(stdout);
 #endif
     }
@@ -2358,16 +2359,16 @@ int icopy(uint64_t wr_id,
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
     if (rc) {
-        fprintf(stderr, "failed to post SR\n");
+        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "icopy ibv_post_send return code = %d\n",rc);
+    fprintf(stdout, "%d: icopy ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
 #endif
     
 #ifdef DEBUG
-    fprintf(stdout, "internal icopy fin\n");
+    fprintf(stdout, "%d: internal icopy fin\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -2381,7 +2382,7 @@ static void selectatomic(void *srcaddr, CMD *cmd){
     
 
 #ifdef DEBUG
-    fprintf(stdout, "internal selectatomic\n");
+    fprintf(stdout, "%d: internal selectatomic\n", acp_rank());
     fflush(stdout);
 #endif
 
@@ -2437,7 +2438,7 @@ static void selectatomic(void *srcaddr, CMD *cmd){
     }
     
 #ifdef DEBUG
-    fprintf(stdout, "internal selectatomic fin cmd->replydata %u\n", cmd->replydata);
+    fprintf(stdout, "%d: internal selectatomic fin cmd->replydata %u\n", acp_rank(), cmd->replydata);
     fflush(stdout);
 #endif
     
@@ -2449,7 +2450,7 @@ static void check_cmdq_complete(uint64_t index){
     uint64_t idx;/* index for cmdq */
     
 #ifdef DEBUG_L2
-    fprintf(stdout, "internal check_cmdq_complete\n");
+    fprintf(stdout, "%d: internal check_cmdq_complete\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -2465,8 +2466,8 @@ static void check_cmdq_complete(uint64_t index){
             idx = (idx + 1) % MAX_CMDQ_ENTRY;
 #ifdef DEBUG
             fprintf(stdout, 
-                    "chcomp update idx %ld head %ld tail %ld\n", 
-                    idx, head, tail);
+                    "%d: chcomp update idx %ld head %ld tail %ld\n", 
+                    acp_rank(), idx, head, tail);
             fflush(stdout);
 #endif
         }
@@ -2477,7 +2478,7 @@ static void check_cmdq_complete(uint64_t index){
     }
     
 #ifdef DEBUG_L2
-    fprintf(stdout, "internal check_cmdq_complete fin\n");
+    fprintf(stdout, "%d: internal check_cmdq_complete fin\n", acp_rank());
     fflush(stdout);
 #endif
 }
@@ -2490,7 +2491,7 @@ static void rcmdbuf_update_head(){
     /* if after rcmd is not valid,  */
     /* update rcmdbuf_head */
 #ifdef DEBUG
-    fprintf(stdout, "intenrail rcmdbuf_update_head\n"); 
+    fprintf(stdout, "%d: intenrail rcmdbuf_update_head\n", acp_rank()); 
     fflush(stdout);
 #endif
     
@@ -2506,8 +2507,8 @@ static void rcmdbuf_update_head(){
 
 #ifdef DEBUG
             fprintf(stdout, 
-                    "ch_rcmdbuf_comp update idx %ld rcmdbuf head %ld rcmdubuf tail %ld cnt %u\n", 
-                    idx, *rcmdbuf_head, *rcmdbuf_tail, count);
+                    "%d: ch_rcmdbuf_comp update idx %ld rcmdbuf head %ld rcmdubuf tail %ld cnt %u\n", 
+                    acp_rank(), idx, *rcmdbuf_head, *rcmdbuf_tail, count);
             fflush(stdout);
 #endif
         }
@@ -2517,7 +2518,7 @@ static void rcmdbuf_update_head(){
         }
     }
 #ifdef DEBUG
-    fprintf(stdout, "internal rcmdbuf_update_head fin\n"); 
+    fprintf(stdout, "%d: internal rcmdbuf_update_head fin\n", acp_rank()); 
     fflush(stdout);
 #endif
 }
@@ -2526,7 +2527,7 @@ static void setrrm(int torank){
   
     int i; /* general index */
 #ifdef DEBUG
-    fprintf(stdout, "internal setrrm\n"); 
+    fprintf(stdout, "%d: internal setrrm\n", acp_rank()); 
     fflush(stdout);
 #endif
     
@@ -2546,13 +2547,13 @@ static void setrrm(int torank){
             //}
 #ifdef DEBUG
         fprintf(stdout, 
-                "rrtb torank %d tag %d addr %p size %lu rkey %lu valid %lu\n", 
-                torank, i, rrmtb[torank][i].addr, rrmtb[torank][i].size, rrmtb[torank][i].rkey, rrmtb[torank][i].valid);
+                "%d: rrtb torank %d tag %d addr %p size %lu rkey %lu valid %lu\n", 
+                acp_rank(), torank, i, rrmtb[torank][i].addr, rrmtb[torank][i].size, rrmtb[torank][i].rkey, rrmtb[torank][i].valid);
         fflush(stdout);
 #endif
     }
 #ifdef DEBUG
-    fprintf(stdout, "internal setrrm fin\n"); 
+    fprintf(stdout, "%d: internal setrrm fin\n", acp_rank()); 
     fflush(stdout);
 #endif
 }
@@ -2597,13 +2598,13 @@ static void *comm_thread_func(void *dm){
             index = head;
             if (wc.status == IBV_WC_SUCCESS) {
 #ifdef DEBUG
-                fprintf(stdout, "qp section: wr_id %lx\n", wc.wr_id);
+                fprintf(stdout, "%d: qp section: wr_id %lx\n", myrank, wc.wr_id);
                 fflush(stdout);
 #endif
                 /* when ibv_poll_cq is SUCCESS */
                 if ((wc.wr_id & MASK_WRID_RCMDB) == 0) {
 #ifdef DEBUG
-                    fprintf(stdout, "qp section: cmdq wr_id %lx mask %llx\n", wc.wr_id, wc.wr_id & MASK_WRID_RCMDB);
+                    fprintf(stdout, "%d: qp section: cmdq wr_id %lx mask %llx\n", myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB);
                     fflush(stdout);
 #endif
                     comp_cqe_flag = false;
@@ -2684,9 +2685,9 @@ static void *comm_thread_func(void *dm){
                                 
                             case WAIT_TAIL:
 #ifdef DEBUG
-                                fprintf(stdout, "WAIT_TAIL\n");
-                                fprintf(stdout, "tail_buf %lx, rcmdbuf_tail %lx\n",
-                                        cmdq[idx].tail_buf, *rcmdbuf_tail);
+                                fprintf(stdout, "%d: WAIT_TAIL\n", myrank);
+                                fprintf(stdout, "%d: tail_buf %lx, rcmdbuf_tail %lx\n",
+                                        myrank, cmdq[idx].tail_buf, *rcmdbuf_tail);
                                 fflush(stdout);
 #endif
                                 /* set ga of src from cmdq */
@@ -2695,7 +2696,7 @@ static void *comm_thread_func(void *dm){
                                 srcrank = acp_query_rank(src);
 #ifdef DEBUG
                                 if (myrank == srcrank) {
-                                    fprintf(stderr, "rr opration tail wait error\n");
+                                    fprintf(stderr, "%d: rr opration tail wait error\n", myrank);
                                 }
 #endif
                                 /* issued get head */
@@ -2706,7 +2707,7 @@ static void *comm_thread_func(void *dm){
                                 
                             case WAIT_HEAD:
 #ifdef DEBUG		  
-                                fprintf(stdout, "WAIT_HEAD\n");
+                                fprintf(stdout, "%d: WAIT_HEAD\n", myrank);
                                 fflush(stdout);
 #endif
                                 /* set src ga from cmdq */
@@ -2716,15 +2717,15 @@ static void *comm_thread_func(void *dm){
                                 
                                 /* check enable putflag  */
 #ifdef DEBUG		  
-                                fprintf(stdout, "myrank %d srcrank %d\n", myrank, srcrank);
+                                fprintf(stdout, "%d srcrank %d tail_buf %lx head_buf %lx\n", myrank, srcrank, cmdq[idx].tail_buf, cmdq[idx].head_buf);
                                 fflush(stdout);
 #endif
                                 
                                 if (cmdq[idx].tail_buf - cmdq[idx].head_buf > MAX_RCMDB_SIZE - 1) {
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "%d not exec putcmd acp handle %lx tail_buf %lx head_buf %lx\n", 
-                                            acp_rank(), index, cmdq[idx].tail_buf, cmdq[idx].head_buf);
+                                            "%d not exec putcmd acp handle %lx idx %lx tail_buf %lx head_buf %lx\n", 
+                                            acp_rank(), index, idx, cmdq[idx].tail_buf, cmdq[idx].head_buf);
                                     fflush(stdout);
 #endif
                                     gethead(idx, srcrank);
@@ -2738,7 +2739,7 @@ static void *comm_thread_func(void *dm){
                                 
                             case WAIT_PUT_CMD:
 #ifdef DEBUG
-                                fprintf(stdout, "WAIT_PUT_CMD\n");
+                                fprintf(stdout, "%d: WAIT_PUT_CMD\n", myrank);
                                 fflush(stdout);
 #endif
                                 comp_cqe_flag = true;
@@ -2752,7 +2753,7 @@ static void *comm_thread_func(void *dm){
                         index ++;
                         count ++;
 #ifdef DEBUG_L2
-                        fprintf(stdout, "qp section: update cmdq index %lx\n", index);
+                        fprintf(stdout, "%d: qp section: update cmdq index %lx\n", myrank, index);
                         fflush(stdout);
 #endif
                     }
@@ -2763,7 +2764,7 @@ static void *comm_thread_func(void *dm){
                     comp_cqe_flag = false;
 
 #ifdef DEBUG
-                    fprintf(stdout, "qp section: rcmdbuf wr_id %lx\n", wc.wr_id);
+                    fprintf(stdout, "%d: qp section: rcmdbuf wr_id %lx\n", myrank, wc.wr_id);
                     fflush(stdout);
 #endif 
                     count = 0;
@@ -2771,8 +2772,8 @@ static void *comm_thread_func(void *dm){
                         idx = index % MAX_RCMDB_SIZE; 
 #ifdef DEBUG
                         fprintf(stdout, 
-                                "qp section: rcmdbuf wr_id %lx mask %llx st index %lx rcmdbuf[%lu] %lu\n", 
-                                wc.wr_id, wc.wr_id & MASK_WRID_RCMDB, index, idx, rcmdbuf[idx]
+                                "%d: qp section: rcmdbuf wr_id %lx mask %llx st index %lx rcmdbuf[%lu] %lu\n", 
+                                myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB, index, idx, rcmdbuf[idx]
                                 .stat);
                         fflush(stdout);
 #endif 
@@ -2780,7 +2781,7 @@ static void *comm_thread_func(void *dm){
                             switch (rcmdbuf[idx].stat) {
                             case CMD_ISSUED: /* COPY only */
 #ifdef DEBUG
-                                fprintf(stdout, "CMD_ISSUED\n");
+                                fprintf(stdout, "%d: CMD_ISSUED\n", myrank);
                                 fflush(stdout);
 #endif
                                 writebackstat(idx);
@@ -2791,7 +2792,7 @@ static void *comm_thread_func(void *dm){
                                 
                             case CMD_WAIT_RRM: /* COPY and atomic */
 #ifdef DEBUG	
-                                fprintf(stdout, "CMD_WAIT_RRM\n");
+                                fprintf(stdout, "%d: CMD_WAIT_RRM\n", myrank);
                                 fflush(stdout);
 #endif
                                 /* get ga of dst from rcmd buffer */
@@ -2846,7 +2847,7 @@ static void *comm_thread_func(void *dm){
                                             putreplydata(idx, dstrank, dsttag, dstoffset, false);
                                         }
 #ifdef DEBUG
-                                        fprintf(stdout,"qp section: rcmdbuf[%lx] %lu\n", idx, rcmdbuf[idx].stat);
+                                        fprintf(stdout,"%d: qp section: rcmdbuf[%lx] %lu\n", myrank, idx, rcmdbuf[idx].stat);
                                         fflush(stdout);
 #endif
                                     }
@@ -2856,7 +2857,7 @@ static void *comm_thread_func(void *dm){
                                 
                             case CMD_WAIT_PUT_DST: /* only atomic */
 #ifdef DEBUG	
-                                fprintf(stdout, "CMD_WAIT_PUT_DST\n");
+                                fprintf(stdout, "%d: CMD_WAIT_PUT_DST\n", myrank);
                                 fflush(stdout);
 #endif
                                 rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
@@ -2867,7 +2868,7 @@ static void *comm_thread_func(void *dm){
                                 
                             case CMD_WRITEBACK_FIN: /* copy and atomic */
 #ifdef DEBUG	
-                                fprintf(stdout, "CMD_WRITEBACK_FIN tail_buf %lu \n", rcmdbuf[idx].tail_buf);
+                                fprintf(stdout, "%d: CMD_WRITEBACK_FIN tail_buf %lu \n", myrank, rcmdbuf[idx].tail_buf);
                                 fflush(stdout);
 #endif
                                 rcmdbuf[idx].valid_head = false;
@@ -2884,7 +2885,7 @@ static void *comm_thread_func(void *dm){
                         index++;
                         count++;
 #ifdef DEBUG_L2
-                        fprintf(stdout, "qp section: update rcmdbuf index %lx\n", index);
+                        fprintf(stdout, "%d: qp section: update rcmdbuf index %lx\n", myrank, index);
                         fflush(stdout);
 #endif
                     } /* loop rcmdbuf index */
@@ -2896,16 +2897,16 @@ static void *comm_thread_func(void *dm){
                     }
 #ifdef DEBUG
                     fprintf(stdout, 
-                            "qp section: put rrm ack: wc.wr_id %lx ack_comp_count %lu \n", 
-                            wc.wr_id, ack_comp_count);
+                            "%d: qp section: put rrm ack: wc.wr_id %lx ack_comp_count %lu \n", 
+                            myrank, wc.wr_id, ack_comp_count);
                     fflush(stdout);
 #endif
                 }/* wc.wr_id & MASK_WRID_ACK is equel to MASK_WRID_ACK */
             }/* wc.status is IBV_WC_SUCCESS */
             else {
                 fprintf(stderr, 
-                        "wc %lx is not SUCESS when check CQ %d\n", 
-                        wc.wr_id, wc.status);
+                        "%d: wc %lx is not SUCESS when check CQ %d\n", 
+                        myrank, wc.wr_id, wc.status);
                 exit(-1);
             }
         }
@@ -2917,8 +2918,8 @@ static void *comm_thread_func(void *dm){
                 idx = index % MAX_CMDQ_ENTRY;
 #ifdef DEBUG_L2
                 fprintf(stdout, 
-                        "cmdq section: head %ld tail %ld cmdq[%ld].stat %lx\n", 
-                        head, tail, index, cmdq[idx].stat);
+                        "%d: cmdq section: head %ld tail %ld cmdq[%ld].stat %lx\n", 
+                        myrank, head, tail, index, cmdq[idx].stat);
                 fflush(stdout);
 #endif
                 /* check if command is complete or not. */
@@ -2927,7 +2928,7 @@ static void *comm_thread_func(void *dm){
                     /* command type is FIN */
                     if (cmdq[idx].type == FIN) {
 #ifdef DEBUG
-                        fprintf(stdout, "CMD FIN\n");
+                        fprintf(stdout, "%d: CMD FIN\n", myrank);
                         fflush(stdout);
 #endif
                         return 0;
@@ -2935,7 +2936,7 @@ static void *comm_thread_func(void *dm){
                     /* command type is COPY and ATOMIC */
                     else if (cmdq[idx].stat == UNISSUED) {
 #ifdef DEBUG
-                        fprintf(stdout, "GMA issued\n");
+                        fprintf(stdout, "%d: GMA issued\n", myrank);
                         fflush(stdout);
 #endif
                         /* order handling */
@@ -2945,8 +2946,8 @@ static void *comm_thread_func(void *dm){
                         if (cmdq[idx].ohdl >= head) {
 #ifdef DEBUG
                             fprintf(stdout, 
-                                    "index %ld ohndl %ld head %ld\n", 
-                                    index, cmdq[idx].ohdl, head);
+                                    "%d: index %ld ohndl %ld head %ld\n", 
+                                    myrank, index, cmdq[idx].ohdl, head);
                             fflush(stdout);
 #endif
                             index++;
@@ -2975,7 +2976,7 @@ static void *comm_thread_func(void *dm){
                                 dstaddr = acp_query_address(dst);
                                 memcpy(dstaddr, srcaddr, size);
 #ifdef DEBUG
-                                fprintf(stdout, "local copy dadr %p sadr %p\n", dstaddr, srcaddr);
+                                fprintf(stdout, "%d: local copy dadr %p sadr %p\n", myrank, dstaddr, srcaddr);
                                 fflush(stdout);
 #endif
                                 cmdq[idx].stat = FINISHED;
@@ -3063,8 +3064,8 @@ static void *comm_thread_func(void *dm){
                                 cmdq[idx].stat = WAIT_TAIL;
                                 gettail(idx, srcrank);
 #ifdef DEBUG
-                                fprintf(stdout, "hdl %lx gettail srcrank %d dstrank %d \n",
-                                        cmdq[idx].wr_id, srcrank, dstrank);
+                                fprintf(stdout, "%d: hdl %lx gettail srcrank %d dstrank %d \n",
+                                        myrank, cmdq[idx].wr_id, srcrank, dstrank);
                                 fflush(stdout);
 #endif
                             }
@@ -3076,7 +3077,7 @@ static void *comm_thread_func(void *dm){
                                 dstaddr = acp_query_address(dst);
                                 selectatomic(srcaddr, &cmdq[idx]);
 #ifdef DEBUG
-                                fprintf(stdout, "remote atomic srcrank equal to dstrank : dadr %p sadr %p\n", dstaddr, srcaddr);
+                                fprintf(stdout, "%d: remote atomic srcrank equal to dstrank : dadr %p sadr %p\n", myrank, dstaddr, srcaddr);
                                 fflush(stdout);
 #endif
                                 if ((cmdq[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
@@ -3105,8 +3106,8 @@ static void *comm_thread_func(void *dm){
                 index++;
 #ifdef DEBUG_L2
                 fprintf(stdout, 
-                        "cmdq section update index %lx\n", 
-                        index);
+                        "%d: cmdq section update index %lx\n", 
+                        myrank, index);
                 fflush(stdout);
 #endif
             }
@@ -3119,7 +3120,7 @@ static void *comm_thread_func(void *dm){
             if (rcmdbuf[idx].valid_head == true && rcmdbuf[idx].valid_tail == true) {
                 if (rcmdbuf[idx].stat == CMD_UNISSUED) {
 #ifdef DEBUG_L2
-                    fprintf(stdout, "rcmdq section: CMD_UNISSUED\n");
+                    fprintf(stdout, "%d: rcmdq section: CMD_UNISSUED\n", myrank);
                     fflush(stdout);
 #endif
                     rcmdbuf[idx].wr_id = index | MASK_WRID_RCMDB;
@@ -3150,7 +3151,7 @@ static void *comm_thread_func(void *dm){
                             dstaddr = acp_query_address(dst);
                             memcpy(dstaddr, srcaddr, size);
 #ifdef DEBUG
-                            fprintf(stdout, "local copy:dadr %p sadr %p\n", dstaddr, srcaddr);
+                            fprintf(stdout, "%d: local copy:dadr %p sadr %p\n", myrank, dstaddr, srcaddr);
                             fflush(stdout);
 #endif
                             rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
@@ -3230,7 +3231,7 @@ static void *comm_thread_func(void *dm){
                     }
                     else { /* atomic */
 #ifdef DEBUG
-                        fprintf(stdout, "CMD_UNISSUED ATOMIC\n");
+                        fprintf(stdout, "%d: CMD_UNISSUED ATOMIC\n", myrank);
                         fflush(stdout);
 #endif
                         /* set src and dst of ga from rcmd buffer */

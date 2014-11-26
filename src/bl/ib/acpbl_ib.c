@@ -551,9 +551,13 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
 #endif
             /* calc offset */
             offset = (char *)addr - (lrmtb[gmtag].addr) ;
+            if (offset > lrmtb[gmtag].size){
+                fprintf(stderr, "acp_query_ga error: offset surpass memory region size.\n");
+                return ACP_GA_NULL;
+            }
             /* set ga. atkey is ga of offset 0 */
             ga = atkey + offset;
-      
+            
 #ifdef DEBUG
             fprintf(stdout, "rank %d acp_query_ga ga %lx\n", myrank, ga);
             fflush(stdout);
@@ -838,7 +842,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     myrank = acp_rank();
     tail4c = tail % MAX_CMDQ_ENTRY;
     pcmdq = &cmdq[tail4c];
-  
+ 
     /* make a command, and enqueue command Queue. */ 
     pcmdq->valid_head = true;
     pcmdq->rank = myrank;

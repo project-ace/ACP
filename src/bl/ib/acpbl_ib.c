@@ -617,7 +617,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     mr = ibv_reg_mr(res.pd, addr, size, mr_flags);
     if (mr == NULL) {
 #ifdef DEBUG
-        fprintf(stdout, "ibv_reg_mr is failed\n");
+        perror("ibv_reg_mr is failed:");
 #endif
         return ACP_GA_NULL;
     }
@@ -707,8 +707,8 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
                 /* enable empty tag */
         for (i = 0;i < MAX_RM_SIZE;i++) {
             if (lrmtb[i].valid == false) {
-                ibv_dereg_mr(libvmrtb[i]);
-                libvmrtb[i] = NULL;
+                //ibv_dereg_mr(libvmrtb[i]);
+                //libvmrtb[i] = NULL;
                 lrmtb[i].lock = false;
             }
         }
@@ -761,6 +761,8 @@ int acp_unregister_memory(acp_atkey_t atkey){
     else { /* if global memory */
         if (lrmtb[gmtag].valid == true) {
             lrmtb[gmtag].valid = false;
+            ibv_dereg_mr(libvmrtb[gmtag]);
+            libvmrtb[gmtag] = NULL;
             return 0;
         }
         else {

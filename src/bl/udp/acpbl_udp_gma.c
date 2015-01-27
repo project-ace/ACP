@@ -580,6 +580,7 @@ typedef struct {
     int prev;
     int next;
     int stat;
+    int complete;
     uint64_t time;
     uint64_t count;
     uint32_t rank;
@@ -648,6 +649,7 @@ static inline int ds_add(int stat, uint64_t time)
     ds[pos].prev = dstail;
     ds[pos].next = -1;
     ds[pos].stat = stat;
+    ds[pos].complete = 0;
     ds[pos].time = time;
     ds[pos].count = 0;
     if (dstail >= 0)
@@ -1430,7 +1432,7 @@ static void* comm_thread_func(void *param)
             if (time >= ds[i].time) {
                 if (ds[i].stat == DSSTAT_COPY_READ || ds[i].stat == DSSTAT_COPY2_READ) {
                     /* Fill stream window */
-                    while ((ds[i].size > ds[i].offset || ds[i].offset == 0) && is_sw_not_full(i)) {
+                    while (!ds[i].complete && is_sw_not_full(i)) {
                         j = sw_add(i, time);
                         len = ds[i].size - ds[i].offset;
                         if (len > MAX_DATA_SIZE) len = MAX_DATA_SIZE;
@@ -1438,7 +1440,10 @@ static void* comm_thread_func(void *param)
                         ds[i].sw[j].dst = ga2address(ds[i].dst + ds[i].offset);
                         ds[i].sw[j].src = ds[i].src + ds[i].offset;
                         ds[i].sw[j].len = len;
-                        ds[i].offset += len ? len : 1;
+                        ds[i].offset += len;
+			if(ds[i].size <= ds[i].offset){
+  			    ds[i].complete = 1;
+			}
                     }
                     
                 } else if (ds[i].stat == DSSTAT_ATOMIC_WRITE || ds[i].stat == DSSTAT_COPY_END || ds[i].stat == DSSTAT_ATOMIC_END) {

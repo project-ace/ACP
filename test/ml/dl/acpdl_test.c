@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     rank = acp_rank();
     
     if (rank == 0) {
-        printf("# acp_malloc() local \n              #repetitions      t[usec]\n");
+        printf("# acp_malloc() local\n              #repetitions      t[usec]\n");
         b = 22259;
         r = REP;
         t0 = get_clock();
@@ -100,15 +100,15 @@ int main(int argc, char** argv)
         
         b = 22259;
         for (j = 0; j < 32768; j++) {
-            dummy[j] = b & 0xff;
+            dummy[j] = (b >> 7) & 0xff;
             b = (b * 2039 + 9377) & 0x7fff;
             b += b ? 0 : 0x8000;
         }
         
-        printf("# acp_insert_map() local\n              #repetitions      t[usec]\n");
+        printf("# acp_insert_map() local 1 process\n              #repetitions      t[usec]\n");
         r = REP;
         ranks[0] = 0;
-        m = acp_create_map(1, (void*)ranks, 206, 0);
+        m = acp_create_map(1, (void*)ranks, 128, 0);
         t0 = get_clock();
         for (j = 0; j < r; j++)
             acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
@@ -123,48 +123,31 @@ int main(int argc, char** argv)
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
         
-        printf("# acp_insert_map() local plus remote\n              #repetitions      t[usec]\n");
-        r = REP;
-        ranks[0] = 0;
-        ranks[1] = 1;
-        m = acp_create_map(2, (void*)ranks, 103, 0);
-        t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
-        t1 = get_clock();
-        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
-        
-        printf("# acp_find_map()\n              #repetitions      t[usec]\n");
-        t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
-        t1 = get_clock();
-        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
-        acp_destroy_map(m);
-        
-        printf("# acp_insert_map() remote plus local\n              #repetitions      t[usec]\n");
-        r = REP;
-        ranks[0] = 0;
-        ranks[1] = 1;
-        m = acp_create_map(2, (void*)ranks, 103, 1);
-        t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
-        t1 = get_clock();
-        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
-        
-        printf("# acp_find_map()\n              #repetitions      t[usec]\n");
-        t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
-        t1 = get_clock();
-        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
-        acp_destroy_map(m);
-        
-        printf("# acp_insert_map() remote\n              #repetitions      t[usec]\n");
+        printf("# acp_insert_map() remote 1 process\n              #repetitions      t[usec]\n");
         r = REP;
         ranks[0] = 1;
-        m = acp_create_map(1, (void*)ranks, 206, 1);
+        m = acp_create_map(1, (void*)ranks, 128, 1);
+        t0 = get_clock();
+        for (j = 0; j < r; j++)
+            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
+        t1 = get_clock();
+        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
+        
+        printf("# acp_find_map()\n              #repetitions      t[usec]\n");
+        t0 = get_clock();
+        for (j = 0; j < r; j++)
+            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
+        t1 = get_clock();
+        printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
+        acp_destroy_map(m);
+        
+        printf("# acp_insert_map() remote 4 process\n              #repetitions      t[usec]\n");
+        r = REP;
+        ranks[0] = 0;
+        ranks[1] = 1;
+        ranks[2] = 2;
+        ranks[3] = 3;
+        m = acp_create_map(4, (void*)ranks, 32, 1);
         t0 = get_clock();
         for (j = 0; j < r; j++)
             acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
@@ -246,6 +229,21 @@ int main(int argc, char** argv)
                 acp_destroy_vector(dupvec[j]);
         }
         
+        printf("# acp_duplicate_vector() remote to remote\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
+        for ( i = 0; byte_table[i] > 0; i++) {
+            b = byte_table[i];
+            r = rep_table[i];
+            v = acp_create_vector(b, 1, 1);
+            t0 = get_clock();
+            for (j = 0; j < r; j++)
+                dupvec[j] = acp_duplicate_vector(v, 2);
+            t1 = get_clock();
+            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
+            acp_destroy_vector(v);
+            for (j = 0; j < r; j++)
+                acp_destroy_vector(dupvec[j]);
+        }
+        
         printf("# acp_swap_vector() local and local\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
         for ( i = 0; byte_table[i] > 0; i++) {
             b = byte_table[i];
@@ -267,6 +265,21 @@ int main(int argc, char** argv)
             r = rep_table[i];
             v = acp_create_vector(b, 1, 0);
             w = acp_create_vector(b, 1, 1);
+            t0 = get_clock();
+            for (j = 0; j < r; j++)
+                acp_swap_vector(v, w);
+            t1 = get_clock();
+            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
+            acp_destroy_vector(v);
+            acp_destroy_vector(w);
+        }
+        
+        printf("# acp_swap_vector() remote and remote\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
+        for ( i = 0; byte_table[i] > 0; i++) {
+            b = byte_table[i];
+            r = rep_table[i];
+            v = acp_create_vector(b, 1, 1);
+            w = acp_create_vector(b, 1, 2);
             t0 = get_clock();
             for (j = 0; j < r; j++)
                 acp_swap_vector(v, w);

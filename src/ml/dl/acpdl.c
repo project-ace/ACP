@@ -748,7 +748,7 @@ acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int ran
         tmp_slots[i * 3 + 2] = 0;
     }
     
-    map.ga = acp_malloc(num_ranks * 8, rank);
+    map.ga = acp_malloc(size_map, rank);
     if (map.ga == ACP_GA_NULL) {
         acp_free(buf);
         return map;
@@ -973,6 +973,7 @@ acp_map_it_t acp_find_map(acp_map_t map, const void* key, size_t size_key)
     
     map_it.rank = map_it.map.num_ranks;
     map_it.elem = it.list.ga;
+    acp_free(buf);
     return map_it;
 }
 

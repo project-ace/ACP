@@ -1193,8 +1193,14 @@ void acp_free(acp_ga_t);
  * @{
  */
 
-#define acp_vector_t acp_ga_t  /*!< Vector type. */
-#define acp_vector_it_t int    /*!< Iterater of Vector type. */
+typedef struct {
+    acp_ga_t ga;
+} acp_vector_t;  /*!< Vector type. */
+
+typedef struct {
+    acp_vector_t vector;
+    int index;
+} acp_vector_it_t;     /*!< Iterater of Vector type. */
 
 #ifdef __cplusplus
 extern "C" {
@@ -1304,8 +1310,8 @@ acp_vector_it_t acp_begin_vector(acp_vector_t);
 acp_vector_it_t acp_end_vector(acp_vector_t);
 acp_vector_it_t acp_rbegin_vector(acp_vector_t);
 acp_vector_it_t acp_rend_vector(acp_vector_t);
-acp_vector_it_t acp_increment_vector(acp_vector_it_t*);
-acp_vector_it_t acp_decrement_vector(acp_vector_it_t*);
+acp_vector_it_t acp_increment_vector(acp_vector_it_t);
+acp_vector_it_t acp_decrement_vector(acp_vector_it_t);
 int acp_max_size_vector(acp_vector_t);
 int acp_empty_vector(acp_vector_t);
 int acp_equal_vector(acp_vector_t, acp_vector_t);
@@ -1329,8 +1335,14 @@ int acp_greater_or_equal_vector(acp_vector_t, acp_vector_t);
  * @{
  */
 
-#define acp_list_t acp_ga_t     /*!< List data type. */
-#define acp_list_it_t acp_ga_t  /*!< Iterater of list data type. */
+typedef struct {
+    acp_ga_t ga;
+} acp_list_t;     /*!< List data type. */
+
+typedef struct {
+    acp_list_t list;
+    acp_ga_t elem;
+} acp_list_it_t;  /*!< Iterater of list data type. */
 
 #ifdef __cplusplus
 extern "C" {
@@ -1342,7 +1354,6 @@ extern "C" {
  *
  * 任意のプロセスでリスト型データを生成する。
  *
- * @param elsize 要素サイズ
  * @param rank ランク番号
  * @retval ACP_LIST_NULL以外 生成したリスト型データの参照
  * @retval ACP_LIST_NULL 失敗
@@ -1352,13 +1363,12 @@ extern "C" {
  *
  * Creates a list type data on any process.
  *
- * @param elsize Size of element.
  * @param rank Rank number.
  * @retval ACP_LIST_NULL Fail
  * @retval otherwise A reference of created list data.
  * @ENDL
  */
-extern acp_list_t acp_create_list(size_t, int);
+extern acp_list_t acp_create_list(int rank);
 
 /**
  * @JP
@@ -1384,26 +1394,25 @@ extern void acp_destroy_list(acp_list_t list);
  *
  * 指定したプロセスに要素をコピーし、リスト型データの指定位置に挿入する。
  *
- * @param list リスト型データの参照
  * @param it リスト型のイテレータ
  * @param ptr 挿入する要素の先頭アドレス
+ * @param size 挿入する要素のサイズ
  * @param rank 要素を複製するプロセス
- * @retval it 挿入された要素を指すリスト型イテレータ
+ * @retval 挿入された要素を指すリスト型イテレータ
  *
  * @EN
  * @brief Insert a list element
  *
  * 
  *
- * @param list A reference of list type data.
  * @param it An iterater of list type data.
  * @param ptr The pointer of list element.
+ * @param size Size of list element.
  * @param rank Rank of the process in which the element is copied.
- * @retval it The iterator that points to the inserted element.
+ * @retval The iterator that points to the inserted element.
  * @ENDL
  */
-extern acp_list_it_t acp_insert_list(acp_list_t list, acp_list_it_t it,
-				     void* ptr, int rank);
+extern acp_list_it_t acp_insert_list(acp_list_it_t it, const void* ptr, size_t size, int rank);
 
 /**
  * @JP
@@ -1411,21 +1420,19 @@ extern acp_list_it_t acp_insert_list(acp_list_t list, acp_list_it_t it,
  *
  * 指定した位置の要素をリスト型データから削除する。
  *
- * @param list リスト型データの参照
  * @param it 削除する要素を指すリスト型イテレータ
- * @retval it 削除した要素の直後の要素を指すリスト型イテレータ
+ * @retval 削除した要素の直後の要素を指すリスト型イテレータ
  *
  * @EN
  * @brief Erase a list element
  *
  * 
  *
- * @param list A reference of list type data.
  * @param it An iterator of list type data.
- * @retval it The iterator that points to the element which is immediately after the erased one.
+ * @retval The iterator that points to the element which is immediately after the erased one.
  * @ENDL
  */
-extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
+extern acp_list_it_t acp_erase_list(acp_list_it_t it);
 
 /**
  * @JP
@@ -1434,7 +1441,8 @@ extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
  * 指定したプロセスに要素をコピーし、リスト型データの末尾に挿入する。
  *
  * @param list リスト型データの参照
- * @param ptf 挿入する要素の先頭アドレス
+ * @param ptr 挿入する要素の先頭アドレス
+ * @param size 挿入する要素のサイズ
  * @param rank 要素を複製するプロセス
  *
  * @EN
@@ -1444,10 +1452,11 @@ extern acp_list_it_t acp_erase_list(acp_list_t list, acp_list_it_t it);
  *
  * @param list A reference of list type data.
  * @param ptr A pointer of list type data.
+ * @param size Size of list type data.
  * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
-extern void acp_push_back_list(acp_list_t list, void* ptr, int rank);
+extern acp_list_it_t acp_push_back_list(acp_list_t list, const void* ptr, size_t size, int rank);
 
 /**
  * @JP
@@ -1504,7 +1513,7 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
  * @param list A reference of list type data.
  * @ENDL
  */
-extern void acp_increment_list(acp_list_it_t* list);
+extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
 
 /**
  * @JP
@@ -1522,7 +1531,7 @@ extern void acp_increment_list(acp_list_it_t* list);
  * @param list A reference of list type data.
  * @ENDL
  */
-extern void acp_decrement_list(acp_list_it_t* list);
+extern acp_list_it_t  acp_decrement_list(acp_list_it_t it);
 
 #ifdef __cplusplus
 }
@@ -1538,8 +1547,15 @@ extern void acp_decrement_list(acp_list_it_t* list);
  * @{
  */
 
-#define acp_deque_t acp_ga_t
-#define acp_deque_it_t int
+typedef struct {
+    acp_ga_t ga;
+} acp_deque_t;
+
+typedef struct {
+    acp_deque_t deque;
+    int index;
+} acp_deque_it_t;
+
 /*@}*/ /* Deque */
 
 /* Set */
@@ -1551,8 +1567,24 @@ extern void acp_decrement_list(acp_list_it_t* list);
  * @{
  */
 
-#define acp_set_t acp_ga_t
-#define acp_set_it_t acp_ga_t
+typedef struct {
+    acp_ga_t ga;
+    int num_ranks;
+    int num_slots;
+} acp_set_t;
+
+typedef struct {
+    acp_set_t set;
+    int rank;
+    int slot;
+    acp_ga_t elem;
+} acp_set_it_t;
+
+typedef struct {
+    acp_set_it_t it;
+    int success;
+} acp_set_ib_t;
+
 /*@}*/ /* Set */
 
 /* Map */
@@ -1564,8 +1596,30 @@ extern void acp_decrement_list(acp_list_it_t* list);
  * @{
  */
 
-#define acp_map_t acp_ga_t
-#define acp_map_it_t acp_ga_t
+typedef struct {
+    acp_ga_t ga;
+    uint64_t num_ranks;
+    uint64_t num_slots;
+} acp_map_t;
+
+typedef struct {
+    acp_map_t map;
+    int rank;
+    int slot;
+    acp_ga_t elem;
+} acp_map_it_t;
+
+typedef struct {
+    acp_map_it_t it;
+    int success;
+} acp_map_ib_t;
+
+extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int rank);
+extern void acp_clear_map(acp_map_t map);
+extern void acp_destroy_map(acp_map_t map);
+extern acp_map_ib_t acp_insert_map(acp_map_t map, const void* key, size_t size_key, const void* value, size_t size_value);
+extern acp_map_it_t acp_find_map(acp_map_t map, const void* key, size_t size_key);
+
 /*@}*/ /* Map */
 
 /*@}*/ /* Data Library */

@@ -12,8 +12,8 @@ cat $PBS_NODEFILE
 COMM_DIR=${HOME}/ACE/devel/test/bl/ib
 
 # input 
-# COMM=$COMM_DIR/acpbl
-COMM=$COMM_DIR/acpbl_ohandle
+COMM=$COMM_DIR/acpbl
+#COMM=$COMM_DIR/acpbl_ohandle
 # COMM=$COMM_DIR/acpbl_rm
 # COMM=$COMM_DIR/acp_bw
 # COMM=$COMM_DIR/acpbl_atomic

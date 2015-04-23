@@ -1542,7 +1542,7 @@ extern acp_list_it_t  acp_decrement_list(acp_list_it_t it);
 /** \defgroup deque ACP Middle Layer Dara Library Deque
  * @ingroup acpdl
  * 
- * ACP Middle Layer Dara Library Deque
+ * ACP Middle Layer Data Library Deque
  *
  * @{
  */
@@ -1562,7 +1562,7 @@ typedef struct {
 /** \defgroup set ACP Middle Layer Dara Library Set
  * @ingroup acpdl
  * 
- * ACP Middle Layer Dara Library Set
+ * ACP Middle Layer Data Library Set
  *
  * @{
  */
@@ -1591,7 +1591,7 @@ typedef struct {
 /** \defgroup map ACP Middle Layer Dara Library Map
  * @ingroup acpdl
  * 
- * ACP Middle Layer Dara Library Map
+ * ACP Middle Layer Data Library Map
  *
  * @{
  */

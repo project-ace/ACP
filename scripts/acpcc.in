@@ -154,7 +154,7 @@ while [ $# -ge 1 ]; do
 		-L*)
 		LIBDIR="$LIBDIR $1"
 		shift;;
-		-l)
+		-l*)
 		LIBS="$LIBS $1"
 		shift;;
 		-[A-z]*)

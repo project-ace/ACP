@@ -21,8 +21,24 @@
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"
+#include "acpcl_progress.h"
+
+static volatile uint64_t chlk;
+
+static inline void ch_lock(void)
+{
+    while (sync_val_compare_and_swap_8(&chlk, 0, 1)) ;
+}
+
+static inline void ch_unlock(void)
+{
+    sync_synchronize();
+    chlk = 0;
+}
 
 size_t iacp_starter_memory_size_cl = 1024;
+
+static int iacp_initialized_cl = 0;
 
 /* default parameters */
 #define ACPCI_CRBENTRYNUM 8     /* Number of entries of crb */
@@ -154,14 +170,12 @@ typedef struct chreqitem {
 
 /* struct of connection request messages */
 typedef struct crbmsg {
-    int start; /* flag for checking arrival of crbmsg  */
     acp_ga_t ga;
     int rank;
     int state;
     int buf_entrysz;
     int rbuf_entrynum;
     int sbuf_entrynum;
-    int end; /* flag for checking arrival of crbmsg  */
 } crbmsg_t;
 
 /* crb (connection request buffer) 
@@ -170,14 +184,23 @@ typedef struct crbmsg {
 static uint64_t *crbhead;   /* head of the receive queue of crb  */
 static uint64_t *crbtail;   /* tail of the receive queue of crb  */
 static crbmsg_t *crbtbl;    /* table used as the receive queue  */
+static char *crbflgtbl; /* table for flags of the entries of crb */
 static acp_ga_t trashboxga; /* used as a dummy place to store the result of remote atomic  */
 #define CRB_TAIL_OFFSET  (sizeof(uint64_t))  
 #define CRB_TABLE_OFFSET (2 * sizeof(uint64_t))
-#define CRB_TRASHBOX_OFFSET (2 * (sizeof(uint64_t)) + crbentrynum * sizeof(crbmsg_t))
+#define CRB_FLGTABLE_OFFSET (2 * sizeof(uint64_t) + crbentrynum * sizeof(crbmsg_t))
+#define CRB_TRASHBOX_OFFSET (2 * (sizeof(uint64_t)) + crbentrynum * sizeof(crbmsg_t) + crbentrynum)
 
 static char *crbreqmsg;      /* buffer used for sending connection request  */
 static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
 static int crbentrynum; /* number of entries of crbtbl  */
+
+/* structure of connection request in sender buffer 
+ *  - use a part of the sender buffer until the connection completes.
+ *  - consists:
+ *     conninfo_t : connection information
+ *     char: initialized to 1 to be used for sending flag to CRB
+ */
 
 /* struct of connection information.
  * this will be located in the top of the chbody of the channel
@@ -197,6 +220,7 @@ typedef struct conninfo {
 #define CONNINFO_CRBMSG_OFFSET (sizeof(uint64_t) * 2)
 #define CONNINFO_REMGA_OFFSET (sizeof(uint64_t) * 2 + sizeof(crbmsg_t))
 #define CONNINFO_STATE_OFFSET (sizeof(uint64_t) * 2 + sizeof(crbmsg_t) + sizeof(acp_ga_t))
+#define CRBFLG_OFFSET (sizeof(conninfo_t))
 
 /* functions for handling lists */
 static void list_init(listobj_t *list)
@@ -303,7 +327,9 @@ static void handl_conchlist(void)
     int myrank, idx, offset;
     uint64_t head, tail, crbidx;
     crbmsg_t *msg;
+    acp_handle_t hdl;
 
+    ch_lock();
     myrank = acp_rank();
 
     /* check items in the connecting channels list */
@@ -318,6 +344,7 @@ static void handl_conchlist(void)
             case CHSTINIT:
                 fprintf(stderr, "handl_conchlist: rank %d : Error: head of the connecting channel list cannot be CHSTINIT. \n", 
                        myrank);
+                ch_unlock();
                 iacp_abort_cl();
                 break;
             case CHSTWTHD:
@@ -328,20 +355,22 @@ static void handl_conchlist(void)
                     /* check if there is a room in crb */
                     if ((tail - head) < crbentrynum) {
                         /* send the connection request message to the tail of the crb */
-                        acp_copy(conninfo->starterga + CRB_TABLE_OFFSET
-                                 + sizeof(crbmsg_t) * (tail % crbentrynum), 
-                                 ch->localga + CONNINFO_CRBMSG_OFFSET,
-                                 sizeof(crbmsg_t),
-                                 ACP_HANDLE_NULL);
+                        hdl = acp_copy(conninfo->starterga + CRB_TABLE_OFFSET
+                                       + sizeof(crbmsg_t) * (tail % crbentrynum), 
+                                       ch->localga + CONNINFO_CRBMSG_OFFSET,
+                                       sizeof(crbmsg_t),
+                                       ACP_HANDLE_NULL);
+                        acp_copy(conninfo->starterga + CRB_FLGTABLE_OFFSET + (tail % crbentrynum),
+                                 ch->localga + CRBFLG_OFFSET, 1, hdl);
 #ifdef DEBUG
-                        fprintf(stderr, "%d: handl_conchlist: remote start %016llx put crb msg to %016llx (rank %d) from %p crbmsg %d %d %016llx %d %d %d %d %d\n", 
+                        fprintf(stderr, "%d: handl_conchlist: remote start %016llx put crb msg to %016llx (rank %d) from %p crbmsg %d %016llx %d %d %d %d \n", 
                                myrank, iacp_query_starter_ga_cl(ch->peer), 
                                conninfo->starterga + CRB_TABLE_OFFSET + sizeof(crbmsg_t) * (tail % crbentrynum),
                                acp_query_rank(conninfo->starterga + CRB_TABLE_OFFSET + sizeof(crbmsg_t) * (tail % crbentrynum)),
                                ch->localga + CONNINFO_CRBMSG_OFFSET,
-                               (conninfo->crbmsg).start, (conninfo->crbmsg).rank, (conninfo->crbmsg).ga,
+                               (conninfo->crbmsg).rank, (conninfo->crbmsg).ga,
                                (conninfo->crbmsg).state, (conninfo->crbmsg).buf_entrysz, (conninfo->crbmsg).rbuf_entrynum,
-                               (conninfo->crbmsg).sbuf_entrynum, (conninfo->crbmsg).end);
+                               (conninfo->crbmsg).sbuf_entrynum);
 #endif
                         /* change state to waiting connection ack */
                         ch->state = CHSETSTAT(ch, CHSTWTAK);
@@ -393,14 +422,14 @@ static void handl_conchlist(void)
             default:
                 fprintf(stderr, "handl_conchlist: rank %d : wrong channel status %d\n", 
                        myrank, ch->state);
+                ch_unlock();
                 iacp_abort_cl();
             }
             break;
         case CHTYRECV:
             crbidx = *crbhead;
             idx = crbidx % crbentrynum;
-            while ((crbidx < *crbtail) && (crbtbl[idx].start != 0) && (crbtbl[idx].end != 0)
-                   && (crbtbl[idx].state != CRBSTFREE)) {
+            while ((crbidx < *crbtail) && (crbflgtbl[idx] != 0) && (crbtbl[idx].state != CRBSTFREE)) {
                 if (ch->peer == crbtbl[idx].rank) {
                     /* check parameters of channel endpoints */
                     msg = &(crbtbl[idx]);
@@ -412,12 +441,12 @@ static void handl_conchlist(void)
                                myrank, msg->buf_entrysz, ch->buf_entrysz, 
                                msg->rbuf_entrynum, ch->rbuf_entrynum, 
                                msg->sbuf_entrynum, ch->sbuf_entrynum);
+                        ch_unlock();
                         iacp_abort_cl();
                     }
 
-                    /* clear start and end flags of the element */
-                    msg->start = 0;
-                    msg->end = 0;
+                    /* clear the flags of the entry */
+                    crbflgtbl[idx] = 0;
 
                     /* connect */
                     ch->state = CHSETSTAT(ch, CHSTCONN);
@@ -434,12 +463,9 @@ static void handl_conchlist(void)
                     /* clear chbody */
                     memset (ch->chbody, 0, sizeof(uint64_t) * 3 + ch->rbuf_entrynum * ch->buf_entrysz);
 
-                    /* use the first slot of the receive queue for sending back localga */
-                    *((acp_ga_t *)CHMSGBODY(CHRBSLOTADDR(ch->chbody, 0, ch->buf_entrysz))) = ch->localga;
-                    offset = (int)CHMSGBODY(0);
-                    acp_copy(ch->remotega + CONNINFO_REMGA_OFFSET,
-                             CHRBSLOTGA(ch->localga, 0, ch->buf_entrysz) + offset,
-                             sizeof(acp_ga_t), ACP_HANDLE_NULL);
+                    /* send back GA of this channel to the sender */
+                    acp_swap8(trashboxga, ch->remotega + CONNINFO_REMGA_OFFSET,
+                              ch->localga, ACP_HANDLE_NULL);
 
 #ifdef DEBUG
                     fprintf(stderr, "%d: handl_conchlist: send back acknowledgemnet ga %p \n", 
@@ -470,10 +496,12 @@ static void handl_conchlist(void)
         default:
             fprintf(stderr, "handl_conchlist: rank %d : wrong channel type %d\n", 
                    myrank, ch->type);
+            ch_unlock();
             iacp_abort_cl();
         }
         ch = nextch;
     }
+    ch_unlock();
 }
 
 /* check connection request buffer */
@@ -484,6 +512,7 @@ static void handl_crb(void)
     int idx;
     int myrank;
 
+    ch_lock();
     myrank = acp_rank();
 
     crbidx = *crbhead;
@@ -514,6 +543,7 @@ static void handl_crb(void)
 #endif
 
     }
+    ch_unlock();
 }
 
 /* setup free request list of the channel
@@ -540,6 +570,7 @@ static void initreq(acp_ch_t ch)
     }
     ch->reqtable[acpch_chreqnum - 1].prev = NULL;
     ch->reqtable[acpch_chreqnum - 1].next = NULL;
+    ch->reqtable[acpch_chreqnum - 1].ch = ch;
 
     ch->freereqs = &(ch->reqtable[0]);
     ch->initreqs = NULL;
@@ -908,6 +939,7 @@ static void handl_reqchlist(void)
     acp_ch_t ch, nextch;
     int myrank;
 
+    ch_lock();
     myrank = acp_rank();
     ch = (acp_ch_t)(reqch_list.head);
 
@@ -922,6 +954,7 @@ static void handl_reqchlist(void)
         default:
             fprintf(stderr, "handl_reqchlist: rank %d : wrong channel type %d\n", 
                    myrank, ch->type);
+            ch_unlock();
             iacp_abort_cl();
         }
 
@@ -936,10 +969,11 @@ static void handl_reqchlist(void)
         }
         ch = nextch;
     }
+    ch_unlock();
 }
 
 /* progress */
-static void progress(void)
+void iacpcl_progress_ch(void)
 {
     /* check connecting channels */
     handl_conchlist();
@@ -968,6 +1002,13 @@ int iacp_init_cl(void)
     int crbsz;
     int myrank;
 
+    ch_lock();
+    if (iacp_initialized_cl != 0){
+        ch_unlock();
+        return 0;
+    }
+    iacp_initialized_cl = 1;
+
     myrank = acp_rank();
 
     /* set default parameters 
@@ -983,9 +1024,10 @@ int iacp_init_cl(void)
      *        head: head of the connection request queue, uint64_t
      *        tail: tail of the connection request queue, uint64_t
      *        crbentrynum*crbmsg: body of the queue
+     *        crbentrynum: table of flags to check the arrivals of connection requests
      *        trashbox: used as a dummy target of remote atomic operation, uint64_t
      */
-    crbsz = 2 * (sizeof(uint64_t)) + crbentrynum * sizeof(crbmsg_t) + sizeof(uint64_t);
+    crbsz = 2 * (sizeof(uint64_t)) + crbentrynum * sizeof(crbmsg_t) + crbentrynum + sizeof(uint64_t);
     if (iacp_starter_memory_size_cl < crbsz) {
         fprintf(stderr, "Error: iacp_init_cl: iacp_starter_memory_size_cl %d is smaller than crbsz %d\n",
                iacp_starter_memory_size_cl, crbsz);
@@ -999,6 +1041,7 @@ int iacp_init_cl(void)
     crbhead = (uint64_t *)acp_query_address(iacp_query_starter_ga_cl(myrank));
     crbtail = (uint64_t *)((char *)crbhead + CRB_TAIL_OFFSET);
     crbtbl = (crbmsg_t *)((char *)crbhead + CRB_TABLE_OFFSET);
+    crbflgtbl = (char *)crbhead + CRB_FLGTABLE_OFFSET;
     trashboxga = iacp_query_starter_ga_cl(myrank) + CRB_TRASHBOX_OFFSET;
 
 #ifdef DEBUG
@@ -1008,6 +1051,9 @@ int iacp_init_cl(void)
 
     /* clear crb tbl */
     memset (crbtbl, 0, crbentrynum * sizeof(crbmsg_t));
+
+    /* clear crb flgtbl */
+    memset (crbflgtbl, 0, crbentrynum);
 
     /* initialize counters of crb */
     *crbhead = 0LL;
@@ -1023,21 +1069,35 @@ int iacp_init_cl(void)
     /* synchronize */
     acp_sync();
   
+    ch_unlock();
+
     return 0; 
 };
 
 int iacp_finalize_cl(void) 
 {
     acp_ch_t ch;
+
+    ch_lock();
+
+    if (iacp_initialized_cl == 0){
+        ch_unlock();
+        return 0;
+    }
+    iacp_initialized_cl = 0;
+    ch_unlock();
+
     /* wait until lists conch_list, reqch_list and disconnch_list becomes empty
      *  (all channel endpoints must be disconnected or in idle list
      */
-    while ((conch_list.head != NULL) || (reqch_list.head != NULL))
-        progress();
+    while ((conch_list.head != NULL) || (reqch_list.head != NULL)){
+        iacpcl_progress();
+    }
 
     /* NOTE: acp_sync is still available in the finalization function? */
     acp_sync();
 
+    ch_lock();
     /* free channels */
     ch = (acp_ch_t)idlech_list.head;
     while(ch != NULL) {
@@ -1049,6 +1109,7 @@ int iacp_finalize_cl(void)
             free(ch->shdl);
         ch = (acp_ch_t)idlech_list.head;
     }
+    ch_unlock();
 #ifdef DEBUG
     fprintf(stderr, "finalize: done \n");
 #endif
@@ -1106,6 +1167,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     acp_ch_t ch, conch;
     conninfo_t *conninfo;
 
+    ch_lock();
     myrank = acp_rank();
     procs = acp_procs();
 
@@ -1113,11 +1175,13 @@ acp_ch_t acp_create_ch(int src, int dst)
     if ((src < 0) || (src >= procs) || (dst < 0) || (dst >= procs)) {
         fprintf(stderr, "acp_create_ch: rank %d : Error: Wrong paramter src %d, dst %d (procs = %d) \n",
                myrank, src, dst, procs);
+        ch_unlock();
         iacp_abort_cl();
     }
     if (src == dst) {
         fprintf(stderr, "acp_create_ch: rank %d : Error: ACP does not support loop back channel (src %d, dst %d) \n",
                myrank, src, dst);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1129,6 +1193,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     } else {
         fprintf(stderr, "acp_create_ch: rank %d : Error: ACP does not support remote-to-remote channel (src %d, dst %d) \n",
                myrank, src, dst);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1136,6 +1201,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     ch = (acp_ch_t)malloc(sizeof(chitem_t));
     if (ch == NULL) {
         fprintf(stderr, "acp_create_ch: rank %d : Error: cannot allocate channel endpoint structure \n", myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1166,6 +1232,7 @@ acp_ch_t acp_create_ch(int src, int dst)
     ch->chbody = (char *)malloc(memsize);
     if (ch->chbody == NULL) {
         fprintf(stderr, "acp_create_ch: rank %d : Error: cannot allocate chbody \n", myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1177,11 +1244,13 @@ acp_ch_t acp_create_ch(int src, int dst)
     ch->localatkey = acp_register_memory(ch->chbody, memsize, 0);
     if (ch->localatkey == ACP_ATKEY_NULL){
         fprintf(stderr, "acp_create_ch: rank %d : acp_register_memory failed for creating channel. \n", myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
     ch->localga = acp_query_ga(ch->localatkey, ch->chbody);
     if (ch->localga == ACP_ATKEY_NULL){
         fprintf(stderr, "acp_create_ch: rank %d : acp_query_ga failed for creating channel. \n", myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1195,23 +1264,24 @@ acp_ch_t acp_create_ch(int src, int dst)
     conninfo->nextch = NULL;
     if (ch->type == CHTYSEND) {
         /* initialize chbody to be used as a connection request structure */
-        (conninfo->crbmsg).start = 1;
         (conninfo->crbmsg).rank = myrank;
         (conninfo->crbmsg).ga = ch->localga;
         (conninfo->crbmsg).state = CRBSTINUSE;
         (conninfo->crbmsg).buf_entrysz = ch->buf_entrysz;
         (conninfo->crbmsg).rbuf_entrynum = ch->rbuf_entrynum;
         (conninfo->crbmsg).sbuf_entrynum = ch->sbuf_entrynum;
-        (conninfo->crbmsg).end = 1;
 #ifdef DEBUG
-        fprintf(stderr, "acp_create_ch: rank %d : crbmsg %d %d %016llx %d %d %d %d %d \n", 
-               myrank, (conninfo->crbmsg).start, (conninfo->crbmsg).rank, (conninfo->crbmsg).ga,
+        fprintf(stderr, "acp_create_ch: rank %d : crbmsg %d %016llx %d %d %d %d \n", 
+               myrank, (conninfo->crbmsg).rank, (conninfo->crbmsg).ga,
                (conninfo->crbmsg).state, (conninfo->crbmsg).buf_entrysz, (conninfo->crbmsg).rbuf_entrynum,
-               (conninfo->crbmsg).sbuf_entrynum, (conninfo->crbmsg).end);
+               (conninfo->crbmsg).sbuf_entrynum);
 #endif
         conninfo->starterga = iacp_query_starter_ga_cl(ch->peer);
         conninfo->remotega = ACP_GA_NULL;
     }
+
+    /* prepare value 1 to be used for sending flag to CRB */
+    *((char *)(ch->chbody) + CRBFLG_OFFSET) = 1;
 
 
     /* search for the connection requests with same peer and type */
@@ -1247,8 +1317,10 @@ acp_ch_t acp_create_ch(int src, int dst)
 #endif
     }
 
+    ch_unlock();
+
     /* progress requests */
-    progress();
+    iacpcl_progress();
 
     /* return channel endpoint handle */
     return ch;
@@ -1259,11 +1331,13 @@ acp_request_t acp_nbfree_ch(acp_ch_t ch)
     chreqitem_t *req;
     int myrank;
 
+    ch_lock();
     myrank = acp_rank();
 
     if (CHCHECKDISCON(ch) != 0) {
         fprintf(stderr, "acp_nbfree_ch: rank %d : Error: channel has already been requested to disconnect\n", 
                myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1279,21 +1353,20 @@ acp_request_t acp_nbfree_ch(acp_ch_t ch)
 
     /* add disconnection request */
     req = newreq(ch);
-    if (req == NULL) {
-        return NULL;
+    if (req != NULL) {
+        /* set message info to req */
+        req->msgidx = ch->msgidx++;
+        req->addr = NULL;
+        req->size = 0;
+        req->type = CHREQTYDISCON;
+        /* change status to disconnecting */
+        ch->state = CHSETDISCON(ch);
     }
 
-    /* set message info to req */
-    req->msgidx = ch->msgidx++;
-    req->addr = NULL;
-    req->size = 0;
-    req->type = CHREQTYDISCON;
+    ch_unlock();
 
     /* progress */
-    progress();
-
-    /* change status to disconnecting */
-    ch->state = CHSETDISCON(ch);
+    iacpcl_progress();
 
     return req;
 }
@@ -1307,11 +1380,13 @@ acp_request_t acp_nbsend_ch(acp_ch_t ch, void *sbuf, size_t sz)
     chreqitem_t *req;
     int myrank;
 
+    ch_lock();
     myrank = acp_rank();
 
     if (CHCHECKDISCON(ch) != 0) {
         fprintf(stderr, "acp_nbsend_ch: rank %d : Error: requesting nbsend to the channel that has been requested to disconnect\n", 
                myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1327,29 +1402,31 @@ acp_request_t acp_nbsend_ch(acp_ch_t ch, void *sbuf, size_t sz)
 
     /* get a new request item */
     req = newreq(ch);
-    if (req == NULL)
-        return NULL;
-
-    /* set message info to req */
-    req->msgidx = ch->msgidx++;
-    req->addr = sbuf;
-    req->size = sz;
-    if (sz <= acpch_eager_limit) {
-        req->type = CHREQTYSNDEGR;
+    if (req != NULL){
+        /* set message info to req */
+        req->msgidx = ch->msgidx++;
+        req->addr = sbuf;
+        req->size = sz;
+        if (sz <= acpch_eager_limit) {
+            req->type = CHREQTYSNDEGR;
 #ifdef DEBUG
-        fprintf(stderr, "acp_nbsend_ch: rank %d : prepared eager mesg in channel %p req->msgidx %llu remote msgidx %llu\n", 
+            fprintf(stderr, "acp_nbsend_ch: rank %d : prepared eager mesg in channel %p req->msgidx %llu remote msgidx %llu\n", 
+                    myrank, ch, req->msgidx, *(CHLOCALIDX(ch)));
+#endif
+        } else {
+            req->type = CHREQTYSNDRND;    
+#ifdef DEBUG
+            fprintf(stderr, "acp_nbsend_ch: rank %d : prepared rendz mesg in channel %p req->msgidx %llu remote msgidx %llu\n", 
                myrank, ch, req->msgidx, *(CHLOCALIDX(ch)));
 #endif
-    } else {
-        req->type = CHREQTYSNDRND;    
-#ifdef DEBUG
-        fprintf(stderr, "acp_nbsend_ch: rank %d : prepared rendz mesg in channel %p req->msgidx %llu remote msgidx %llu\n", 
-               myrank, ch, req->msgidx, *(CHLOCALIDX(ch)));
-#endif
+        }
     }
 
+    ch_unlock();
+
     /* progress */
-    progress();
+    iacpcl_progress();
+
 
     return req;
 }
@@ -1359,11 +1436,14 @@ acp_request_t acp_nbrecv_ch(acp_ch_t ch, void *rbuf, size_t sz)
     chreqitem_t *req;
     int myrank;
 
+    ch_lock();
+
     myrank = acp_rank();
 
     if (CHCHECKDISCON(ch) != 0) {
         fprintf(stderr, "acp_nbrecv_ch: rank %d : Error: channel has been requested to disconnect\n", 
                myrank);
+        ch_unlock();
         iacp_abort_cl();
     }
 
@@ -1379,23 +1459,23 @@ acp_request_t acp_nbrecv_ch(acp_ch_t ch, void *rbuf, size_t sz)
 
     /* get a new request item */
     req = newreq(ch);
-    if (req == NULL)
-        return NULL;
-
-    /* set message info to req */
-    req->msgidx = ch->msgidx++;
-    req->addr = rbuf;
-    req->size = sz;
-    req->type = CHREQTYRCV;
-
+    if (req != NULL){
+        /* set message info to req */
+        req->msgidx = ch->msgidx++;
+        req->addr = rbuf;
+        req->size = sz;
+        req->type = CHREQTYRCV;
+        
 #ifdef DEBUG
-    fprintf(stderr, "acp_nbrecv_ch: rank %d : prepared receive in channel %p\n", 
-           myrank, ch);
+        fprintf(stderr, "acp_nbrecv_ch: rank %d : prepared receive in channel %p\n", 
+                myrank, ch);
 #endif
+    }
 
+    ch_unlock();
 
     /* progress */
-    progress();
+    iacpcl_progress();
 
     return req;
 }
@@ -1422,40 +1502,50 @@ size_t acp_wait_ch(acp_request_t req)
 
     switch(req->type) {
     case CHREQTYSNDEGR:
-        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALTAIL(ch))) || (acp_inquire(req->hdl) != 0))
-            progress();
+        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALTAIL(ch))) || (acp_inquire(req->hdl) != 0)){
+            iacpcl_progress();
+        }
 
 #ifdef DEBUG
         fprintf(stderr, "acp_wait_ch: rank %d : completed send eager ch %p msgidx %llu head %llu tail %llu type %d state %d\n", 
                myrank, ch, req->msgidx, *(CHLOCALHEAD(ch)), *(CHLOCALTAIL(ch)), ch->type, ch->state);
 #endif
+        ch_lock();
 
         freereq(req);
 
+        ch_unlock();
+
         break;
     case CHREQTYSNDRND:
-        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALIDX(ch))))
-            progress();
+        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALIDX(ch)))){
+            iacpcl_progress();
+        }
 
 #ifdef DEBUG
         fprintf(stderr, "acp_wait_ch: rank %d : completed send rendezvous ch %p msgidx %llu head %llu tail %llu idx %llu type %d state %d\n", 
                myrank, ch, req->msgidx, *(CHLOCALHEAD(ch)), *(CHLOCALTAIL(ch)), *(CHLOCALIDX(ch)), ch->type, ch->state);
 #endif
+        ch_lock();
         ret = acp_unregister_memory(req->atkey); /* unregister send buffer for rendezvous */
+
         if (ret < 0){
             fprintf(stderr, "acp_wait_ch: rank %d : acp_unregister_memory failed for unregistering send buffer of rendezvous. \n", myrank);
+            ch_unlock();
             iacp_abort_cl();
         }
 
         freereq(req);
+        ch_unlock();
 
         break;
     case CHREQTYRCV:
         /* eager receive or rendezvous receive. 
          * since the message type is not known at this point,
          * wait for the message to be sent, first */
-        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALHEAD(ch))))
-            progress();
+        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALHEAD(ch)))){
+            iacpcl_progress();
+        }
 
         /* check if the message type has been changed to rendezvous receive */
         if (req->type == CHREQTYRCVRND) {
@@ -1463,51 +1553,68 @@ size_t acp_wait_ch(acp_request_t req)
             fprintf(stderr, "acp_wait_ch: rank %d : start waiting rendezvous recv req->msgidx %llu ch idx %p\n", 
                    myrank, req->msgidx, *(CHLOCALIDX(ch)));
 #endif
-            while(req->msgidx >= *(CHLOCALIDX(ch)))
-                progress();
+            while(req->msgidx >= *(CHLOCALIDX(ch))){
+                iacpcl_progress();
+            }
 
+            ch_lock();
             if (req->atkey != ACP_ATKEY_NULL){
                 ret = acp_unregister_memory(req->atkey); /* unregister recv buffer for rendezvous */
                 if (ret < 0){
                     fprintf(stderr, "acp_wait_ch: rank %d : acp_unregister_memory failed for unregistering recv buffer of rendezvous. \n", myrank);
+                    ch_unlock();
                     iacp_abort_cl();
                 }
             }
+            ch_unlock();
+
         }
 
+        ch_lock();
         freereq(req);
+        ch_unlock();
+
         break;
 
     case CHREQTYRCVRND:
-        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALIDX(ch)))) 
-            progress();
+        while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALIDX(ch)))) {
+            iacpcl_progress();
+        }
 
 #ifdef DEBUG
         fprintf(stderr, "%d: acp_wait_ch: complete req %p hdl %llu atkey %p \n", myrank, req, req->hdl, req->atkey);
 #endif
 
+        ch_lock();
         if (req->atkey != ACP_ATKEY_NULL){
             ret = acp_unregister_memory(req->atkey); /* unregister recv buffer for rendezvous */
             if (ret < 0){
                 fprintf(stderr, "acp_wait_ch: rank %d : acp_unregister_memory failed for unregistering recv buffer of rendezvous. \n", myrank);
+                ch_unlock();
                 iacp_abort_cl();
             }
         }
 
         freereq(req);
+        ch_unlock();
+
         break;
     case CHREQTYDISCON:
         switch (ch->type) {
         case CHTYSEND:
-            while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALTAIL(ch))) || (acp_inquire(req->hdl) != 0))
-                progress();
+            while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALTAIL(ch))) || (acp_inquire(req->hdl) != 0)){
+                iacpcl_progress();
+            }
+
 #ifdef DEBUG
             fprintf(stderr, "acp_wait_ch: rank %d : discon sender ch done\n", myrank);
 #endif
             break;
         case CHTYRECV:
-            while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALHEAD(ch))))
-                progress();
+            while((CHCHECKSTAT(ch) != CHSTCONN) || (req->msgidx >= *(CHLOCALHEAD(ch)))){
+                iacpcl_progress();
+            }
+
 #ifdef DEBUG
             fprintf(stderr, "acp_wait_ch: rank %d : discon receiver ch done\n", myrank);
 #endif
@@ -1517,9 +1624,11 @@ size_t acp_wait_ch(acp_request_t req)
             iacp_abort_cl();
         }
 
+        ch_lock();
         ret = acp_unregister_memory(ch->localatkey); /* unregister chbody */
         if (ret < 0){
             fprintf(stderr, "acp_wait_ch: rank %d : acp_unregister_memory failed for unregistering chbody. \n", myrank);
+            ch_unlock();
             iacp_abort_cl();
         }
         list_remove(&idlech_list, (listitem_t *)ch);
@@ -1528,6 +1637,7 @@ size_t acp_wait_ch(acp_request_t req)
         if (ch->shdl != NULL)
             free(ch->shdl);
         free(ch);
+        ch_unlock();
 
 #ifdef DEBUG
         fprintf(stderr, "acp_wait_ch: rank %d : channel freed\n", myrank);

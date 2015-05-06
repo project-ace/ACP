@@ -100,7 +100,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libacpml_cl_la_LIBADD =
-am_libacpml_cl_la_OBJECTS = acpcl.lo
+am_libacpml_cl_la_OBJECTS = acpcl.lo acpcl_progress.lo
 libacpml_cl_la_OBJECTS = $(am_libacpml_cl_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -293,9 +293,11 @@ AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
 noinst_LTLIBRARIES = libacpml_cl.la
 libacpml_cl_la_SOURCES = \
 			 acpcl.c \
+			 acpcl_progress.c \
 			 acpbl.h \
 			 acpbl_sync.h \
-			 acpcl.h
+			 acpcl.h \
+			 acpcl_progress.h
 
 all: all-am
 

@@ -1,0 +1,109 @@
+ACP Library
+===========
+
+ 0. Overview
+ 1. Installation
+ 2. Compiling user ACP Applications
+ 3. Running user ACP Applications
+
+0. Overview
+-----------
+Advanced Communication Primitives (ACP) Library is designed to enable applications 
+with sufficient inherent parallelism to achieve high scalability up to exa-scale 
+computing systems, where the number of processes is expected to be more than a million.
+
+See http://ace-project.kyushu-u.ac.jp/index.html for more details.
+
+
+1. Installation
+---------------
+The simplest way to install ACP library is typically a combination of 
+running "configure" and "make".  Execute the following commands to install 
+the ACP library system from within the directory at the top of the tree:
+
+shell$ ./configure --prefix=/where/to/install
+[...lots of output...]
+shell$ make all install
+
+If you need special access to install, then you can execute "make
+all" as a user with write permissions in the build tree, and a
+separate "make install" as a user with write permissions to the
+install tree.  
+
+See INSTALL for more details.
+
+
+2. Compiling user ACP Applications
+--------------------------------
+ACP provides "wrapper" compilers that should be used for
+compiling ACP applications:
+
+C:          acpcc, acpgcc
+C++:        acpc++, acpcxx
+Fortran:    acpfc (not provided yet)
+
+For example:
+
+  shell$ acpcc hello_world_acp.c -o hello_world_acp -g
+  shell$
+
+All the wrapper compilers do is add a variety of compiler and linker
+flags to the command line and then invoke a back-end compiler.  To be
+specific: the wrapper compilers do not parse source code at all; they
+are solely command-line manipulators, and have nothing to do with the
+actual compilation or linking of programs.  The end result is an ACP
+executable that is properly linked to all the relevant libraries.
+
+Customizing the behavior of the wrapper compilers is possible (e.g.,
+changing the compiler [not recommended] or specifying additional
+compiler/linker flags);
+
+
+3. Running user ACP Applications
+--------------------------------
+ACP library supports acprun program to launch ACP appliations. For example:
+
+  shell$ acprun -np 2 hello_world_acp   .
+
+This launches two hello_world_acp applications on localhost.
+The option "-np 2" is same as a long option "--acp-nprocs=2".
+Please note that "-np nprocs" has to be 'first' option of acprun command.
+There are no such limitations for the long option.
+
+You can specify a --acp-nodefile=nodefile option to indicate hostnames
+ on which hello_world_acp command will be launched.
+
+If you want launch two processes on pc01 and pc02, use following command:
+
+  shell$ acprun -np 2 --acp-nodefile=nodefile hello_world_acp   
+
+with the following nodefile:
+---------------------------------------------------------------------------
+pc01
+pc01
+pc02
+pc02
+---------------------------------------------------------------------------
+
+To specify network device, for example infiniband (or udp, tofu),
+use --acp-envent=ib (or udp, tofu) option as follows:
+
+  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-envent=ib hello_world_acp   
+
+If you want control starter memory size of ACP basic layar library,
+use --acp-startermemsize=size (byte unit) option as follows:
+
+  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-envent=ib --acp-startermemsize=4096 hello_world_acp   
+
+
+Notice:
+  1.  Other "--acp-*" options are parsed as errors in regard to invalid option,
+      even though that option is used as user program option.
+  2.  Tofu network device may not supported in this version.
+===========================================================================
+
+Copyright (c) 2014      Kyushu University 
+Copyright (c) 2014      Institute of Systems, Information Technologies 
+                        and Nanotechnologies 2014
+Copyright (c) 2014      FUJITSU LIMITED
+

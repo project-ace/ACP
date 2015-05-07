@@ -1,0 +1,9 @@
+# Version numbers are described in the Libtool current:revision:age
+# format.
+
+libacpbl_udp_version=0:0:0
+libacpbl_ib_version=0:0:0
+libacpml_version=0:0:0
+
+# acp date for man
+ACP_DATE='Aug 31, 2014'

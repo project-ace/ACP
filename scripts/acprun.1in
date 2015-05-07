@@ -1,0 +1,108 @@
+.\" -*- nroff -*-
+.\" Copyright (c) 2014 Kyushu University.  All rights reserved.
+.\" $COPYRIGHT$
+.\"
+.\" Man page for acprun command
+.\" 
+.\" .TH name     section center-footer   left-footer  center-header
+.TH ACPRUN 1 "#ACP_DATE#" "#PACKAGE_VERSION#" "#PACKAGE_NAME#"
+.\" **************************
+.\"    Name Section
+.\" **************************
+.SH NAME
+.
+acprun \- Execute parallel jobs using ACP library.
+
+.\" **************************
+.\"    Synopsis Section
+.\" **************************
+.SH SYNOPSIS
+.
+.PP
+Execute parallel jobs using ACP library:
+
+.B acprun
+[ options ]
+.B <program>
+[ <args> ] :
+.P
+
+.
+.\" **************************
+.\"    Quick Summary Section
+.\" **************************
+.SH QUICK SUMMARY
+.
+If you are simply looking for how to run an ACP application, you probably use acprun as follows:
+
+    \fB%\fP acprun [ -np nprocs ] [ --acp-nodefile=nodefile ]  <program> <args>
+
+This will run nprocs copies of \fI<program>\fR in your current run-time environment.
+ACP's \fIacprun\fR will use \fIssh\fR as the process starter.
+Processes are started on the hosts specified in the nodefile.
+If --acp-nodefile option is not specified, nprocs processes will run on the localhost without using ssh.
+.
+.\" **************************
+.\"    Options Section
+.\" **************************
+.SH OPTIONS
+.
+.\"
+.\" Start options listing
+.\"    Indent 10 characters from start of first column to start of second column
+.TP 10
+.B <program>
+The program executable. This is identified as the first non-recognized argument
+to acprun.
+.
+.
+.TP
+.B <args>
+Pass these run-time arguments to every new process.
+.
+.
+.TP
+.B -np nprocs\fR, \fP --acp-nprocs=nprocs
+Run nprocs copies of the program on the given nodes.
+Without this option, acprun automatically execute one program.
+\fIPlease note\fR that "\fI-np\fR nprocs" has to be \fIfirst option\fR of acprun command.
+There are no such limitations for "--acp-nprocs=nprocs" option.
+.
+.
+.TP
+.B --acp-node=nodefile
+Provide a nodefile to use.
+Without this option, nprocs processes will run on the localhost without using ssh.
+In nodefile, hostnames have to be simply written line by line.
+   \fB%\fP cat nodefile
+   hostname0
+   hostname1
+   hostname2
+   ...
+.
+.
+.TP
+.B ---envnet=networkdevice
+Provide a networkdevice value. (ex. UDP, IB)
+Default value is determined during the installation configure procedure.
+.
+.
+.TP
+.B --acp-startermemsize=memsize
+Provide a starter memory size used in ACP library. \" (default: 1024 Byte)
+.
+.
+.TP
+.B --acp-help
+Display help for this command
+.
+.
+.TP
+.B  --acp-version
+Display version number.
+.
+.TP
+.B Other --acp-* otions
+Parsed as error in regard to invalid option even though that option is used as user program option.
+.
+.

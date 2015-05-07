@@ -1,0 +1,23 @@
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+                         KNOWN ISSUES
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+* Startup time
+
+ - The startup time can take more than 1 minute, because the library waits
+   for the ports that will be used for connection becomes available.
+   We expect to fix this in upcoming releases.
+
+* Sizes of the data transfer 
+
+ - On InfiniBand, the sizes of the data transfer with acp_copy, 
+   acp_nbsend_ch and acp_nbrecv_ch are limited to less than 2GB.
+   We expect to fix this in upcoming releases.
+
+ - On InifiniBand, in the case of executing "remote atomic" and "remote2remote copy",
+   the performance drops to 1/50 when more than 1M commands are issued.
+
+* Error mangement
+
+ - On InfiniBand, in the case of executing "remote atomic" and "remote2remote copy",
+   confirmation for receiving data has some bugs.

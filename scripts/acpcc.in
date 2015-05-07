@@ -22,6 +22,7 @@ SOURCES=
 OUTFILE="a.out"
 MODE="link"
 VERSION="@VERSION@"
+SHOWME=
 
 [[ `uname -s` == "Darwin" ]] && RPATH= || RPATH="-Wl,-rpath -Wl,$LIBDIR"
 
@@ -95,37 +96,29 @@ while [ $# -ge 1 ]; do
 		exit 0
 		;;
 		--showme)
-		echo "$COMPILER -I$INCLUDEDIR $RPATH -L$LIBDIR $DEF_LIBS"
-		exit 0
-		;;
+		SHOWME="ALL"
+		shift;;
 		--showme:compile)
-		echo "-I$INCLUDEDIR"
-		exit 0
-		;;
+		SHOWME="COMPILE"
+		shift;;
 		--showme:link)
-		echo "$RPATH -L$LIBDIR $DEF_LIBS"
-		exit 0
-		;;
+		SHOWME="LINK"
+		shift;;
 		--showme:command)
-		echo "$COMPILER"
-		exit 0
-		;;
+		SHOWME="COMMAND"
+		shift;;
 		--showme:incdirs)
-		echo "$INCLUDEDIR"
-		exit 0
-		;;
+		SHOWME="INCDIRS"
+		shift;;
 		--showme:libdirs)
-		echo "$LIBDIR"
-		exit 0
-		;;
+		SHOWME="LIBDIRS"
+		shift;;
 		--showme:libs)
-		echo "$DEF_LIBS" | sed -e "s,-l,,g"
-		exit 0
-		;;
+		SHOWME="LIBS"
+		shift;;
 		--showme:version)
-		echo "$COMMAND: ACP Library $VERSION"
-		exit 0
-		;;
+		SHOWME="VERSION"
+		shift;;
 		--showme:help)
 		show_help
 		exit 0
@@ -216,6 +209,48 @@ case $NETDEV in
 	*)
 		echo "${COMMAND}: Error: unsupported network device is given."
 		exit 1
+		;;
+esac
+
+##### SHOWME #####
+case $SHOWME in
+	"ALL")
+		if test "$MODE" = 'link'; then
+			echo "$COMPILER -I $INCLUDEDIR $OPTIONS -o $OUTFILE $SOURCES $RPATH -L $LIBDIR $LIBS"
+		else
+			echo "$COMPILER -I $INCLUDEDIR $OPTIONS -c -o $OUTFILE $SOURCES"
+		fi
+		exit 0
+		;;
+	"COMPILE")
+		echo "-I$INCLUDEDIR"
+		exit 0
+		;;
+	"LINK")
+		echo "$RPATH -L$LIBDIR $LIBS"
+		exit 0
+		;;
+	"COMMAND")
+		echo "$COMPILER"
+		exit 0
+		;;
+	"INCDIRS")
+		echo "$INCLUDEDIR"
+		exit 0
+		;;
+	"LIBDIRS")
+		echo "$LIBDIR"
+		exit 0
+		;;
+	"LIBS")
+		echo "$LIBS" | sed -e "s,-l,,g"
+		exit 0
+		;;
+	"VERSION")
+		echo "$COMMAND: ACP Library $VERSION"
+		exit 0
+		;;
+	*)
 		;;
 esac
 

@@ -1215,8 +1215,6 @@ extern "C" {
  * @param nelem 要素数
  * @param size 要素サイズ
  * @param rank ランク番号
- * @retval ACP_VECTOR_NULL以外 生成したベクタ型データの参照
- * @retval ACP_VECTOR_NULL 失敗
  *
  * @EN
  * @brief Vector creation
@@ -1226,9 +1224,12 @@ extern "C" {
  * @param nelem Number of elements.
  * @param size Size of element.
  * @param rank Rank number.
+ * @ENDL
+ */
+ /* @retval ACP_VECTOR_NULL以外 生成したベクタ型データの参照
+ * @retval ACP_VECTOR_NULL 失敗
  * @retval ACP_VECTOR_NULL Fail
  * @retval otherwise A reference of created vector data.
- * @ENDL
  */
 extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
 
@@ -1259,8 +1260,6 @@ extern void acp_destroy_vector(acp_vector_t vector);
  * @param vector 複製するベクトル型データの参照
  * @param rank 複製先ランク番号
  * 
- * @retval ACP_VECTOR_NULL以外 複製したベクタ型データの参照
- * @retval ACP_VECTOR_NULL 失敗
  * 
  * @EN
  * @brief Vector duplicate
@@ -1271,9 +1270,12 @@ extern void acp_destroy_vector(acp_vector_t vector);
  * @param rank A rank number of the process on which a vector type data
  *        is duplicated.
  *
+ * @ENDL
+ */
+ /* @retval ACP_VECTOR_NULL以外 複製したベクタ型データの参照
+ * @retval ACP_VECTOR_NULL 失敗
  * @retval ACP_VECTOR_NULL Fail
  * @retval otherwise A reference of duplicated vector data.
- * @ENDL
  */
 extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
 
@@ -1355,8 +1357,6 @@ extern "C" {
  * 任意のプロセスでリスト型データを生成する。
  *
  * @param rank ランク番号
- * @retval ACP_LIST_NULL以外 生成したリスト型データの参照
- * @retval ACP_LIST_NULL 失敗
  *
  * @EN
  * @brief List creation
@@ -1364,9 +1364,12 @@ extern "C" {
  * Creates a list type data on any process.
  *
  * @param rank Rank number.
+ * @ENDL
+ */
+ /* @retval ACP_LIST_NULL以外 生成したリスト型データの参照
+ * @retval ACP_LIST_NULL 失敗
  * @retval ACP_LIST_NULL Fail
  * @retval otherwise A reference of created list data.
- * @ENDL
  */
 extern acp_list_t acp_create_list(int rank);
 
@@ -1549,12 +1552,12 @@ extern acp_list_it_t  acp_decrement_list(acp_list_it_t it);
 
 typedef struct {
     acp_ga_t ga;
-} acp_deque_t;
+} acp_deque_t;	/*!< Deque data type. */
 
 typedef struct {
     acp_deque_t deque;
     int index;
-} acp_deque_it_t;
+} acp_deque_it_t;	/*!< Iterater of deque data type. */
 
 /*@}*/ /* Deque */
 
@@ -1571,14 +1574,14 @@ typedef struct {
     acp_ga_t ga;
     int num_ranks;
     int num_slots;
-} acp_set_t;
+} acp_set_t;	/*!< Set data type. */
 
 typedef struct {
     acp_set_t set;
     int rank;
     int slot;
     acp_ga_t elem;
-} acp_set_it_t;
+} acp_set_it_t;	/*!< Iterater of set data type. */
 
 typedef struct {
     acp_set_it_t it;
@@ -1596,30 +1599,87 @@ typedef struct {
  * @{
  */
 
+/** Represents that no map type data does NOT exist. */
+/* #define ACP_MAP_NULL  0LLU */
+
 typedef struct {
     acp_ga_t ga;
     uint64_t num_ranks;
     uint64_t num_slots;
-} acp_map_t;
+} acp_map_t;	/*!< Map data type. */
 
 typedef struct {
     acp_map_t map;
     int rank;
     int slot;
     acp_ga_t elem;
-} acp_map_it_t;
+} acp_map_it_t;	/*!< Iterater of map data type. */
 
 typedef struct {
     acp_map_it_t it;
     int success;
 } acp_map_ib_t;
 
+#ifdef __cplusplus
+{
+#endif
+
+/**
+ * @JP
+ * @brief マップ生成
+ *
+ * 空のマップ型データを生成する。
+ *
+ * @param num_ranks マップを分散配置するランク数、0の場合は全ランク
+ * @param ranks マップを分散配置するランクを列挙する配列へのポインタ
+ * @param num_slots スロット数
+ * @param rank マップ生成先ランク番号
+ *
+ * @EN
+ * @brief Map creation
+ *
+ * Creates a empty map type data on any process.
+ *
+ * @param num_ranks Number of the rank where maps are distributed. '0' means all ranks.
+ * @param ranks Pointers of an array for ranks where maps are distributed 
+ * @param num_slots Number of Slots
+ * @param rank Rank number where a map is created
+ * @param rank Rank number.
+ * @ENDL
+ */
+ /* @retval ACP_MAP_NULL以外 生成したマップ型データの参照
+ * @retval ACP_MAP_NULL 失敗
+ * @retval ACP_MAP_NULL Fail
+ * @retval otherwise A reference of created map data.
+ */
 extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int rank);
+
 extern void acp_clear_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップ破棄
+ *
+ * マップ型データを破棄する。
+ *
+ * @param map マップ型データの参照
+ *
+ * @EN
+ * @brief Map destruction
+ *
+ * Destroies a map type data.
+ *
+ * @param map A reference of map data.
+ * @ENDL
+ */
 extern void acp_destroy_map(acp_map_t map);
+
 extern acp_map_ib_t acp_insert_map(acp_map_t map, const void* key, size_t size_key, const void* value, size_t size_value);
 extern acp_map_it_t acp_find_map(acp_map_t map, const void* key, size_t size_key);
 
+#ifdef __cplusplus
+}
+#endif
 /*@}*/ /* Map */
 
 /*@}*/ /* Data Library */

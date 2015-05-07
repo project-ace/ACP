@@ -1,3 +1,16 @@
+2015-05-07  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 1.1.0
+	* new implementation: ACP Middle Layer Dara Library Map
+	* fix acpcc: handling -l options
+	* fix acpch: thread safe
+	* fix acpcl.c acpcl_progress.{c,h}: confirmation of message arrival
+	* fix [IB]: set # of max remote rkey tebles to 1024. possible to set O3 option for gcc
+	* fix [UDP]: the deadlock on zero byte copy
+	* fix [IB] acpbl_ib.c: a timing of ibv_dereg_mr
+	* fix acpcl.c: 1. calculation of head index on recv buf, and 2. check for message arrival.
+	* fix [IB]: qp and cq size.
+
 2014-10-15  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 1.0.0

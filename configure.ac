@@ -1,10 +1,10 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2014      Kyushu University 
-# Copyright (c) 2014      Institute of Systems, Information Technologies 
+# Copyright (c) 2014-2015 Kyushu University 
+# Copyright (c) 2014-2015 Institute of Systems, Information Technologies 
 #                         and Nanotechnologies 2014
-# Copyright (c) 2014      FUJITSU LIMITED
+# Copyright (c) 2014-2015 FUJITSU LIMITED
 #
 # This software is released under the BSD License, see LICENSE. 
 
@@ -112,12 +112,5 @@ AC_CONFIG_FILES([Makefile
                  src/include/Makefile
                  src/ml/Makefile
                  src/ml/cl/Makefile
-                 src/ml/dl/Makefile
-                 test/Makefile
-                 test/bl/Makefile
-                 test/bl/ib/Makefile
-                 test/bl/udp/Makefile
-                 test/ml/Makefile
-                 test/ml/dl/Makefile
-                 test/ml/ch/Makefile])
+                 src/ml/dl/Makefile])
 AC_OUTPUT

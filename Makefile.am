@@ -1,11 +1,11 @@
 #
-# Copyright (c) 2012-2014 ACE Project
+# Copyright (c) 2012-2015 ACE Project
 # $COPYRIGHT$
 #
 
 SUBDIRS = src test sample scripts
 EXTRA_DIST = README INSTALL VERSION Doxyfile Doxyfile.jp License \
-	     ChangeLog
+	     ChangeLog RELEASE_NOTES
 
 ACLOCAL_AMFLAGS = -I config
 
@@ -114,13 +114,11 @@ man/man3/acp_query_starter_ga.3 \
 man/man3/acp_rank.3 \
 man/man3/acp_rbegin.3 \
 man/man3/acp_rbegin_vector.3 \
-man/man3/acp_recv_ch.3 \
 man/man3/acp_register_memory.3 \
 man/man3/acp_rend.3 \
 man/man3/acp_rend_vector.3 \
 man/man3/acp_request_t.3 \
 man/man3/acp_reset.3 \
-man/man3/acp_send_ch.3 \
 man/man3/acp_set_it_t.3 \
 man/man3/acp_set_t.3 \
 man/man3/acp_swap.3 \

@@ -1,21 +1,77 @@
-.TH "ACP Middle Layer Dara Library Map" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.TH "ACP Middle Layer Dara Library Map" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
 ACP Middle Layer Dara Library Map \- 
-.SS "Macros"
+.SS "Data Structures"
 
 .in +1c
 .ti -1c
-.RI "#define \fBacp_map_t\fP   \fBacp_ga_t\fP"
+.RI "struct \fBacp_map_t\fP"
 .br
 .ti -1c
-.RI "#define \fBacp_map_it_t\fP   \fBacp_ga_t\fP"
+.RI "struct \fBacp_map_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_ib_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_map_t\fP \fBacp_create_map\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "\fIMap creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "\fIMap destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key, const void *value, size_t size_value)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key)"
 .br
 .in -1c
 .SH "Detailed Description"
 .PP 
-ACP Middle Layer Dara Library Map 
+ACP Middle Layer Data Library Map 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_map_t\fP acp_create_map (intnum_ranks, const int *ranks, intnum_slots, intrank)"
+
+.PP
+Map creation\&. Creates a empty map type data on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fInum_ranks\fP Number of the rank where maps are distributed\&. '0' means all ranks\&. 
+.br
+\fIranks\fP Pointers of an array for ranks where maps are distributed 
+.br
+\fInum_slots\fP Number of Slots 
+.br
+\fIrank\fP Rank number where a map is created 
+.br
+\fIrank\fP Rank number\&. 
+.RE
+.PP
+
+.SS "void acp_destroy_map (\fBacp_map_t\fPmap)"
+
+.PP
+Map destruction\&. Destroies a map type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+
 .SH "Author"
 .PP 
-Generated automatically by Doxygen for ACE Project from the source code\&.
+Generated automatically by Doxygen for ACP Library from the source code\&.

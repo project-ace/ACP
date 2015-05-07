@@ -1,16 +1,16 @@
-.TH "ACP Middle Layer Dara Library Vector" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.TH "ACP Middle Layer Dara Library Vector" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
 ACP Middle Layer Dara Library Vector \- 
-.SS "Macros"
+.SS "Data Structures"
 
 .in +1c
 .ti -1c
-.RI "#define \fBacp_vector_t\fP   \fBacp_ga_t\fP"
+.RI "struct \fBacp_vector_t\fP"
 .br
 .ti -1c
-.RI "#define \fBacp_vector_it_t\fP   int"
+.RI "struct \fBacp_vector_it_t\fP"
 .br
 .in -1c
 .SS "Functions"
@@ -69,10 +69,10 @@ ACP Middle Layer Dara Library Vector \-
 .RI "\fBacp_vector_it_t\fP \fBacp_rend_vector\fP (\fBacp_vector_t\fP)"
 .br
 .ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP *)"
+.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP)"
 .br
 .ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP *)"
+.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP)"
 .br
 .ti -1c
 .RI "int \fBacp_max_size_vector\fP (\fBacp_vector_t\fP)"
@@ -102,12 +102,6 @@ ACP Middle Layer Dara Library Vector \-
 .SH "Detailed Description"
 .PP 
 ACP Middle Layer Dara Library Vector 
-.SH "Macro Definition Documentation"
-.PP 
-.SS "#define acp_vector_it_t   int"
-Iterater of Vector type\&. 
-.SS "#define acp_vector_t   \fBacp_ga_t\fP"
-Vector type\&. 
 .SH "Function Documentation"
 .PP 
 .SS "\fBacp_vector_t\fP acp_create_vector (size_tnelem, size_tsize, intrank)"
@@ -122,13 +116,6 @@ Vector creation\&. Creates a vector type data on any process\&.
 \fIsize\fP Size of element\&. 
 .br
 \fIrank\fP Rank number\&. 
-.RE
-.PP
-\fBReturn values:\fP
-.RS 4
-\fIACP_VECTOR_NULL\fP Fail 
-.br
-\fIotherwise\fP A reference of created vector data\&. 
 .RE
 .PP
 
@@ -152,14 +139,7 @@ Vector duplicate\&. Duplicate a specified vector type data on any processes\&.
 .RS 4
 \fIvector\fP A reference of vector data to duplicate\&. 
 .br
-\fIrank\fP A rank number of the process on which a vector type data is duplicated\&.
-.RE
-.PP
-\fBReturn values:\fP
-.RS 4
-\fIACP_VECTOR_NULL\fP Fail 
-.br
-\fIotherwise\fP A reference of duplicated vector data\&. 
+\fIrank\fP A rank number of the process on which a vector type data is duplicated\&. 
 .RE
 .PP
 
@@ -178,4 +158,4 @@ Vector swap\&.
 
 .SH "Author"
 .PP 
-Generated automatically by Doxygen for ACE Project from the source code\&.
+Generated automatically by Doxygen for ACP Library from the source code\&.

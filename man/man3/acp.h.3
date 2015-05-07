@@ -1,4 +1,4 @@
-.TH "doc/src/acp.h" 3 "Thu Aug 28 2014" "Version 1.0.0-rc1" "ACE Project" \" -*- nroff -*-
+.TH "doc/src/acp.h" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -8,6 +8,46 @@ A header file for ACP\&.
 .SH SYNOPSIS
 .br
 .PP
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBacp_vector_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_vector_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_list_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_list_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_deque_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_deque_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_set_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_set_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_set_ib_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_ib_t\fP"
+.br
+.in -1c
 .SS "Macros"
 
 .in +1c
@@ -103,36 +143,6 @@ A header file for ACP\&.
 .br
 .ti -1c
 .RI "#define \fBacp_greater_or_equal\fP(type,\&.\&.\&.)   acp_greater_or_equal_##type(__VA_ARGS__)"
-.br
-.ti -1c
-.RI "#define \fBacp_vector_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_vector_it_t\fP   int"
-.br
-.ti -1c
-.RI "#define \fBacp_list_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_list_it_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_deque_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_deque_it_t\fP   int"
-.br
-.ti -1c
-.RI "#define \fBacp_set_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_set_it_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_map_t\fP   \fBacp_ga_t\fP"
-.br
-.ti -1c
-.RI "#define \fBacp_map_it_t\fP   \fBacp_ga_t\fP"
 .br
 .in -1c
 .SS "Typedefs"
@@ -362,10 +372,10 @@ A header file for ACP\&.
 .RI "\fBacp_vector_it_t\fP \fBacp_rend_vector\fP (\fBacp_vector_t\fP)"
 .br
 .ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP *)"
+.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP)"
 .br
 .ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP *)"
+.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP)"
 .br
 .ti -1c
 .RI "int \fBacp_max_size_vector\fP (\fBacp_vector_t\fP)"
@@ -392,7 +402,7 @@ A header file for ACP\&.
 .RI "int \fBacp_greater_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
 .br
 .ti -1c
-.RI "\fBacp_list_t\fP \fBacp_create_list\fP (size_t, int)"
+.RI "\fBacp_list_t\fP \fBacp_create_list\fP (int rank)"
 .br
 .RI "\fIList creation\&. \fP"
 .ti -1c
@@ -400,15 +410,15 @@ A header file for ACP\&.
 .br
 .RI "\fIList destruction\&. \fP"
 .ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it, void *ptr, int rank)"
+.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_it_t\fP it, const void *ptr, size_t size, int rank)"
 .br
 .RI "\fIInsert a list element\&. \fP"
 .ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP it)"
+.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_it_t\fP it)"
 .br
 .RI "\fIErase a list element\&. \fP"
 .ti -1c
-.RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, void *ptr, int rank)"
+.RI "\fBacp_list_it_t\fP \fBacp_push_back_list\fP (\fBacp_list_t\fP list, const void *ptr, size_t size, int rank)"
 .br
 .RI "\fIErase a list element\&. \fP"
 .ti -1c
@@ -420,13 +430,30 @@ A header file for ACP\&.
 .br
 .RI "\fIQuery for the tail iterator of a list\&. \fP"
 .ti -1c
-.RI "void \fBacp_increment_list\fP (\fBacp_list_it_t\fP *list)"
+.RI "\fBacp_list_it_t\fP \fBacp_increment_list\fP (\fBacp_list_it_t\fP it)"
 .br
 .RI "\fIIncrement an iterater of a list data\&. \fP"
 .ti -1c
-.RI "void \fBacp_decrement_list\fP (\fBacp_list_it_t\fP *list)"
+.RI "\fBacp_list_it_t\fP \fBacp_decrement_list\fP (\fBacp_list_it_t\fP it)"
 .br
 .RI "\fIDecrement an iterater of a list data\&. \fP"
+.ti -1c
+.RI "\fBacp_map_t\fP \fBacp_create_map\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "\fIMap creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "\fIMap destruction\&. \fP"
+.ti -1c
+.RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key, const void *value, size_t size_value)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key)"
+.br
 .in -1c
 .SH "Detailed Description"
 .PP 
@@ -435,4 +462,4 @@ A header file for ACP\&.
 This is the ACP header file\&. 
 .SH "Author"
 .PP 
-Generated automatically by Doxygen for ACE Project from the source code\&.
+Generated automatically by Doxygen for ACP Library from the source code\&.

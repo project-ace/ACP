@@ -1215,6 +1215,8 @@ extern "C" {
  * @param nelem 要素数
  * @param size 要素サイズ
  * @param rank ランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したベクタ型データの参照
  *
  * @EN
  * @brief Vector creation
@@ -1224,12 +1226,9 @@ extern "C" {
  * @param nelem Number of elements.
  * @param size Size of element.
  * @param rank Rank number.
- * @ENDL
- */
- /* @retval ACP_VECTOR_NULL以外 生成したベクタ型データの参照
- * @retval ACP_VECTOR_NULL 失敗
- * @retval ACP_VECTOR_NULL Fail
+ * @retval "member ga == ACP_GA_NULL" Fail
  * @retval otherwise A reference of created vector data.
+ * @ENDL
  */
 extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
 
@@ -1259,6 +1258,8 @@ extern void acp_destroy_vector(acp_vector_t vector);
  *
  * @param vector 複製するベクトル型データの参照
  * @param rank 複製先ランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したベクタ型データの参照
  * 
  * 
  * @EN
@@ -1269,13 +1270,10 @@ extern void acp_destroy_vector(acp_vector_t vector);
  * @param vector A reference of vector data to duplicate.
  * @param rank A rank number of the process on which a vector type data
  *        is duplicated.
+ * @retval "member ga == ACP_GA_NULL" Fail
+ * @retval otherwise A reference of created vector data.
  *
  * @ENDL
- */
- /* @retval ACP_VECTOR_NULL以外 複製したベクタ型データの参照
- * @retval ACP_VECTOR_NULL 失敗
- * @retval ACP_VECTOR_NULL Fail
- * @retval otherwise A reference of duplicated vector data.
  */
 extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
 
@@ -1357,6 +1355,8 @@ extern "C" {
  * 任意のプロセスでリスト型データを生成する。
  *
  * @param rank ランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したリスト型データの参照
  *
  * @EN
  * @brief List creation
@@ -1364,12 +1364,9 @@ extern "C" {
  * Creates a list type data on any process.
  *
  * @param rank Rank number.
- * @ENDL
- */
- /* @retval ACP_LIST_NULL以外 生成したリスト型データの参照
- * @retval ACP_LIST_NULL 失敗
- * @retval ACP_LIST_NULL Fail
+ * @retval "member ga == ACP_GA_NULL" Fail
  * @retval otherwise A reference of created list data.
+ * @ENDL
  */
 extern acp_list_t acp_create_list(int rank);
 
@@ -1401,7 +1398,8 @@ extern void acp_destroy_list(acp_list_t list);
  * @param ptr 挿入する要素の先頭アドレス
  * @param size 挿入する要素のサイズ
  * @param rank 要素を複製するプロセス
- * @retval 挿入された要素を指すリスト型イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 挿入された要素を指すリスト型イテレータ
  *
  * @EN
  * @brief Insert a list element
@@ -1412,7 +1410,8 @@ extern void acp_destroy_list(acp_list_t list);
  * @param ptr The pointer of list element.
  * @param size Size of list element.
  * @param rank Rank of the process in which the element is copied.
- * @retval The iterator that points to the inserted element.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The iterator that points to the inserted element.
  * @ENDL
  */
 extern acp_list_it_t acp_insert_list(acp_list_it_t it, const void* ptr, size_t size, int rank);
@@ -1424,7 +1423,8 @@ extern acp_list_it_t acp_insert_list(acp_list_it_t it, const void* ptr, size_t s
  * 指定した位置の要素をリスト型データから削除する。
  *
  * @param it 削除する要素を指すリスト型イテレータ
- * @retval 削除した要素の直後の要素を指すリスト型イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 削除した要素の直後の要素を指すリスト型イテレータ
  *
  * @EN
  * @brief Erase a list element
@@ -1432,7 +1432,8 @@ extern acp_list_it_t acp_insert_list(acp_list_it_t it, const void* ptr, size_t s
  * 
  *
  * @param it An iterator of list type data.
- * @retval The iterator that points to the element which is immediately after the erased one.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the element which is immediately after the erased one.
  * @ENDL
  */
 extern acp_list_it_t acp_erase_list(acp_list_it_t it);
@@ -1468,7 +1469,8 @@ extern acp_list_it_t acp_push_back_list(acp_list_t list, const void* ptr, size_t
  * リスト型データの先頭要素を指すイテレータを取得する。
  *
  * @param list リスト型データの参照
- * @retval it 先頭イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
  *
  * @EN
  * @brief Query for the head iterator of a list
@@ -1476,7 +1478,8 @@ extern acp_list_it_t acp_push_back_list(acp_list_t list, const void* ptr, size_t
  * 
  *
  * @param list A reference of list type data.
- * @retval it The head iterator of the list.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the list.
  * @ENDL
  */
 extern acp_list_it_t acp_begin_list(acp_list_t list);
@@ -1507,13 +1510,16 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
  * リスト型イテレータを一つ増加させる。
  *
  * @param list リスト型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 インクリメントしたイテレータ
  *
  * @EN
  * @brief Increment an iterater of a list data
  *
- * Increments the iterator of a list data.
  *
  * @param list A reference of list type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The next iterator of the specified one.
  * @ENDL
  */
 extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
@@ -1525,6 +1531,8 @@ extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
  * リスト型イテレータを一つ減少させる。
  *
  * @param list リスト型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 デクリメントしたイテレータ
  *
  * @EN
  * @brief Decrement an iterater of a list data
@@ -1532,6 +1540,8 @@ extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
  * Decrements an iterater of a list data.
  *
  * @param list A reference of list type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The previous iterator of the specified one.
  * @ENDL
  */
 extern acp_list_it_t  acp_decrement_list(acp_list_it_t it);
@@ -1634,6 +1644,8 @@ typedef struct {
  * @param ranks マップを分散配置するランクを列挙する配列へのポインタ
  * @param num_slots スロット数
  * @param rank マップ生成先ランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したマップ型データの参照
  *
  * @EN
  * @brief Map creation
@@ -1642,18 +1654,29 @@ typedef struct {
  *
  * @param num_ranks Number of the rank where maps are distributed. '0' means all ranks.
  * @param ranks Pointers of an array for ranks where maps are distributed 
- * @param num_slots Number of Slots
+ * @param num_slots Number of slots
  * @param rank Rank number where a map is created
  * @param rank Rank number.
- * @ENDL
- */
- /* @retval ACP_MAP_NULL以外 生成したマップ型データの参照
- * @retval ACP_MAP_NULL 失敗
- * @retval ACP_MAP_NULL Fail
+ * @retval "member ga == ACP_MAP_NULL" Fail
  * @retval otherwise A reference of created map data.
+ * @ENDL
  */
 extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int rank);
 
+/**
+ * @JP
+ * @brief マップ内リスト消去
+ *
+ * マップ内リストの要素を消去する。
+ *
+ * @param map マップ型データの参照
+ *
+ * @EN
+ * @brief Delete elements of lists in a map type data.
+ *
+ * @param map A reference of map data.
+ * @ENDL
+ */
 extern void acp_clear_map(acp_map_t map);
 
 /**
@@ -1667,14 +1690,67 @@ extern void acp_clear_map(acp_map_t map);
  * @EN
  * @brief Map destruction
  *
- * Destroies a map type data.
+ * Destroys a map type data.
  *
  * @param map A reference of map data.
  * @ENDL
  */
 extern void acp_destroy_map(acp_map_t map);
 
+/**
+ * @JP
+ * @brief マップ挿入
+ *
+ * マップにキーと変数を挿入する。
+ *
+ * @param map マップ型データの参照
+ * @param key 挿入する key-value ペアの key
+ * @param size_key key のサイズ
+ * @param value 挿入する key-value ペアの value
+ * @param size_value value のサイズ
+ * @retval "member success == 0" 失敗、または既に同じ key-value ペアがある
+ * @retval 以外 挿入したイテレータの参照
+ *
+ * @EN
+ * @brief Map creation
+ *
+ * Inserts a key-value pair to a map.
+ *
+ * @param map A reference of a map type data.
+ * @param key Key of the key-value pair.
+ * @param size_key Size of the key.
+ * @param value Value of the key-value pair.
+ * @param size_value Size of the value.
+ * @retval "member success == 0" Fail or the same key-value pair is already in the map.
+ * @retval otherwise The item inserted to the map.
+ * @ENDL
+ */
 extern acp_map_ib_t acp_insert_map(acp_map_t map, const void* key, size_t size_key, const void* value, size_t size_value);
+
+/**
+ * @JP
+ * @brief マップ検索
+ *
+ * マップにあるキーと変数をキーで検索する
+ *
+ * @param map マップ型データの参照
+ * @param key 検索する key
+ * @param size_key key のサイズ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 検索結果のイテレータの参照
+ *
+ * @EN
+ * @brief Map finding
+ *
+ * Find a key-value pair according to a key in a map.
+ *
+ * @param map A reference of a map type data.
+ * @param key Key to search.
+ * @param size_key Size of the key.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The item found in the map.
+ * @ENDL
+ */
 extern acp_map_it_t acp_find_map(acp_map_t map, const void* key, size_t size_key);
 
 #ifdef __cplusplus

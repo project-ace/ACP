@@ -214,6 +214,23 @@
    of the element, as an argument. Therefore, the control structure and 
    the elements of a list can be placed on different processes.
 
+   @subsubsection map Map
+
+   The map interface provides the data structure and algorithms of associative arrays. 
+   The type for referencing maps is __acp_map_t__, the type for the iterator of maps is
+   __acp_map_it_t__, and the type for returning result of finding element in a map is 
+   __acp_map_ib_t__. Maps are created via the constructor function, acp_create_map. 
+   This function prepares an empty map distributed among a group of processes. 
+   As an argument, it accepts the number of processes, the array of ranks of the processes 
+   in the group, the number of slots and the rank to place the control structure of the map. 
+   Elements can be added to a map via the function __acp_insert_map__. 
+   In addition to the map to insert, this function accepts the key and the value of the element, 
+   as an argument. Each of the key and the value are specified by a pair of the address 
+   and the size in byte. The rank to place the element to be inserted is decided according to 
+   the hash value calculated from the key. __acp_find_map__ searches the key in a map. 
+   It returns the value true or false according to the result, and the iterator of the 
+   element with the key if it has been found.
+
    @subsubsection malloc Malloc
 
    The malloc interface provides the functions for asynchronous allocation 
@@ -287,6 +304,96 @@
    earlier than it on the process. There is also a function, __acp_inquire__, 
    which check the completions of the GMA specified by the handle and the 
    GMAs that have been invoked before it.
+
+   @section usage Usage
+   @subsection installation Installation
+
+   The simplest way to install ACP library is typically a combination of running 
+   "configure" and "make". Execute the following commands to install the ACP library system
+   from within the directory at the top of the tree:
+
+   <tt>shell$ ./configure --prefix=/where/to/install\n
+       [...lots of output...]\n
+   shell$ make all install
+   </tt>
+
+   If you need special access to install, then you can execute "make all" as a user with write
+   permissions in the build tree, and a separate "make install" as a user with write permissions
+   to the install tree.
+   
+   See INSTALL for more details.
+
+   @subsection compilation Compilation
+
+   ACP provides "wrapper" compilers that should be used for compiling ACP applications:
+   \arg C:	\c acpcc, \c acpgcc
+   \arg C++:	\c acpc++, \c acpcxx
+   \arg Fortran:	\c acpgc (not provided yet)
+
+   For example:
+
+   <tt>
+   shell$ acpcc hello_world_acp.c -o hello_world_acp -g\n
+   shell$
+   </tt>
+
+   All the wrapper compilers do is add a variety of compiler and linker flags to the command
+   line and then invoke a back-end compiler. To be specific: the wrapper compilers do not parse
+   source code at all; they are solely command-line manipulators, and have nothing to do with
+   the actual compilation or linking of programs. The end result is an ACP executable that is
+   properly linked to all the relevant libraries.
+
+   Customizing the behavior of the wrapper compilers is possible 
+   (e.g., changing the compiler [not recommended] or specifying additional compiler/linker flags).
+
+   @subsection execution Execution
+
+   ACP library supports acprun program to launch ACP appliations. For example:
+
+   <tt>
+   shell$ acprun -np 2 hello_world_acp
+   </tt>
+
+   This launches two \c hello_world_acp applications on localhost. 
+   Option \c "-np 2" is same as long option \c "--acp-nprocs=2". 
+   Please note that \c "-np nprocs" has to be 'first' option of acprun command. 
+   There are no such limitations for long option.
+
+   You can specify a \c --acp-nodefile=nodefile option to indicate hostnames on which 
+   \c hello_world_acp command will be launched.
+
+   If you want launch two processes on pc01 and pc02, use following command:
+
+   <tt>
+   shell$ acprun -np 2 --acp-nodefile=nodefile hello_world_acp\n
+   </tt>
+   with the following nodefile:\n
+   <tt>
+   ---------------------------------------------------------------------------\n
+   pc01\n
+   pc01\n
+   pc02\n
+   pc02\n
+   ---------------------------------------------------------------------------\n
+   </tt>
+
+   To specify network device, for example infiniband (or udp, tofu), use 
+   \c --acp-envent=ib (or udp, tofu) option as follows:
+
+   <tt>
+   shell$ acprun -np 2 --acp-nodefile=nodefile --acp-nodefile=ib hello_world_acp
+   </tt>
+
+   If you want control starter memory size of ACP basic layer library, use 
+   \c --acp-startermemsize=size (byte unit) option as follows:
+   
+   <tt>
+   shell$ acprun -np 2 --acp-nodefile=nodefile --acp-nodefile=ib --acp-startermemsize=4096 hello_world_acp
+   </tt>
+
+   Notice:
+   \arg Other \c "--acp-*" options are parsed as errors in regard to invalid option, even though that option is used as user program option.
+   \arg Tofu network device may not supported in this version.
 
 */
 /**

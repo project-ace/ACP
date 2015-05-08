@@ -1,4 +1,4 @@
-.TH "doc/src/acp.h" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "doc/src/acp.h" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -444,6 +444,7 @@ A header file for ACP\&.
 .ti -1c
 .RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "\fIDelete elements of lists in a map type data\&. \fP"
 .ti -1c
 .RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
 .br
@@ -451,9 +452,11 @@ A header file for ACP\&.
 .ti -1c
 .RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key, const void *value, size_t size_value)"
 .br
+.RI "\fIMap creation\&. \fP"
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key)"
 .br
+.RI "\fIMap finding\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 

@@ -1,4 +1,4 @@
-.TH "ACP Middle Layer Dara Library Map" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "ACP Middle Layer Dara Library Map" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -26,6 +26,7 @@ ACP Middle Layer Dara Library Map \-
 .ti -1c
 .RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "\fIDelete elements of lists in a map type data\&. \fP"
 .ti -1c
 .RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
 .br
@@ -33,15 +34,28 @@ ACP Middle Layer Dara Library Map \-
 .ti -1c
 .RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key, const void *value, size_t size_value)"
 .br
+.RI "\fIMap creation\&. \fP"
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const void *key, size_t size_key)"
 .br
+.RI "\fIMap finding\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
 ACP Middle Layer Data Library Map 
 .SH "Function Documentation"
 .PP 
+.SS "void acp_clear_map (\fBacp_map_t\fPmap)"
+
+.PP
+Delete elements of lists in a map type data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+
 .SS "\fBacp_map_t\fP acp_create_map (intnum_ranks, const int *ranks, intnum_slots, intrank)"
 
 .PP
@@ -53,22 +67,77 @@ Map creation\&. Creates a empty map type data on any process\&.
 .br
 \fIranks\fP Pointers of an array for ranks where maps are distributed 
 .br
-\fInum_slots\fP Number of Slots 
+\fInum_slots\fP Number of slots 
 .br
 \fIrank\fP Rank number where a map is created 
 .br
 \fIrank\fP Rank number\&. 
 .RE
 .PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_MAP_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created map data\&. 
+.RE
+.PP
 
 .SS "void acp_destroy_map (\fBacp_map_t\fPmap)"
 
 .PP
-Map destruction\&. Destroies a map type data\&.
+Map destruction\&. Destroys a map type data\&.
 .PP
 \fBParameters:\fP
 .RS 4
 \fImap\fP A reference of map data\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_find_map (\fBacp_map_t\fPmap, const void *key, size_tsize_key)"
+
+.PP
+Map finding\&. Find a key-value pair according to a key in a map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of a map type data\&. 
+.br
+\fIkey\fP Key to search\&. 
+.br
+\fIsize_key\fP Size of the key\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The item found in the map\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_ib_t\fP acp_insert_map (\fBacp_map_t\fPmap, const void *key, size_tsize_key, const void *value, size_tsize_value)"
+
+.PP
+Map creation\&. Inserts a key-value pair to a map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of a map type data\&. 
+.br
+\fIkey\fP Key of the key-value pair\&. 
+.br
+\fIsize_key\fP Size of the key\&. 
+.br
+\fIvalue\fP Value of the key-value pair\&. 
+.br
+\fIsize_value\fP Size of the value\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember success == 0\fP Fail or the same key-value pair is already in the map\&. 
+.br
+\fIotherwise\fP The item inserted to the map\&. 
 .RE
 .PP
 

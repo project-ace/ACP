@@ -1,4 +1,4 @@
-.TH "ACP Middle Layer Dara Library Vector" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "ACP Middle Layer Dara Library Vector" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -118,6 +118,13 @@ Vector creation\&. Creates a vector type data on any process\&.
 \fIrank\fP Rank number\&. 
 .RE
 .PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created vector data\&. 
+.RE
+.PP
 
 .SS "void acp_destroy_vector (\fBacp_vector_t\fPvector)"
 
@@ -140,6 +147,13 @@ Vector duplicate\&. Duplicate a specified vector type data on any processes\&.
 \fIvector\fP A reference of vector data to duplicate\&. 
 .br
 \fIrank\fP A rank number of the process on which a vector type data is duplicated\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created vector data\&. 
 .RE
 .PP
 

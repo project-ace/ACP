@@ -1,4 +1,4 @@
-.TH "ACP Middle Layer Dara Library List" 3 "Thu May 7 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "ACP Middle Layer Dara Library List" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -70,7 +70,9 @@ Query for the head iterator of a list\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIit\fP The head iterator of the list\&. 
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The head iterator of the list\&. 
 .RE
 .PP
 
@@ -84,6 +86,13 @@ List creation\&. Creates a list type data on any process\&.
 \fIrank\fP Rank number\&. 
 .RE
 .PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created list data\&. 
+.RE
+.PP
 
 .SS "\fBacp_list_it_t\fP acp_decrement_list (\fBacp_list_it_t\fPit)"
 
@@ -93,6 +102,13 @@ Decrement an iterater of a list data\&. Decrements an iterater of a list data\&.
 \fBParameters:\fP
 .RS 4
 \fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The previous iterator of the specified one\&. 
 .RE
 .PP
 
@@ -135,18 +151,27 @@ Erase a list element\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIThe\fP iterator that points to the element which is immediately after the erased one\&. 
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIoterhwise\fP The iterator that points to the element which is immediately after the erased one\&. 
 .RE
 .PP
 
 .SS "\fBacp_list_it_t\fP acp_increment_list (\fBacp_list_it_t\fPit)"
 
 .PP
-Increment an iterater of a list data\&. Increments the iterator of a list data\&.
+Increment an iterater of a list data\&. 
 .PP
 \fBParameters:\fP
 .RS 4
 \fIlist\fP A reference of list type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The next iterator of the specified one\&. 
 .RE
 .PP
 
@@ -168,7 +193,9 @@ Insert a list element\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIThe\fP iterator that points to the inserted element\&. 
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The iterator that points to the inserted element\&. 
 .RE
 .PP
 

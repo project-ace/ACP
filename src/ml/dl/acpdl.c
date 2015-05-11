@@ -676,7 +676,7 @@ acp_list_it_t acp_increment_list(acp_list_it_t it)
     
     tmp_elem = (volatile uint64_t*)acp_query_address(buf);
     
-    acp_copy(buf, it.list.ga, 24, ACP_HANDLE_NULL);
+    acp_copy(buf, it.elem, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
     it.elem = (tmp_elem[0] == ACP_GA_NULL) ? it.list.ga : tmp_elem[0];

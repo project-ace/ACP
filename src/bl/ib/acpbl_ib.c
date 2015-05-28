@@ -352,6 +352,7 @@ int acp_sync(void){
     fprintf(stdout, "internal acp_sync\n");
     fflush(stdout);
 #endif
+    
     /* get # of processes */
     nprocs = acp_procs();
     
@@ -496,6 +497,7 @@ acp_ga_t iacp_query_starter_ga_dl(int rank){
 #endif
     
     return ga;
+
 }
 
 acp_ga_t iacp_query_starter_ga_cl(int rank){
@@ -691,12 +693,12 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
         /* wait untitl get rrm flag table == reset rrm flag table */
         while (1) {
 #ifdef DEBUG
-            fprintf(stdout, "getflag ");
+            fprintf(stdout, "%d: getflag ", acp_rank());
             for (i = 0;i < nprocs;i++) {
                 fprintf(stdout, "%d ", rrm_get_flag_tb[i]);
             }
             fprintf(stdout, "\n");
-            fprintf(stdout, "ackflag ");
+            fprintf(stdout, "%d: ackflag ", acp_rank());
             for (i=0;i < nprocs;i++) {
                 fprintf(stdout, "%d ", rrm_ack_flag_tb[i]);
             }
@@ -751,11 +753,19 @@ int acp_unregister_memory(acp_atkey_t atkey){
     int rank; /* rank of atkey */
     uint32_t gmtag; /* tag of atkey */
     uint32_t color; /*color of atkey */
-    
+
+#ifdef DEBUG
+    fprintf(stdout, "%d: internal acp_unregister_memory\n", acp_rank());
+#endif
     /* get global memory tag of atkey */
     gmtag = query_gmtag(atkey);
+    
     /* get rank of atkey */
     rank = acp_query_rank(atkey);
+    if (rank == -1){
+        return -1;
+    }
+    
     /* get color of atkey */
     color = acp_query_color(atkey);
     
@@ -765,6 +775,9 @@ int acp_unregister_memory(acp_atkey_t atkey){
     }
     else { /* if global memory */
         if (lrmtb[gmtag].valid == true) {
+#ifdef DEBUG
+            fprintf(stdout, "atkey %llx unregister tag %d valid %d\n", atkey, gmtag, lrmtb[gmtag].valid);
+#endif
             lrmtb[gmtag].valid = false;
             ibv_dereg_mr(libvmrtb[gmtag]);
             libvmrtb[gmtag] = NULL;
@@ -774,6 +787,10 @@ int acp_unregister_memory(acp_atkey_t atkey){
             return -1;
         }
     }
+#ifdef DEBUG
+    fprintf(stdout, "%d: internal acp_unregister_memory fin\n", acp_rank());
+#endif
+
 }
 
 void *acp_query_address(acp_ga_t ga){
@@ -810,11 +827,19 @@ void *acp_query_address(acp_ga_t ga){
 #ifdef DEBUG_L3
                 fprintf(stdout, 
                         "%d: LRMTB: tag %d addr %p size %lu rkey %lu valid %lu \n",
-                        acp_rank(), gmtag, lrmtb[gmtag].addr, lrmtb[gmtag].size, lrmtb[gmtag].rkey, lrmtb[gmtag].valid);
+                        acp_rank(), gmtag, lrmtb[gmtag].addr, lrmtb[gmtag].size, 
+                        lrmtb[gmtag].rkey, lrmtb[gmtag].valid);
                 fflush(stdout);
 #endif
             }
             else { /* this ga tag is not registered */
+#ifdef DEBUG_L3
+                fprintf(stdout, 
+                        "%d: LRMTB: tag %d addr %p size %lu rkey %lu valid %lu \n",
+                        acp_rank(), gmtag, lrmtb[gmtag].addr, lrmtb[gmtag].size, 
+                        lrmtb[gmtag].rkey, lrmtb[gmtag].valid);
+                fflush(stdout);
+#endif
                 return NULL;
             }
         }
@@ -863,6 +888,7 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     pcmdq->wr_id = hdl;
     pcmdq->ishdl = hdl;
     pcmdq->valid_tail = true;
+
 #ifdef DEBUG
     fprintf(stdout, 
             "%d: tail %lx cmdq[%lx].wr_id = %lx size = %lu\n", 
@@ -1737,6 +1763,7 @@ static inline int getlrm(uint64_t wr_id, int torank){
     
     int rc; /* return code */
     int rank; /* rank id */
+    
     rank = acp_rank();
 
     /* prepare the scatter/gather entry */
@@ -1978,6 +2005,7 @@ static inline int gettail(acp_handle_t idx, int torank){
 }
  
 static inline int putrrmgetedflag(uint64_t wr_id, int torank){  
+    
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
     struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
@@ -2040,6 +2068,7 @@ static inline int putrrmgetedflag(uint64_t wr_id, int torank){
 }
 
 static inline int putrrmackflag(uint64_t wr_id, int torank){  
+    
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
     struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
@@ -2098,7 +2127,7 @@ static inline int putrrmackflag(uint64_t wr_id, int torank){
     return rc;
 }
 
-static int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint64_t dstoffset, int flguint64){
+static inline int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint64_t dstoffset, int flguint64){
     
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
@@ -2245,15 +2274,15 @@ static inline int icopy(uint64_t wr_id ,
 {
     struct ibv_sge sge; /* scatter/gather entry */
     struct ibv_send_wr sr; /* send work reuqest */
-    struct ibv_send_wr *bad_wr = NULL;/* return of send work reuqest */
+    struct ibv_send_wr *bad_wr = NULL; /* return of send work reuqest */
     
     int torank = -1; /* remote rank */
     int rc; /* return code */
     
-    uint64_t local_offset, remote_offset;/* local and remote offset */
-    uint32_t local_gmtag, remote_gmtag;/* local and remote GMA tag */
-    int myrank;/* my rank id */
-    int idx;
+    uint64_t local_offset, remote_offset; /* local and remote offset */
+    uint32_t local_gmtag, remote_gmtag; /* local and remote GMA tag */
+    int myrank; /* my rank id */
+    int idx; /* index for handle */
 
     /* get my rank*/
     myrank = acp_rank();
@@ -2385,8 +2414,8 @@ static inline int icopy(uint64_t wr_id ,
 
 static inline void selectatomic(void *srcaddr, CMD *cmd){
     
-    uint64_t *srcaddr8;
-    uint32_t *srcaddr4;
+    uint64_t *srcaddr8; /* 8 bytes src address */
+    uint32_t *srcaddr4; /* 4 bytes src address */
     
 
 #ifdef DEBUG
@@ -2455,7 +2484,7 @@ static inline void selectatomic(void *srcaddr, CMD *cmd){
 
 static inline void check_cmdq_complete(uint64_t index){
     
-    uint64_t idx;/* index for cmdq */
+    uint64_t idx; /* index for cmdq */
     
 #ifdef DEBUG_L2
     fprintf(stdout, "%d: internal check_cmdq_complete\n", acp_rank());
@@ -2583,27 +2612,28 @@ static void *comm_thread_func(void *dm){
     int rc; /* return code for cq */
     int i, j; /* general index */
     
-    struct ibv_wc wc; /* work completion for poll_cq*/
+    struct ibv_wc wc; /* work completion for poll_cq */
     int myrank; /* my rank id */
-    uint64_t idx;/* CMDQ index */
-    acp_handle_t index;/* acp handle index */
+    uint64_t idx; /* CMDQ index */
+    acp_handle_t index; /* acp handle index */
     
-    acp_ga_t src, dst;/* src and dst ga */
-    size_t size;/* data size */
-    int torank, dstrank, srcrank;/* target rank, dstga rank, srcga rank*/
-    uint32_t totag, dsttag, srctag;/* target tag, dst tag, src tag */
-    uint64_t dstoffset, srcoffset;/* dst offset, src offset */
+    acp_ga_t src, dst; /* src and dst ga */
+    size_t size; /* data size */
+    int torank, dstrank, srcrank; /* target rank, dstga rank, srcga rank */
+    uint32_t totag, dsttag, srctag; /* target tag, dst tag, src tag */
+    uint64_t dstoffset, srcoffset; /* dst offset, src offset */
     int nprocs; /* # of processes */
     
-    int count;/* check count for cmdq and rcmdbuf */
+    int count; /* check count for cmdq and rcmdbuf */
     int comp_cqe_flag = false; /* flag of completion of processing cqe */
     
-    uint32_t rrmtb_idx;/* index of rrm table */
-    uint32_t cur_rank;/* current of rank on rrmt table*/
-    /*
-    uint64_t iter = 0, pre_iter = 0;
-    uint64_t clk = 0, pre_clk = 0;
-    */
+    uint32_t rrmtb_idx; /* index of rrm table */
+    uint32_t cur_rank; /* current of rank on rrmt table */
+  
+
+      uint64_t iter = 0, pre_iter = 0;
+      uint64_t clk = 0, pre_clk = 0;
+
     
     /* get my rank id */
     myrank = acp_rank();
@@ -2631,7 +2661,8 @@ static void *comm_thread_func(void *dm){
                 /* when ibv_poll_cq is SUCCESS */
                 if ((wc.wr_id & MASK_WRID_RCMDB) == 0) {
 #ifdef DEBUG
-                    fprintf(stdout, "%d: qp section: cmdq wr_id %lx mask %llx\n", myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB);
+                    fprintf(stdout, "%d: qp section: cmdq wr_id %lx mask %llx\n", 
+                            myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB);
                     fflush(stdout);
 #endif
                     comp_cqe_flag = false;
@@ -3085,11 +3116,19 @@ static void *comm_thread_func(void *dm){
                                 if (totag == TAG_SM) {
                                     cmdq[idx].stat = ISSUED;
                                     
+                                    //pre_clk = get_clock();
                                     icopy(cmdq[idx].wr_id, dstrank, dsttag, dstoffset, 
                                           srcrank, srctag, srcoffset, size);
+                                    /*clk = get_clock();
+                                    fprintf(stdout, 
+                                            "icopy=%lld\n", 
+                                            clk - pre_clk);
+                                    */
                                     /*
                                       clk = get_clock();
-                                      fprintf(stdout, "iter=%d iter_diff=%d clk_diff=%lld\n", iter, iter - pre_iter, clk - pre_clk);
+                                      fprintf(stdout, 
+                                      "iter=%d iter_diff=%d clk_diff=%lld\n", 
+                                      iter, iter - pre_iter, clk - pre_clk);
                                       pre_clk = clk;
                                       pre_iter = iter;
                                     */                                    
@@ -3506,8 +3545,8 @@ static void *comm_thread_func(void *dm){
             /* check rrm reset flag table */
             if (true == rrm_reset_flag_tb[i]) {
                 /* free remote rkey table */
-                for(j = 0; j < MAX_RM_SIZE; j++){
-                    if(rrmtb[rrmtb_idx][j].valid == true){
+                for (j = 0; j < MAX_RM_SIZE; j++) {
+                    if (rrmtb[rrmtb_idx][j].valid == true) {
                         cur_rank = rrmtb[rrmtb_idx][j].rank;
                         break;
                     }
@@ -3530,21 +3569,21 @@ static void *comm_thread_func(void *dm){
 
 int iacp_init(void){
     
-    int rc = 0;/* return code */
+    int rc = 0; /* return code */
     int i, j; /* general index */
     
-    int sock_s;  /* socket server */
+    int sock_s; /* socket server */
     socklen_t addrlen;/* address length */
-    struct sockaddr_in myaddr, dstaddr, srcaddr;/* address */
+    struct sockaddr_in myaddr, dstaddr, srcaddr; /* address */
     
     struct ibv_device **dev_list = NULL; /* IB device list */
     int num_devices = 0; /* # of IB devices */
-    char *dev_name = NULL;/* device name */
+    char *dev_name = NULL; /* device name */
     
     /* initalize queue pair attribute information*/
     struct ibv_qp_init_attr qp_init_attr;
-    int mr_flags = 0;/* flag of memory registeration*/
-    int ib_port = 1;/* ib port */
+    int mr_flags = 0; /* flag of memory registeration*/
+    int ib_port = 1; /* ib port */
     int cq_size = MAX_CQ_SIZE; /* CQ size */
     
     /* post recieve in RTR */
@@ -3552,17 +3591,17 @@ int iacp_init(void){
     struct ibv_sge sge;
     struct ibv_recv_wr *bad_wr;
     
-    uint32_t *local_qp_num;/* local each qp number */
-    uint32_t *tmp_qp_num;/* temporary qp number */
-    uint32_t *remote_qp_num;/* remote each qp number */
+    uint32_t *local_qp_num; /* local each qp number */
+    uint32_t *tmp_qp_num; /* temporary qp number */
+    uint32_t *remote_qp_num; /* remote each qp number */
     
     CII local_data; /* local data for socket communication */
     CII remote_data; /* remote data for socket communication */
     CII tmp_data; /* temporary data for socket communication */
     int torank; /* rank ID */
     
-    struct ibv_qp_attr attr;/* modify queue pair */
-    int flags;/* flag of modify queue pair */
+    struct ibv_qp_attr attr; /* modify queue pair */
+    int flags; /* flag of modify queue pair */
     
     /* allocate the starter memory adn register memory */
     int syssize;
@@ -3992,8 +4031,8 @@ int iacp_init(void){
         
         /* set attribution for INIT */
         attr.qp_state = IBV_QPS_INIT;
-        attr.port_num = ib_port;/* physical port number (1...n)*/
-        attr.pkey_index = 0;/* normally 0 */
+        attr.port_num = ib_port; /* physical port number (1...n)*/
+        attr.pkey_index = 0; /* normally 0 */
         attr.qp_access_flags = 
             IBV_ACCESS_LOCAL_WRITE | 
             IBV_ACCESS_REMOTE_READ |

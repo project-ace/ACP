@@ -608,7 +608,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
 #ifdef DEBUG
         fprintf(stdout, "color is not exist.\n");
 #endif
-        return ACP_GA_NULL;
+        return ACP_ATKEY_NULL;
     }
     
     /* get myrank and nprocs */
@@ -627,7 +627,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
 #ifdef DEBUG
         perror("ibv_reg_mr is failed:");
 #endif
-        return ACP_GA_NULL;
+        return ACP_ATKEY_NULL;
     }
 #ifdef DEBUG
     fprintf(stdout, "%d: mr address %p size %ld\n", myrank, mr, sizeof(mr));
@@ -3427,20 +3427,28 @@ static void *comm_thread_func(void *dm){
                         if (myrank == srcrank) {
                             void *srcaddr; 
                             srcaddr = acp_query_address(src);
-                            selectatomic(srcaddr, &rcmdbuf[idx]);
-#ifdef DEBUG
-                            fprintf(stdout, 
-                                    "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                    myrank, srcrank, idx, rcmdbuf[idx].replydata);
-                            fflush(stdout);
-#endif
+
                             /* if tag point stater memory */
                             if (dsttag == TAG_SM) {
                                 rcmdbuf[idx].stat =  CMD_WAIT_PUT_DST;
                                 if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
+                                    selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                    fprintf(stdout, 
+                                            "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                            myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                    fflush(stdout);
+#endif
                                     putreplydata(idx, dstrank, dsttag, dstoffset, true);
                                 }
                                 else {
+                                    selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                    fprintf(stdout, 
+                                            "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                            myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                    fflush(stdout);
+#endif
                                     putreplydata(idx, dstrank, dsttag, dstoffset, false);
                                 }
                             }
@@ -3467,9 +3475,23 @@ static void *comm_thread_func(void *dm){
 #endif
                                             rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
                                             if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
+                                                selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                                fprintf(stdout, 
+                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                fflush(stdout);
+#endif
                                                 putreplydata(idx, dstrank, dsttag, dstoffset, true);
                                             }
                                             else {
+                                                selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                                fprintf(stdout, 
+                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                fflush(stdout);
+#endif
                                                 putreplydata(idx, dstrank, dsttag, dstoffset, false);
                                             }
                                         }
@@ -3485,6 +3507,13 @@ static void *comm_thread_func(void *dm){
                                             if (recv_rrm_flag == true) {
                                                 recv_rrm_flag = false;
                                                 rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                                selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                                fprintf(stdout, 
+                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                fflush(stdout);
+#endif                                              
                                                 getlrm(rcmdbuf[idx].wr_id, dstrank);
                                             }
                                             else {
@@ -3505,6 +3534,13 @@ static void *comm_thread_func(void *dm){
                                         if (recv_rrm_flag == true) {
                                             recv_rrm_flag = false;
                                             rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                            selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                            fprintf(stdout, 
+                                                    "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                    myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                            fflush(stdout);
+#endif
                                             getlrm(rcmdbuf[idx].wr_id, dstrank);
                                         }
                                         else {
@@ -3525,6 +3561,13 @@ static void *comm_thread_func(void *dm){
                                     if (recv_rrm_flag == true) {
                                         recv_rrm_flag = false;
                                         rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                        selectatomic(srcaddr, &rcmdbuf[idx]);
+#ifdef DEBUG
+                                        fprintf(stdout, 
+                                                "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                        fflush(stdout);
+#endif
                                         getlrm(rcmdbuf[idx].wr_id, dstrank);
                                     }
                                     else {

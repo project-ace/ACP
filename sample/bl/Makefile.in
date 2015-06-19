@@ -299,8 +299,8 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-#@WITH_INFINIBAND_TRUE@IBDIR = ib
-#SUBDIRS = udp $(IBDIR)
+@WITH_INFINIBAND_TRUE@IBDIR = ib
+SUBDIRS = udp $(IBDIR)
 all: all-recursive
 
 .SUFFIXES:

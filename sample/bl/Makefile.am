@@ -4,6 +4,6 @@
 #
 
 if WITH_INFINIBAND
-#IBDIR = ib
+IBDIR = ib
 endif
-#SUBDIRS = udp $(IBDIR)
+SUBDIRS = udp $(IBDIR)

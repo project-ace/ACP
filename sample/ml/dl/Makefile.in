@@ -87,7 +87,7 @@ noinst_PROGRAMS = acpdl_udp_test$(EXEEXT) $(am__EXEEXT_1)
 @WITH_INFINIBAND_TRUE@am__append_1 = \
 @WITH_INFINIBAND_TRUE@	       acpdl_ib_test
 
-subdir = test/ml/dl
+subdir = sample/ml/dl
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -325,9 +325,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu test/ml/dl/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/ml/dl/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu test/ml/dl/Makefile
+	  $(AUTOMAKE) --gnu sample/ml/dl/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

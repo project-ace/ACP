@@ -15,7 +15,7 @@
 @SET_MAKE@
 
 #
-# Copyright (c) 2012-2014 ACE Project
+# Copyright (c) 2012-2015 ACE Project
 # $COPYRIGHT$
 #
 VPATH = @srcdir@
@@ -82,7 +82,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = test/ml
+subdir = sample/ml
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
@@ -312,9 +312,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu test/ml/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/ml/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu test/ml/Makefile
+	  $(AUTOMAKE) --gnu sample/ml/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

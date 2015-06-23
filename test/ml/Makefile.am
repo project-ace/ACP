@@ -3,4 +3,4 @@
 # $COPYRIGHT$
 #
 
-SUBDIRS = ch dl
+SUBDIRS = cl dl

@@ -104,6 +104,12 @@ fi
 
 AC_CONFIG_FILES([Makefile
                  sample/Makefile
+                 sample/bl/Makefile
+                 sample/bl/ib/Makefile
+                 sample/bl/udp/Makefile
+                 sample/ml/Makefile
+                 sample/ml/cl/Makefile
+                 sample/ml/dl/Makefile
                  scripts/Makefile
                  src/Makefile
                  src/bl/Makefile
@@ -115,9 +121,7 @@ AC_CONFIG_FILES([Makefile
                  src/ml/dl/Makefile
                  test/Makefile
                  test/bl/Makefile
-                 test/bl/ib/Makefile
-                 test/bl/udp/Makefile
                  test/ml/Makefile
                  test/ml/dl/Makefile
-                 test/ml/ch/Makefile])
+                 test/ml/cl/Makefile])
 AC_OUTPUT

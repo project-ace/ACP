@@ -84,8 +84,18 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = acpbl_udp_test$(EXEEXT) acpbl_udp_test2$(EXEEXT)
-subdir = sample/bl/udp
+noinst_PROGRAMS = testch01_udp$(EXEEXT) testch02_udp$(EXEEXT) \
+	testch03_udp$(EXEEXT) testch04_udp$(EXEEXT) \
+	testch05_udp$(EXEEXT) testch06_udp$(EXEEXT) $(am__EXEEXT_1)
+@WITH_INFINIBAND_TRUE@am__append_1 = \
+@WITH_INFINIBAND_TRUE@	       testch01_ib \
+@WITH_INFINIBAND_TRUE@	       testch02_ib \
+@WITH_INFINIBAND_TRUE@	       testch03_ib \
+@WITH_INFINIBAND_TRUE@	       testch04_ib \
+@WITH_INFINIBAND_TRUE@	       testch05_ib \
+@WITH_INFINIBAND_TRUE@	       testch06_ib
+
+subdir = test/ml/cl
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -100,17 +110,47 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
+@WITH_INFINIBAND_TRUE@am__EXEEXT_1 = testch01_ib$(EXEEXT) \
+@WITH_INFINIBAND_TRUE@	testch02_ib$(EXEEXT) \
+@WITH_INFINIBAND_TRUE@	testch03_ib$(EXEEXT) \
+@WITH_INFINIBAND_TRUE@	testch04_ib$(EXEEXT) \
+@WITH_INFINIBAND_TRUE@	testch05_ib$(EXEEXT) \
+@WITH_INFINIBAND_TRUE@	testch06_ib$(EXEEXT)
 PROGRAMS = $(noinst_PROGRAMS)
-am_acpbl_udp_test_OBJECTS = acpbl_udp_test.$(OBJEXT)
-acpbl_udp_test_OBJECTS = $(am_acpbl_udp_test_OBJECTS)
-acpbl_udp_test_LDADD = $(LDADD)
+am__testch01_ib_SOURCES_DIST = testch01.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch01_ib_OBJECTS = testch01.$(OBJEXT)
+testch01_ib_OBJECTS = $(am_testch01_ib_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am_acpbl_udp_test2_OBJECTS = acpbl_udp_test2.$(OBJEXT)
-acpbl_udp_test2_OBJECTS = $(am_acpbl_udp_test2_OBJECTS)
-acpbl_udp_test2_LDADD = $(LDADD)
+am_testch01_udp_OBJECTS = testch01.$(OBJEXT)
+testch01_udp_OBJECTS = $(am_testch01_udp_OBJECTS)
+am__testch02_ib_SOURCES_DIST = testch02.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch02_ib_OBJECTS = testch02.$(OBJEXT)
+testch02_ib_OBJECTS = $(am_testch02_ib_OBJECTS)
+am_testch02_udp_OBJECTS = testch02.$(OBJEXT)
+testch02_udp_OBJECTS = $(am_testch02_udp_OBJECTS)
+am__testch03_ib_SOURCES_DIST = testch03.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch03_ib_OBJECTS = testch03.$(OBJEXT)
+testch03_ib_OBJECTS = $(am_testch03_ib_OBJECTS)
+am_testch03_udp_OBJECTS = testch03.$(OBJEXT)
+testch03_udp_OBJECTS = $(am_testch03_udp_OBJECTS)
+am__testch04_ib_SOURCES_DIST = testch04.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch04_ib_OBJECTS = testch04.$(OBJEXT)
+testch04_ib_OBJECTS = $(am_testch04_ib_OBJECTS)
+am_testch04_udp_OBJECTS = testch04.$(OBJEXT)
+testch04_udp_OBJECTS = $(am_testch04_udp_OBJECTS)
+am__testch05_ib_SOURCES_DIST = testch05.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch05_ib_OBJECTS = testch05.$(OBJEXT)
+testch05_ib_OBJECTS = $(am_testch05_ib_OBJECTS)
+am_testch05_udp_OBJECTS = testch05.$(OBJEXT)
+testch05_udp_OBJECTS = $(am_testch05_udp_OBJECTS)
+am__testch06_ib_SOURCES_DIST = testch06.c acp.h
+@WITH_INFINIBAND_TRUE@am_testch06_ib_OBJECTS = testch06.$(OBJEXT)
+testch06_ib_OBJECTS = $(am_testch06_ib_OBJECTS)
+am_testch06_udp_OBJECTS = testch06.$(OBJEXT)
+testch06_udp_OBJECTS = $(am_testch06_udp_OBJECTS)
 SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
@@ -146,8 +186,18 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(acpbl_udp_test_SOURCES) $(acpbl_udp_test2_SOURCES)
-DIST_SOURCES = $(acpbl_udp_test_SOURCES) $(acpbl_udp_test2_SOURCES)
+SOURCES = $(testch01_ib_SOURCES) $(testch01_udp_SOURCES) \
+	$(testch02_ib_SOURCES) $(testch02_udp_SOURCES) \
+	$(testch03_ib_SOURCES) $(testch03_udp_SOURCES) \
+	$(testch04_ib_SOURCES) $(testch04_udp_SOURCES) \
+	$(testch05_ib_SOURCES) $(testch05_udp_SOURCES) \
+	$(testch06_ib_SOURCES) $(testch06_udp_SOURCES)
+DIST_SOURCES = $(am__testch01_ib_SOURCES_DIST) $(testch01_udp_SOURCES) \
+	$(am__testch02_ib_SOURCES_DIST) $(testch02_udp_SOURCES) \
+	$(am__testch03_ib_SOURCES_DIST) $(testch03_udp_SOURCES) \
+	$(am__testch04_ib_SOURCES_DIST) $(testch04_udp_SOURCES) \
+	$(am__testch05_ib_SOURCES_DIST) $(testch05_udp_SOURCES) \
+	$(am__testch06_ib_SOURCES_DIST) $(testch06_udp_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -296,17 +346,55 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
-LDADD = \
-	$(top_builddir)/src/bl/udp/libacpbl_udp.la \
-	$(top_builddir)/src/ml/libacpml.la
+udp_LDADD = \
+	    $(top_builddir)/src/bl/udp/libacpbl_udp.la \
+	    $(top_builddir)/src/ml/libacpml.la
 
-noinst_SCRIPTS = \
-		 test.sh
+ib_LDADD = \
+	   $(top_builddir)/src/bl/ib/libacpbl_ib.la \
+	   $(top_builddir)/src/ml/libacpml.la
 
-acpbl_udp_test_SOURCES = acpbl_udp_test.c acp.h
-acpbl_udp_test_DEPENDENCIES = $(LDADD)
-acpbl_udp_test2_SOURCES = acpbl_udp_test2.c acp.h
-acpbl_udp_test2_DEPENDENCIES = $(LDADD)
+noinst_SCRIPTS = testch01.sh testch02.sh testch03.sh testch04.sh \
+	testch05.sh testch06.sh
+CLEANFILES = testch01.sh testch02.sh testch03.sh testch04.sh \
+	testch05.sh testch06.sh
+EXTRA_DIST = testch.sh.in
+testch01_udp_LDADD = $(udp_LDADD)
+testch01_udp_DEPENDENCIES = $(testch01_udp_LDADD)
+testch01_udp_SOURCES = testch01.c acp.h
+testch02_udp_LDADD = $(udp_LDADD)
+testch02_udp_DEPENDENCIES = $(testch02_udp_LDADD)
+testch02_udp_SOURCES = testch02.c acp.h
+testch03_udp_LDADD = $(udp_LDADD)
+testch03_udp_DEPENDENCIES = $(testch03_udp_LDADD)
+testch03_udp_SOURCES = testch03.c acp.h
+testch04_udp_LDADD = $(udp_LDADD)
+testch04_udp_DEPENDENCIES = $(testch04_udp_LDADD)
+testch04_udp_SOURCES = testch04.c acp.h
+testch05_udp_LDADD = $(udp_LDADD)
+testch05_udp_DEPENDENCIES = $(testch05_udp_LDADD)
+testch05_udp_SOURCES = testch05.c acp.h
+testch06_udp_LDADD = $(udp_LDADD)
+testch06_udp_DEPENDENCIES = $(testch06_udp_LDADD)
+testch06_udp_SOURCES = testch06.c acp.h
+@WITH_INFINIBAND_TRUE@testch01_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch01_ib_DEPENDENCIES = $(testch01_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch01_ib_SOURCES = testch01.c acp.h
+@WITH_INFINIBAND_TRUE@testch02_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch02_ib_DEPENDENCIES = $(testch02_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch02_ib_SOURCES = testch02.c acp.h
+@WITH_INFINIBAND_TRUE@testch03_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch03_ib_DEPENDENCIES = $(testch03_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch03_ib_SOURCES = testch03.c acp.h
+@WITH_INFINIBAND_TRUE@testch04_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch04_ib_DEPENDENCIES = $(testch04_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch04_ib_SOURCES = testch04.c acp.h
+@WITH_INFINIBAND_TRUE@testch05_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch05_ib_DEPENDENCIES = $(testch05_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch05_ib_SOURCES = testch05.c acp.h
+@WITH_INFINIBAND_TRUE@testch06_ib_LDADD = $(ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch06_ib_DEPENDENCIES = $(testch06_ib_LDADD)
+@WITH_INFINIBAND_TRUE@testch06_ib_SOURCES = testch06.c acp.h
 all: all-am
 
 .SUFFIXES:
@@ -320,9 +408,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/bl/udp/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu test/ml/cl/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu sample/bl/udp/Makefile
+	  $(AUTOMAKE) --gnu test/ml/cl/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -351,13 +439,53 @@ clean-noinstPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
-acpbl_udp_test$(EXEEXT): $(acpbl_udp_test_OBJECTS) $(acpbl_udp_test_DEPENDENCIES) $(EXTRA_acpbl_udp_test_DEPENDENCIES) 
-	@rm -f acpbl_udp_test$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(acpbl_udp_test_OBJECTS) $(acpbl_udp_test_LDADD) $(LIBS)
+testch01_ib$(EXEEXT): $(testch01_ib_OBJECTS) $(testch01_ib_DEPENDENCIES) $(EXTRA_testch01_ib_DEPENDENCIES) 
+	@rm -f testch01_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch01_ib_OBJECTS) $(testch01_ib_LDADD) $(LIBS)
 
-acpbl_udp_test2$(EXEEXT): $(acpbl_udp_test2_OBJECTS) $(acpbl_udp_test2_DEPENDENCIES) $(EXTRA_acpbl_udp_test2_DEPENDENCIES) 
-	@rm -f acpbl_udp_test2$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(acpbl_udp_test2_OBJECTS) $(acpbl_udp_test2_LDADD) $(LIBS)
+testch01_udp$(EXEEXT): $(testch01_udp_OBJECTS) $(testch01_udp_DEPENDENCIES) $(EXTRA_testch01_udp_DEPENDENCIES) 
+	@rm -f testch01_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch01_udp_OBJECTS) $(testch01_udp_LDADD) $(LIBS)
+
+testch02_ib$(EXEEXT): $(testch02_ib_OBJECTS) $(testch02_ib_DEPENDENCIES) $(EXTRA_testch02_ib_DEPENDENCIES) 
+	@rm -f testch02_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch02_ib_OBJECTS) $(testch02_ib_LDADD) $(LIBS)
+
+testch02_udp$(EXEEXT): $(testch02_udp_OBJECTS) $(testch02_udp_DEPENDENCIES) $(EXTRA_testch02_udp_DEPENDENCIES) 
+	@rm -f testch02_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch02_udp_OBJECTS) $(testch02_udp_LDADD) $(LIBS)
+
+testch03_ib$(EXEEXT): $(testch03_ib_OBJECTS) $(testch03_ib_DEPENDENCIES) $(EXTRA_testch03_ib_DEPENDENCIES) 
+	@rm -f testch03_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch03_ib_OBJECTS) $(testch03_ib_LDADD) $(LIBS)
+
+testch03_udp$(EXEEXT): $(testch03_udp_OBJECTS) $(testch03_udp_DEPENDENCIES) $(EXTRA_testch03_udp_DEPENDENCIES) 
+	@rm -f testch03_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch03_udp_OBJECTS) $(testch03_udp_LDADD) $(LIBS)
+
+testch04_ib$(EXEEXT): $(testch04_ib_OBJECTS) $(testch04_ib_DEPENDENCIES) $(EXTRA_testch04_ib_DEPENDENCIES) 
+	@rm -f testch04_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch04_ib_OBJECTS) $(testch04_ib_LDADD) $(LIBS)
+
+testch04_udp$(EXEEXT): $(testch04_udp_OBJECTS) $(testch04_udp_DEPENDENCIES) $(EXTRA_testch04_udp_DEPENDENCIES) 
+	@rm -f testch04_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch04_udp_OBJECTS) $(testch04_udp_LDADD) $(LIBS)
+
+testch05_ib$(EXEEXT): $(testch05_ib_OBJECTS) $(testch05_ib_DEPENDENCIES) $(EXTRA_testch05_ib_DEPENDENCIES) 
+	@rm -f testch05_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch05_ib_OBJECTS) $(testch05_ib_LDADD) $(LIBS)
+
+testch05_udp$(EXEEXT): $(testch05_udp_OBJECTS) $(testch05_udp_DEPENDENCIES) $(EXTRA_testch05_udp_DEPENDENCIES) 
+	@rm -f testch05_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch05_udp_OBJECTS) $(testch05_udp_LDADD) $(LIBS)
+
+testch06_ib$(EXEEXT): $(testch06_ib_OBJECTS) $(testch06_ib_DEPENDENCIES) $(EXTRA_testch06_ib_DEPENDENCIES) 
+	@rm -f testch06_ib$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch06_ib_OBJECTS) $(testch06_ib_LDADD) $(LIBS)
+
+testch06_udp$(EXEEXT): $(testch06_udp_OBJECTS) $(testch06_udp_DEPENDENCIES) $(EXTRA_testch06_udp_DEPENDENCIES) 
+	@rm -f testch06_udp$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(testch06_udp_OBJECTS) $(testch06_udp_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -365,8 +493,12 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_test.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_test2.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch01.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch02.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch03.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch04.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch05.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testch06.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -503,6 +635,7 @@ install-strip:
 mostlyclean-generic:
 
 clean-generic:
+	-test -z "$(CLEANFILES)" || rm -f $(CLEANFILES)
 
 distclean-generic:
 	-test -z "$(CONFIG_CLEAN_FILES)" || rm -f $(CONFIG_CLEAN_FILES)
@@ -598,6 +731,30 @@ uninstall-am:
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags tags-am uninstall uninstall-am
 
+testch01.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch01.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch01/g' testch01.sh
+	chmod 755 testch01.sh
+testch02.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch02.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch02/g' testch02.sh
+	chmod 755 testch02.sh
+testch03.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch03.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch03/g' testch03.sh
+	chmod 755 testch03.sh
+testch04.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch04.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch04/g' testch04.sh
+	chmod 755 testch04.sh
+testch05.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch05.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch05/g' testch05.sh
+	chmod 755 testch05.sh
+testch06.sh: testch.sh.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/testch06.sh:${subdir}/testch.sh.in ) \
+	&& sed -i -e 's/@command@/testch06/g' testch06.sh
+	chmod 755 testch06.sh
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

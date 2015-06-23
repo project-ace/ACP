@@ -87,7 +87,7 @@ host_triplet = @host@
 noinst_PROGRAMS = acpbl$(EXEEXT) acpbl_atomic$(EXEEXT) \
 	acpbl_atomic8$(EXEEXT) acpbl_ohandle$(EXEEXT) \
 	acpbl_rm$(EXEEXT) acpbl_rr$(EXEEXT) acpbl_rr2$(EXEEXT)
-subdir = test/bl/ib
+subdir = sample/bl/ib
 DIST_COMMON = $(srcdir)/Makefile.in $(srcdir)/Makefile.am \
 	$(top_srcdir)/config/depcomp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -354,9 +354,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu test/bl/ib/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/bl/ib/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu test/bl/ib/Makefile
+	  $(AUTOMAKE) --gnu sample/bl/ib/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \

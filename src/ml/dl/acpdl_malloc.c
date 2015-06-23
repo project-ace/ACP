@@ -166,7 +166,7 @@ acp_ga_t acp_malloc(size_t size, int rank)
             } else {
                 tmp[0] -= 8 + size;
                 tmp[2] = 8 + size;
-                tmp[3] = prev_ptr;
+                tmp[3] = ptr + 8 + size;
                 acp_copy(ptr + 8 + size, local_heap, 16, ACP_HANDLE_NULL);
                 acp_copy(ptr, local_heap + 16, 8, ACP_HANDLE_NULL);
                 acp_copy(prev_ptr + 8, local_heap + 24, 8, ACP_HANDLE_NULL);

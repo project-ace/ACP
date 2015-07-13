@@ -118,10 +118,5 @@ AC_CONFIG_FILES([Makefile
                  src/include/Makefile
                  src/ml/Makefile
                  src/ml/cl/Makefile
-                 src/ml/dl/Makefile
-                 test/Makefile
-                 test/bl/Makefile
-                 test/ml/Makefile
-                 test/ml/dl/Makefile
-                 test/ml/cl/Makefile])
+                 src/ml/dl/Makefile])
 AC_OUTPUT

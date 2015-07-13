@@ -359,7 +359,7 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-SUBDIRS = src test sample scripts
+SUBDIRS = src sample scripts
 EXTRA_DIST = README INSTALL VERSION Doxyfile Doxyfile.jp License \
 	     ChangeLog RELEASE_NOTES
 

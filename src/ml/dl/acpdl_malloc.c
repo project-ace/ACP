@@ -18,6 +18,7 @@
 #include "acpbl.h"
 #include "acpdl.h"
 
+#if 0
 /*  Algorithm:
  *      K&R malloc with global lock
  *  Map of the DL starter memory:
@@ -71,26 +72,30 @@ void iacpdl_finalize_malloc(void)
 
 acp_ga_t acp_malloc(size_t size, int rank)
 {
-    acp_ga_t global_heap, local_heap, head_ga, ptr, prev_ptr;
+    acp_ga_t var_ga, global_heap, local_heap, head_ga, ptr, prev_ptr;
+    acp_atkey_t atkey;
+    volatile uint64_t var;
     volatile uint64_t* tmp;
     
     global_heap = iacp_query_starter_ga_dl(rank);
     local_heap = iacp_query_starter_ga_dl(acp_rank());
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
-    /* size ajustment to minimum 24B and alignment to 8B boundary */
+    /* size adjustment to minimum 24B and alignment to 8B boundary */
     size = (size < 24) ? 24 : ((size + 7ULL) & ~7ULL);
     
     /* acquire locks */
-    do {
-        acp_cas8(local_heap, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+    atkey = acp_register_memory(&var, sizeof(var), rank % acp_colors());
+    var_ga = acp_query_ga(atkey, &var);
+     do {
+        acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
-    
+    } while (var != 0);
     do {
-        acp_cas8(local_heap, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_cas8(var_ga, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
+    } while (var != 0);
+    acp_unregister_memory(atkey);
     
     /* acquire list head */
     acp_copy(local_heap, global_heap + HEAD, 8, ACP_HANDLE_NULL);
@@ -211,9 +216,11 @@ acp_ga_t acp_malloc(size_t size, int rank)
 
 void acp_free(acp_ga_t ga)
 {
-    acp_ga_t global_heap, local_heap, head_ga, ptr;
-    volatile uint64_t* tmp;
+    acp_ga_t var_ga, global_heap, local_heap, head_ga, ptr;
     uint64_t size;
+    acp_atkey_t atkey;
+    volatile uint64_t var;
+    volatile uint64_t* tmp;
     
     if (ga == ACP_GA_NULL || (ga & 7) != 0) return;
     
@@ -221,24 +228,31 @@ void acp_free(acp_ga_t ga)
     local_heap = iacp_query_starter_ga_dl(acp_rank());
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
+    /* acquire locks */
+    atkey = acp_register_memory(&var, sizeof(var), acp_query_rank(ga) % acp_colors());
+    var_ga = acp_query_ga(atkey, &var);
+     do {
+        acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (var != 0);
+    do {
+        acp_cas8(var_ga, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (var != 0);
+    acp_unregister_memory(atkey);
+    
     /* acquire size of deallocating block */
     acp_copy(local_heap, ga - 8, 8, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     size = tmp[0];
     
     /* the size must be 24B or larger and aligned to 8B boundary */
-    if (size < 24 || (size & 7) != 0) return;
-    
-    /* acquire locks */
-    do {
-        acp_cas8(local_heap, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+    if (size < 24 || (size & 7) != 0) {
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
         acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
-    
-    do {
-        acp_cas8(local_heap, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
-        acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
     
     /* acquire the list head */
     acp_copy(local_heap, global_heap + HEAD, 8, ACP_HANDLE_NULL);
@@ -369,3 +383,310 @@ void acp_free(acp_ga_t ga)
     return;
 }
 
+#else
+/*  Map of the DL starter memory:
+ *      [0:39] temporal variables
+ *      [40:48] local_lock
+ *      [48:55] global_lock
+ *      [56:63] GA of head entry of free list
+ *      [64:Size-9] memory blocks
+ *          allocated block
+ *              [0:7] size + 3
+ *              [8:size-9] user memory
+ *              [size-8:size-1] size + 3
+ *          free block
+ *              [0:7] size + 5
+ *              [8:size-17] free memory
+ *              [size-16:size-9] GA of next entry of free list
+ *              [size-8:size-1] size + 5
+ *          extended free block
+ *              [0:7] size + 6
+ *              [8:size-9] free memory
+ *              [size-8:size-1] size + 6
+ *          (LSB 3bit of size = block type / Hamming distance 2)
+ *      [Size-8:Size-1] 0 + 3
+ */
+
+#define LLOCK 40
+#define GLOCK 48
+#define HEAD  56
+#define TOP   64
+
+#define BLOCK_ALLOCATED 3
+#define BLOCK_FREE      5
+#define BLOCK_EXTENDED  6
+
+void iacpdl_init_malloc(void)
+{
+    acp_ga_t local_heap;
+    volatile uint64_t* tmp;
+    size_t s;
+    
+    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    tmp = (volatile uint64_t*)acp_query_address(local_heap);
+    s = iacp_starter_memory_size_dl >> 3;
+    
+    /* initialize locks */
+    tmp[LLOCK >> 3] = 0;
+    tmp[GLOCK >> 3] = 0;
+    
+    /* set list head */
+    tmp[HEAD >> 3] = local_heap + (s << 3) - 24;
+    
+    /* set free block */
+    tmp[TOP >> 3] = (s << 3) - TOP - 8 + BLOCK_FREE;
+    tmp[s - 3] = ACP_GA_NULL;
+    tmp[s - 2] = (s << 3) - TOP - 8 + BLOCK_FREE;
+    tmp[s - 1] = 0 + BLOCK_ALLOCATED;
+    
+    return;
+}
+
+void iacpdl_finalize_malloc(void)
+{
+    return;
+}
+
+acp_ga_t acp_malloc(size_t size, int rank)
+{
+    acp_ga_t var_ga, global_heap, local_heap, head_ga, ptr, prev_ptr, next_ptr;
+    uint64_t this_size, succ_size;
+    acp_atkey_t atkey;
+    volatile uint64_t var;
+    volatile uint64_t* tmp;
+    
+    global_heap = iacp_query_starter_ga_dl(rank);
+    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    tmp = (volatile uint64_t*)acp_query_address(local_heap);
+    
+    /* size adjustment to minimum 8B and alignment to 8B boundary */
+    size = (size < 8) ? 8 : ((size + 7ULL) & ~7ULL);
+    
+    /* acquire locks */
+    atkey = acp_register_memory(&var, sizeof(var), rank % acp_colors());
+    var_ga = acp_query_ga(atkey, &var);
+     do {
+        acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (var != 0);
+    do {
+        acp_cas8(var_ga, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (var != 0);
+    acp_unregister_memory(atkey);
+    
+    /* acquire list head */
+    acp_copy(local_heap, global_heap + HEAD, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    /* search for a sufficient free block */
+    head_ga = ptr = tmp[0];
+    prev_ptr = global_heap + HEAD;
+    
+    while (ptr != ACP_GA_NULL) {
+        /* read control data */
+        acp_copy(local_heap, ptr, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        next_ptr  = tmp[0];
+        this_size = tmp[1];
+        succ_size  = tmp[2];
+        
+        /* return if this block is not a free block */
+        if ((this_size & 7) != BLOCK_FREE) {
+            acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+            acp_complete(ACP_HANDLE_ALL);
+            tmp[LLOCK >> 3] = 0;
+            return ACP_GA_NULL;
+        }
+        
+        /* merge the succeding block if it is an extended free block */
+        if ((succ_size & 7) == BLOCK_EXTENDED) {
+            tmp[1] = this_size + (succ_size - BLOCK_EXTENDED);
+            tmp[3] = ptr + (succ_size - BLOCK_EXTENDED);
+            acp_copy(local_heap + 16, ptr + (succ_size - BLOCK_EXTENDED) + 16, 8, ACP_HANDLE_NULL);
+            acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(ptr + (succ_size - BLOCK_EXTENDED), local_heap, 16, ACP_HANDLE_NULL);
+            acp_copy(prev_ptr, local_heap + 24, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            
+            if (prev_ptr == global_heap + HEAD) {
+                head_ga += (succ_size - BLOCK_EXTENDED);
+            }
+            ptr += (succ_size - BLOCK_EXTENDED);
+            this_size += (succ_size - BLOCK_EXTENDED);
+            succ_size = tmp[2];
+        }
+        
+        /* merge free blocks and rewind if the succeding block is a free block */
+        if ((succ_size & 7) == BLOCK_FREE) {
+            tmp[1] = this_size + (succ_size - BLOCK_FREE);
+            acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(ptr + (succ_size - BLOCK_FREE) + 8, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(prev_ptr, local_heap, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            
+            ptr = head_ga;
+            prev_ptr = global_heap + HEAD;
+            continue;
+        }
+        
+        /* allocate the whole block and return */
+        if (this_size - BLOCK_FREE >= size + 16 && this_size - BLOCK_FREE <= size + 40) {
+            tmp[1] = (this_size - BLOCK_FREE) + BLOCK_ALLOCATED;
+            acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(ptr + 8, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(prev_ptr, local_heap, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            
+            acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+            acp_complete(ACP_HANDLE_ALL);
+            tmp[LLOCK >> 3] = 0;
+            return ptr - (this_size - BLOCK_FREE) + 24;
+        }
+        
+        /* allocate a part of the block and return */
+        if (this_size - BLOCK_FREE > size + 40) {
+            tmp[1] = size + 16 + BLOCK_ALLOCATED;
+            tmp[2] = this_size - size - 16;
+            acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
+            acp_copy(ptr - (this_size - BLOCK_FREE) + 16 + 8 + size, local_heap + 8, 16, ACP_HANDLE_NULL);
+            acp_copy(ptr + 8, local_heap + 16, 8, ACP_HANDLE_NULL);
+            /* move the remain free block to the top of the free list */
+            if (prev_ptr != global_heap + HEAD) {
+                tmp[3] = head_ga;
+                tmp[4] = ptr;
+                acp_copy(prev_ptr, local_heap, 8, ACP_HANDLE_NULL);
+                acp_copy(ptr, local_heap + 24, 8, ACP_HANDLE_NULL);
+                acp_copy(global_heap + HEAD, local_heap + 32, 8, ACP_HANDLE_NULL);
+            }
+            acp_complete(ACP_HANDLE_ALL);
+            
+            acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+            acp_complete(ACP_HANDLE_ALL);
+            tmp[LLOCK >> 3] = 0;
+            return ptr - (this_size - BLOCK_FREE) + 24;
+        }
+        
+        /* go to the next entry */
+        prev_ptr = ptr;
+        ptr = tmp[0];
+    }
+    
+    /* there is no sufficient free block */
+    acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+    acp_complete(ACP_HANDLE_ALL);
+    tmp[LLOCK >> 3] = 0;
+    return ACP_GA_NULL;
+}
+
+void acp_free(acp_ga_t ga)
+{
+    acp_ga_t var_ga, global_heap, local_heap, head_ga, ptr;
+    uint64_t prec_size, this_size, succ_size;
+    acp_atkey_t atkey;
+    volatile uint64_t var;
+    volatile uint64_t* tmp;
+    
+    if (ga == ACP_GA_NULL || (ga & 7) != 0) return;
+    
+    global_heap = iacp_query_starter_ga_dl(acp_query_rank(ga));
+    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    tmp = (volatile uint64_t*)acp_query_address(local_heap);
+    
+    /* acquire locks */
+    atkey = acp_register_memory(&var, sizeof(var), acp_query_rank(ga) % acp_colors());
+    var_ga = acp_query_ga(atkey, &var);
+    do {
+        acp_cas8(local_heap, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (tmp[0] != 0);
+    do {
+        acp_cas8(local_heap, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (tmp[0] != 0);
+    acp_unregister_memory(atkey);
+    
+    /* acquire preceding, this and succeding block sizes */
+    acp_copy(local_heap, ga - 16, 16, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    prec_size = tmp[0];
+    this_size = tmp[1];
+    if ((this_size & 7) != BLOCK_ALLOCATED) {
+        /* broken memory block */
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
+    acp_copy(local_heap + 16, ga + (this_size - BLOCK_ALLOCATED) - 16, 16, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    if (tmp[2] != this_size) {
+        /* broken memory block */
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
+    succ_size = tmp[3];
+    
+    /* merge into the succeding block if it is a free block */
+    if ((succ_size & 7) == BLOCK_FREE) {
+        tmp[2] = succ_size + (this_size - BLOCK_ALLOCATED);
+        acp_copy(ga - 8, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_copy(ga + (this_size - BLOCK_ALLOCATED) + (succ_size - BLOCK_FREE) - 16, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
+    
+    /* merge into the preceding block if it is an extended free block */
+    if ((prec_size & 7) == BLOCK_EXTENDED) {
+        tmp[2] = prec_size + (this_size - BLOCK_ALLOCATED);
+        acp_copy(ga - (prec_size - BLOCK_EXTENDED) - 8, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_copy(ga + (this_size - BLOCK_ALLOCATED) - 16, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
+    
+    /* change to an extended free block if the preceding block is a free block */
+    if ((prec_size & 7) == BLOCK_FREE) {
+        tmp[2] = (this_size - BLOCK_ALLOCATED) + BLOCK_EXTENDED;
+        acp_copy(ga - 8, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_copy(ga + (this_size - BLOCK_ALLOCATED) - 16, local_heap + 16, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        
+        acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+        tmp[LLOCK >> 3] = 0;
+        return;
+    }
+    
+    /* acquire list head */
+    acp_copy(local_heap, global_heap + HEAD, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    head_ga = tmp[0];
+    
+    /* put new free block into the free list */
+    tmp[1] = head_ga;
+    tmp[2] = (this_size - BLOCK_ALLOCATED) + BLOCK_FREE;
+    tmp[4] = ga + (this_size - BLOCK_ALLOCATED) - 24;
+    
+    acp_copy(ga - 8, local_heap + 16, 8, ACP_HANDLE_NULL);
+    acp_copy(ga + (this_size - BLOCK_ALLOCATED) - 24, local_heap + 8, 16, ACP_HANDLE_NULL);
+    acp_copy(global_heap + HEAD, local_heap + 32, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_cas8(local_heap, global_heap + GLOCK, 1, 0, ACP_HANDLE_ALL);
+    acp_complete(ACP_HANDLE_ALL);
+    tmp[LLOCK >> 3] = 0;
+    return;
+}
+
+#endif

@@ -389,7 +389,8 @@ void acp_free(acp_ga_t ga)
  *      [40:48] local_lock
  *      [48:55] global_lock
  *      [56:63] GA of head entry of free list
- *      [64:Size-9] memory blocks
+ *      [64:71] sentinel (0 + 3)
+ *      [72:Size-9] memory blocks
  *          allocated block
  *              [0:7] size + 3
  *              [8:size-9] user memory
@@ -404,13 +405,14 @@ void acp_free(acp_ga_t ga)
  *              [8:size-9] free memory
  *              [size-8:size-1] size + 6
  *          (LSB 3bit of size = block type / Hamming distance 2)
- *      [Size-8:Size-1] 0 + 3
+ *      [Size-8:Size-1] sentinel (0 + 3)
  */
 
 #define LLOCK 40
 #define GLOCK 48
 #define HEAD  56
-#define TOP   64
+#define SNTNL 64
+#define TOP   72
 
 #define BLOCK_ALLOCATED 3
 #define BLOCK_FREE      5
@@ -433,10 +435,15 @@ void iacpdl_init_malloc(void)
     /* set list head */
     tmp[HEAD >> 3] = local_heap + (s << 3) - 24;
     
+    /* set top sentinel */
+    tmp[SNTNL >> 3] = 0 + BLOCK_ALLOCATED;
+    
     /* set free block */
     tmp[TOP >> 3] = (s << 3) - TOP - 8 + BLOCK_FREE;
     tmp[s - 3] = ACP_GA_NULL;
     tmp[s - 2] = (s << 3) - TOP - 8 + BLOCK_FREE;
+    
+    /* set bottom sentinel */
     tmp[s - 1] = 0 + BLOCK_ALLOCATED;
     
     return;

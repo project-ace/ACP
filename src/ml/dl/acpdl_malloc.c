@@ -604,13 +604,13 @@ void acp_free(acp_ga_t ga)
     atkey = acp_register_memory(&var, sizeof(var), acp_query_rank(ga) % acp_colors());
     var_ga = acp_query_ga(atkey, &var);
     do {
-        acp_cas8(local_heap, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
+    } while (var != 0);
     do {
-        acp_cas8(local_heap, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
+        acp_cas8(var_ga, global_heap + GLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-    } while (tmp[0] != 0);
+    } while (var != 0);
     acp_unregister_memory(atkey);
     
     /* acquire preceding, this and succeding block sizes */

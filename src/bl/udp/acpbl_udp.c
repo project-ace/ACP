@@ -55,6 +55,7 @@ static int iacp_init(void)
     uint32_t num_descendant0, num_descendant1, num_descendant;
     uint16_t port0, port1;
     uint32_t my_addr;
+    const int option = 1;
     
 //    acp_errno = 0;
     
@@ -86,6 +87,7 @@ static int iacp_init(void)
         addr_listen.sin_family = AF_INET;
         addr_listen.sin_port = my_port;
         addr_listen.sin_addr.s_addr = INADDR_ANY;
+        setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, (const void*)&option, sizeof(option));
         while (bind(sock_listen, (struct sockaddr *)&addr_listen, sizeof(addr_listen)) < 0)
             if (errno != EADDRINUSE) {
                 printf("rank %d - ERROR in bind().\n", MY_RANK);

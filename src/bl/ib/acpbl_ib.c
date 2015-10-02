@@ -3620,7 +3620,6 @@ int iacp_init(void){
     struct sockaddr_in myaddr, dstaddr, srcaddr; /* address */
     
     struct ibv_device **dev_list = NULL; /* IB device list */
-    int num_devices = 0; /* # of IB devices */
     char *dev_name = NULL; /* device name */
     
     /* initalize queue pair attribute information*/

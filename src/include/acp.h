@@ -1150,39 +1150,83 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
  * @{
  */
 
+/* Work space */
+
+typedef int64_t acp_wsd_t;
+
+#define ACP_WSD_NULL -1
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern acp_wsd_t acp_create_ws(size_t size);
+extern void acp_destroy_ws(acp_wsd_t WSD);
+extern int acp_read_ws(acp_wsd_t WSD, acp_ga_t ga, size_t size, size_t offset);
+extern int acp_write_ws(acp_wsd_t WSD, const acp_ga_t ga, size_t size, size_t offset);
+
+#ifdef __cplusplus
+}
+#endif
+
 /* Global memory allocator */
 
-acp_ga_t acp_malloc(size_t, int);
-void acp_free(acp_ga_t);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern acp_ga_t acp_malloc(size_t, int);
+extern void acp_free(acp_ga_t);
+
+#ifdef __cplusplus
+}
+#endif
 
 /* Function name concatenation macros */
 
-#define acp_create(type, ...)           acp_create_##type(__VA_ARGS__)
-#define acp_destroy(type, ...)          acp_destroy_##type(__VA_ARGS__)
-#define acp_duplicate(type, ...)        acp_duplicate_##type(__VA_ARGS__)
-#define acp_swap(type, ...)             acp_swap_##type(__VA_ARGS__)
-#define acp_clear(type, ...)            acp_clear_##type(__VA_ARGS__)
-#define acp_insert(type, ...)           acp_insert_##type(__VA_ARGS__)
-#define acp_erase(type, ...)            acp_erase_##type(__VA_ARGS__)
-#define acp_push_back(type, ...)        acp_push_back_##type(__VA_ARGS__)
-#define acp_pop_back(type, ...)         acp_pop_back_##type(__VA_ARGS__)
-#define acp_element(type, ...)          acp_element_##type(__VA_ARGS__)
-#define acp_front(type, ...)            acp_front_##type(__VA_ARGS__)
-#define acp_back(type, ...)             acp_back_##type(__VA_ARGS__)
-#define acp_begin(type, ...)            acp_begin_##type(__VA_ARGS__)
-#define acp_end(type, ...)              acp_end_##type(__VA_ARGS__)
-#define acp_rbegin(type, ...)           acp_rbegin_##type(__VA_ARGS__)
-#define acp_rend(type, ...)             acp_rend_##type(__VA_ARGS__)
-#define acp_increment(type, ...)        acp_increment_##type(__VA_ARGS__)
-#define acp_decrement(type, ...)        acp_decrement_##type(__VA_ARGS__)
-#define acp_max_size(type, ...)         acp_max_size_##type(__VA_ARGS__)
-#define acp_empty(type, ...)            acp_empty_##type(__VA_ARGS__)
-#define acp_equal(type, ...)            acp_equal_##type(__VA_ARGS__)
-#define acp_not_equal(type, ...)        acp_not_equal_##type(__VA_ARGS__)
-#define acp_less(type, ...)             acp_less_##type(__VA_ARGS__)
-#define acp_greater(type, ...)          acp_greater_##type(__VA_ARGS__)
-#define acp_less_or_equal(type, ...)    acp_less_or_equal_##type(__VA_ARGS__)
-#define acp_greater_or_equal(type, ...) acp_greater_or_equal_##type(__VA_ARGS__)
+#define acp_assign(type, ...)               acp_assign_##type(__VA_ARGS__)
+#define acp_assign_range(type, ...)         acp_assign_range_##type(__VA_ARGS__)
+#define acp_at(type, ...)                   acp_at_##type(__VA_ARGS__)
+#define acp_back(type, ...)                 acp_back_##type(__VA_ARGS__)
+#define acp_begin(type, ...)                acp_begin_##type(__VA_ARGS__)
+#define acp_bucket(type, ...)               acp_bucket_##type(__VA_ARGS__)
+#define acp_bucket_count(type, ...)         acp_bucket_count_##type(__VA_ARGS__)
+#define acp_bucket_size(type, ...)          acp_bucket_size_##type(__VA_ARGS__)
+#define acp_capacity(type, ...)             acp_capacity_##type(__VA_ARGS__)
+#define acp_clear(type, ...)                acp_clear_##type(__VA_ARGS__)
+#define acp_count(type, ...)                acp_count_##type(__VA_ARGS__)
+#define acp_create(type, ...)               acp_create_##type(__VA_ARGS__)
+#define acp_destroy(type, ...)              acp_destroy_##type(__VA_ARGS__)
+#define acp_empty(type, ...)                acp_empty_##type(__VA_ARGS__)
+#define acp_end(type, ...)                  acp_end_##type(__VA_ARGS__)
+#define acp_erase(type, ...)                acp_erase_##type(__VA_ARGS__)
+#define acp_erase_range(type, ...)          acp_erase_range_##type(__VA_ARGS__)
+#define acp_find(type, ...)                 acp_find_##type(__VA_ARGS__)
+#define acp_front(type, ...)                acp_front_##type(__VA_ARGS__)
+#define acp_insert(type, ...)               acp_insert_##type(__VA_ARGS__)
+#define acp_insert_range(type, ...)         acp_insert_range_##type(__VA_ARGS__)
+#define acp_merge(type, ...)                acp_merge_##type(__VA_ARGS__)
+#define acp_pop_back(type, ...)             acp_pop_back_##type(__VA_ARGS__)
+#define acp_pop_front(type, ...)            acp_pop_front_##type(__VA_ARGS__)
+#define acp_push_back(type, ...)            acp_push_back_##type(__VA_ARGS__)
+#define acp_push_front(type, ...)           acp_push_front_##type(__VA_ARGS__)
+#define acp_remove(type, ...)               acp_remove_##type(__VA_ARGS__)
+#define acp_reserve(type, ...)              acp_reserve_##type(__VA_ARGS__)
+#define acp_reverse(type, ...)              acp_reverse_##type(__VA_ARGS__)
+#define acp_size(type, ...)                 acp_size_##type(__VA_ARGS__)
+#define acp_sort(type, ...)                 acp_sort_##type(__VA_ARGS__)
+#define acp_splice(type, ...)               acp_splice_##type(__VA_ARGS__)
+#define acp_swap(type, ...)                 acp_swap_##type(__VA_ARGS__)
+#define acp_unique(type, ...)               acp_unique_##type(__VA_ARGS__)
+
+#define acp_advance(type, ...)              acp_advance_##type(__VA_ARGS__)
+#define acp_decrement(type, ...)            acp_decrement_##type(__VA_ARGS__)
+#define acp_dereference(type, ...)          acp_dereference_##type(__VA_ARGS__)
+#define acp_dereference_value(type, ...)    acp_dereference_value_##type(__VA_ARGS__)
+#define acp_distance(type, ...)             acp_distance_##type(__VA_ARGS__)
+#define acp_increment(type, ...)            acp_increment_##type(__VA_ARGS__)
+#define acp_size(type, ...)                 acp_size_##type(__VA_ARGS__)
+#define acp_size_value(type, ...)           acp_size_value_##type(__VA_ARGS__)
 
 /* Vector */
 /** \defgroup vector ACP Middle Layer Dara Library Vector
@@ -1205,6 +1249,14 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2);
+extern void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end);
+extern acp_ga_t acp_at_vector(acp_vector_t vector, int offset);
+extern acp_vector_it_t acp_back_vector(acp_vector_t vector);
+extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
+extern size_t acp_capacity_vector(acp_vector_t vector);
+extern void acp_clear_vector(acp_vector_t vector);
 
 /**
  * @JP
@@ -1230,7 +1282,7 @@ extern "C" {
  * @retval otherwise A reference of created vector data.
  * @ENDL
  */
-extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
+extern acp_vector_t acp_create_vector(size_t size, int rank);
 
 /**
  * @JP
@@ -1250,32 +1302,17 @@ extern acp_vector_t acp_create_vector(size_t nelem, size_t size, int rank);
  */
 extern void acp_destroy_vector(acp_vector_t vector);
 
-/**
- * @JP
- * @brief ベクタ複製
- *
- * 指定したベクトル型データの複製を、任意のプロセスに生成する。
- *
- * @param vector 複製するベクトル型データの参照
- * @param rank 複製先ランク番号
- * @retval "member ga == ACP_GA_NULL" 失敗
- * @retval 以外 生成したベクタ型データの参照
- * 
- * 
- * @EN
- * @brief Vector duplicate
- *
- * Duplicate a specified vector type data on any processes.
- *
- * @param vector A reference of vector data to duplicate.
- * @param rank A rank number of the process on which a vector type data
- *        is duplicated.
- * @retval "member ga == ACP_GA_NULL" Fail
- * @retval otherwise A reference of created vector data.
- *
- * @ENDL
- */
-extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
+extern int acp_empty_vector(acp_vector_t vector);
+extern acp_vector_it_t acp_end_vector(acp_vector_t vector);
+extern acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size);
+extern acp_vector_it_t acp_erase_range_vector(acp_vector_it_t start, acp_vector_it_t end);
+extern acp_vector_it_t acp_front_vector(acp_vector_t vector);
+extern acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t size);
+extern acp_vector_it_t acp_insert_range_vector(acp_vector_it_t it, acp_vector_it_t start, acp_vector_it_t end);
+extern void acp_pop_back_vector(acp_vector_t vector, size_t size);
+extern void acp_push_back_vector(acp_vector_t vector, const acp_ga_t ga, size_t size);
+extern void acp_reserve_vector(acp_vector_t vector, size_t size);
+extern size_t acp_size_vector(acp_vector_t vector);
 
 /**
  * @JP
@@ -1296,35 +1333,70 @@ extern acp_vector_t acp_duplicate_vector(acp_vector_t vector, int rank);
  *
  * @ENDL
  */
-extern void acp_swap_vector(acp_vector_t v1, acp_vector_t v2);
+extern void acp_swap_vector(acp_vector_t vector1, acp_vector_t vector2);
 
-void acp_clear_vector(acp_vector_t);
-void acp_insert_vector(acp_vector_t, acp_vector_it_t);
-acp_vector_it_t acp_erase_vector(acp_vector_t, acp_vector_it_t);
-void acp_push_back_vector(acp_vector_t, void*);
-void acp_pop_back_vector(acp_vector_t);
-acp_ga_t acp_element_vector(acp_vector_t, acp_vector_it_t);
-acp_ga_t acp_front_vector(acp_vector_t);
-acp_ga_t acp_back_vector(acp_vector_t);
-acp_vector_it_t acp_begin_vector(acp_vector_t);
-acp_vector_it_t acp_end_vector(acp_vector_t);
-acp_vector_it_t acp_rbegin_vector(acp_vector_t);
-acp_vector_it_t acp_rend_vector(acp_vector_t);
-acp_vector_it_t acp_increment_vector(acp_vector_it_t);
-acp_vector_it_t acp_decrement_vector(acp_vector_it_t);
-int acp_max_size_vector(acp_vector_t);
-int acp_empty_vector(acp_vector_t);
-int acp_equal_vector(acp_vector_t, acp_vector_t);
-int acp_not_equal_vector(acp_vector_t, acp_vector_t);
-int acp_less_vector(acp_vector_t, acp_vector_t);
-int acp_greater_vector(acp_vector_t, acp_vector_t);
-int acp_less_or_equal_vector(acp_vector_t, acp_vector_t);
-int acp_greater_or_equal_vector(acp_vector_t, acp_vector_t);
+extern acp_vector_it_t acp_advance_vector_it(acp_vector_it_t it, int n);
+extern acp_ga_t acp_dereference_vector_it(acp_vector_it_t it);
+extern int acp_distance_vector_it(acp_vector_it_t first, acp_vector_it_t last);
 
 #ifdef __cplusplus
 }
 #endif
 /*@}*/ /* Vector */
+
+/* Deque */
+/** \defgroup deque ACP Middle Layer Dara Library Deque
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Data Library Deque
+ *
+ * @{
+ */
+
+typedef struct {
+    acp_ga_t ga;
+} acp_deque_t;	/*!< Deque data type. */
+
+typedef struct {
+    acp_deque_t deque;
+    int index;
+} acp_deque_it_t;	/*!< Iterater of deque data type. */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void acp_assign_deque(acp_deque_t deque1, acp_deque_t deque2);
+extern void acp_assign_range_deque(acp_deque_t deque, acp_deque_it_t start, acp_deque_it_t end);
+extern acp_ga_t acp_at_deque(acp_deque_t deque, int offset);
+extern acp_deque_it_t acp_back_deque(acp_deque_t deque);
+extern acp_deque_it_t acp_begin_deque(acp_deque_t deque);
+extern size_t acp_capacity_deque(acp_deque_t deque);
+extern void acp_clear_deque(acp_deque_t deque);
+extern acp_deque_t acp_create_deque(size_t size, int rank);
+extern void acp_destroy_deque(acp_deque_t deque);
+extern int acp_empty_deque(acp_deque_t deque);
+extern acp_deque_it_t acp_end_deque(acp_deque_t deque);
+extern acp_deque_it_t acp_erase_deque(acp_deque_it_t it, size_t size);
+extern acp_deque_it_t acp_erase_range_deque(acp_deque_it_t start, acp_deque_it_t end);
+extern acp_deque_it_t acp_front_deque(acp_deque_t deque);
+extern acp_deque_it_t acp_insert_deque(acp_deque_it_t it, const acp_ga_t ga, size_t size);
+extern acp_deque_it_t acp_insert_range_deque(acp_deque_it_t it, acp_deque_it_t start, acp_deque_it_t end);
+extern void acp_pop_back_deque(acp_deque_t deque, size_t size);
+extern void acp_pop_front_deque(acp_deque_t deque, size_t size);
+extern void acp_push_back_deque(acp_deque_t deque, const acp_ga_t ga, size_t size);
+extern void acp_push_front_deque(acp_deque_t deque, const acp_ga_t ga, size_t size);
+extern void acp_reserve_deque(acp_deque_t deque, size_t size);
+extern size_t acp_size_deque(acp_deque_t deque);
+extern void acp_swap_deque(acp_deque_t deque1, acp_deque_t deque2);
+extern acp_deque_it_t acp_advance_deque_it(acp_deque_it_t it, int n);
+extern acp_ga_t acp_dereference_deque_it(acp_deque_it_t it);
+extern int acp_distance_deque_it(acp_deque_it_t first, acp_deque_it_t last);
+
+#ifdef __cplusplus
+}
+#endif
+/*@}*/ /* Deque */
 
 /* List */
 /** \defgroup list ACP Middle Layer Dara Library List
@@ -1347,6 +1419,34 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+extern void acp_assign_list(acp_list_t list1, acp_list_t list2);
+extern void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t end);
+extern acp_list_it_t acp_back_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト先頭イテレータ取得
+ *
+ * リスト型データの先頭要素を指すイテレータを取得する。
+ *
+ * @param list リスト型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the head iterator of a list
+ *
+ * 
+ *
+ * @param list A reference of list type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the list.
+ * @ENDL
+ */
+extern acp_list_it_t acp_begin_list(acp_list_t list);
+
+extern void acp_clear_list(acp_list_t list);
 
 /**
  * @JP
@@ -1388,6 +1488,52 @@ extern acp_list_t acp_create_list(int rank);
  */
 extern void acp_destroy_list(acp_list_t list);
 
+extern int acp_empty_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト後端イテレータ取得
+ *
+ * リスト型データの後端要素を指すイテレータを取得する。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief Query for the tail iterator of a list
+ *
+ * 
+ *
+ * @param list A reference of list type data.
+ * @retval it The tail iterator of the list.
+ * @ENDL
+ */
+extern acp_list_it_t acp_end_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト要素削除
+ *
+ * 指定した位置の要素をリスト型データから削除する。
+ *
+ * @param it 削除する要素を指すリスト型イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 削除した要素の直後の要素を指すリスト型イテレータ
+ *
+ * @EN
+ * @brief Erase a list element
+ *
+ * 
+ *
+ * @param it An iterator of list type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the element which is immediately after the erased one.
+ * @ENDL
+ */
+extern acp_list_it_t acp_erase_list(acp_list_it_t it);
+
+extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end);
+extern acp_list_it_t acp_front_list(acp_list_t list);
+
 /**
  * @JP
  * @brief リスト要素挿入
@@ -1414,29 +1560,12 @@ extern void acp_destroy_list(acp_list_t list);
  * @retval otherwise The iterator that points to the inserted element.
  * @ENDL
  */
-extern acp_list_it_t acp_insert_list(acp_list_it_t it, const void* ptr, size_t size, int rank);
+extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_ga_t ga, size_t size, int rank);
 
-/**
- * @JP
- * @brief リスト要素削除
- *
- * 指定した位置の要素をリスト型データから削除する。
- *
- * @param it 削除する要素を指すリスト型イテレータ
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 削除した要素の直後の要素を指すリスト型イテレータ
- *
- * @EN
- * @brief Erase a list element
- *
- * 
- *
- * @param it An iterator of list type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval oterhwise The iterator that points to the element which is immediately after the erased one.
- * @ENDL
- */
-extern acp_list_it_t acp_erase_list(acp_list_it_t it);
+extern acp_list_it_t acp_insert_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
+extern void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_list_it_t it1, const acp_list_it_t it2));
+extern void acp_pop_back_list(acp_list_t list);
+extern void acp_pop_front_list(acp_list_t list);
 
 /**
  * @JP
@@ -1460,69 +1589,17 @@ extern acp_list_it_t acp_erase_list(acp_list_it_t it);
  * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
-extern acp_list_it_t acp_push_back_list(acp_list_t list, const void* ptr, size_t size, int rank);
+extern void acp_push_back_list(acp_list_t list, const acp_ga_t ga, size_t size, int rank);
 
-/**
- * @JP
- * @brief リスト先頭イテレータ取得
- *
- * リスト型データの先頭要素を指すイテレータを取得する。
- *
- * @param list リスト型データの参照
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 先頭イテレータ
- *
- * @EN
- * @brief Query for the head iterator of a list
- *
- * 
- *
- * @param list A reference of list type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval otherwise The head iterator of the list.
- * @ENDL
- */
-extern acp_list_it_t acp_begin_list(acp_list_t list);
-
-/**
- * @JP
- * @brief リスト後端イテレータ取得
- *
- * リスト型データの後端要素を指すイテレータを取得する。
- *
- * @param list リスト型データの参照
- *
- * @EN
- * @brief Query for the tail iterator of a list
- *
- * 
- *
- * @param list A reference of list type data.
- * @retval it The tail iterator of the list.
- * @ENDL
- */
-extern acp_list_it_t acp_end_list(acp_list_t list);
-
-/**
- * @JP
- * @brief リスト先頭イテレータ加算
- *
- * リスト型イテレータを一つ増加させる。
- *
- * @param list リスト型データの参照
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 インクリメントしたイテレータ
- *
- * @EN
- * @brief Increment an iterater of a list data
- *
- *
- * @param list A reference of list type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval otherwise The next iterator of the specified one.
- * @ENDL
- */
-extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
+extern void acp_push_front_list(acp_list_t list, const acp_ga_t ga, size_t size, int rank);
+extern void acp_remove_list(acp_list_t list, const acp_ga_t ga, size_t size);
+extern void acp_reverse_list(acp_list_t list);
+extern size_t acp_size_list(acp_list_t list);
+extern size_t acp_sort_list(acp_list_t list, int (*comp)(const acp_list_it_t it1, const acp_list_it_t it2));
+extern void acp_splice_list(acp_list_it_t it, acp_list_t list);
+extern void acp_swap_list(acp_list_t list1, acp_list_t list2);
+extern void acp_unique_list(acp_list_t list);
+extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
 
 /**
  * @JP
@@ -1544,32 +1621,38 @@ extern acp_list_it_t  acp_increment_list(acp_list_it_t it);
  * @retval otherwise The previous iterator of the specified one.
  * @ENDL
  */
-extern acp_list_it_t  acp_decrement_list(acp_list_it_t it);
+extern acp_list_it_t acp_decrement_list_it(acp_list_it_t it);
+
+extern acp_ga_t acp_dereference_list_it(acp_list_it_t it);
+extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
+
+/**
+ * @JP
+ * @brief リスト先頭イテレータ加算
+ *
+ * リスト型イテレータを一つ増加させる。
+ *
+ * @param list リスト型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 インクリメントしたイテレータ
+ *
+ * @EN
+ * @brief Increment an iterater of a list data
+ *
+ *
+ * @param list A reference of list type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The next iterator of the specified one.
+ * @ENDL
+ */
+extern acp_list_it_t acp_increment_list_it(acp_list_it_t it);
+
+extern size_t acp_size_list_it(acp_list_it_t it);
 
 #ifdef __cplusplus
 }
 #endif
 /*@}*/ /* List */
-
-/* Deque */
-/** \defgroup deque ACP Middle Layer Dara Library Deque
- * @ingroup acpdl
- * 
- * ACP Middle Layer Data Library Deque
- *
- * @{
- */
-
-typedef struct {
-    acp_ga_t ga;
-} acp_deque_t;	/*!< Deque data type. */
-
-typedef struct {
-    acp_deque_t deque;
-    int index;
-} acp_deque_it_t;	/*!< Iterater of deque data type. */
-
-/*@}*/ /* Deque */
 
 /* Set */
 /** \defgroup set ACP Middle Layer Dara Library Set
@@ -1582,8 +1665,7 @@ typedef struct {
 
 typedef struct {
     acp_ga_t ga;
-    int num_ranks;
-    int num_slots;
+    uint64_t num_ranks;
 } acp_set_t;	/*!< Set data type. */
 
 typedef struct {
@@ -1598,6 +1680,38 @@ typedef struct {
     int success;
 } acp_set_ib_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void acp_assign_set(acp_set_t set1, acp_set_t set2);
+extern void acp_assign_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+extern acp_set_it_t acp_begin_set(acp_set_t set);
+extern int acp_bucket_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+extern int acp_bucket_count_set(acp_set_t set);
+extern int acp_bucket_size_set(acp_set_t set, int index);
+extern void acp_clear_set(acp_set_t set);
+extern acp_set_t acp_create_set(int num_ranks, const int* ranks, int num_slots, int rank);
+extern void acp_destroy_set(acp_set_t set);
+extern int acp_empty_set(acp_set_t set);
+extern acp_set_it_t acp_end_set(acp_set_t set);
+extern acp_set_it_t acp_erase_set(acp_set_it_t it);
+extern acp_set_it_t acp_erase_range_set(acp_set_it_t start, acp_set_it_t end);
+extern acp_set_ib_t acp_find_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+extern acp_set_ib_t acp_insert_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+extern acp_set_ib_t acp_insert_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+extern size_t acp_size_set(acp_set_t set);
+extern void acp_swap_set(acp_set_t set1, acp_set_t set2);
+
+extern acp_set_it_t acp_advance_set_it(acp_set_it_t it, int n);
+extern acp_set_it_t acp_decrement_set_it(acp_set_it_t it);
+extern acp_ga_t acp_dereference_set_it(acp_set_it_t it);
+extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
+extern size_t acp_size_set_it(acp_set_it_t it);
+
+#ifdef __cplusplus
+}
+#endif
 /*@}*/ /* Set */
 
 /* Map */
@@ -1615,7 +1729,6 @@ typedef struct {
 typedef struct {
     acp_ga_t ga;
     uint64_t num_ranks;
-    uint64_t num_slots;
 } acp_map_t;	/*!< Map data type. */
 
 typedef struct {
@@ -1633,6 +1746,29 @@ typedef struct {
 #ifdef __cplusplus
 {
 #endif
+
+extern void acp_assign_map(acp_map_t map1, acp_map_t map2);
+extern void acp_assign_range_map(acp_map_t map, acp_map_it_t start, acp_map_it_t end);
+extern acp_map_it_t acp_begin_map(acp_map_t map);
+extern int acp_bucket_map(acp_map_t map, const acp_ga_t key, size_t key_size);
+extern int acp_bucket_count_map(acp_map_t map);
+extern int acp_bucket_size_map(acp_map_t map, int index);
+
+/**
+ * @JP
+ * @brief マップ内リスト消去
+ *
+ * マップ内リストの要素を消去する。
+ *
+ * @param map マップ型データの参照
+ *
+ * @EN
+ * @brief Delete elements of lists in a map type data.
+ *
+ * @param map A reference of map data.
+ * @ENDL
+ */
+extern void acp_clear_map(acp_map_t map);
 
 /**
  * @JP
@@ -1665,22 +1801,6 @@ extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, 
 
 /**
  * @JP
- * @brief マップ内リスト消去
- *
- * マップ内リストの要素を消去する。
- *
- * @param map マップ型データの参照
- *
- * @EN
- * @brief Delete elements of lists in a map type data.
- *
- * @param map A reference of map data.
- * @ENDL
- */
-extern void acp_clear_map(acp_map_t map);
-
-/**
- * @JP
  * @brief マップ破棄
  *
  * マップ型データを破棄する。
@@ -1696,6 +1816,37 @@ extern void acp_clear_map(acp_map_t map);
  * @ENDL
  */
 extern void acp_destroy_map(acp_map_t map);
+
+extern int acp_empty_map(acp_map_t map);
+extern acp_map_it_t acp_end_map(acp_map_t map);
+extern acp_map_it_t acp_erase_map(acp_map_it_t it);
+extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);
+
+/**
+ * @JP
+ * @brief マップ検索
+ *
+ * マップにあるキーと変数をキーで検索する
+ *
+ * @param map マップ型データの参照
+ * @param key 検索する key
+ * @param size_key key のサイズ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 検索結果のイテレータの参照
+ *
+ * @EN
+ * @brief Map finding
+ *
+ * Find a key-value pair according to a key in a map.
+ *
+ * @param map A reference of a map type data.
+ * @param key Key to search.
+ * @param size_key Size of the key.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The item found in the map.
+ * @ENDL
+ */
+extern acp_map_it_t acp_find_map(acp_map_t map, const acp_ga_t key, size_t key_size);
 
 /**
  * @JP
@@ -1725,33 +1876,19 @@ extern void acp_destroy_map(acp_map_t map);
  * @retval otherwise The item inserted to the map.
  * @ENDL
  */
-extern acp_map_ib_t acp_insert_map(acp_map_t map, const void* key, size_t size_key, const void* value, size_t size_value);
+extern acp_map_ib_t acp_insert_map(acp_map_t map, const acp_ga_t key, size_t key_size, const acp_ga_t value, size_t value_size);
 
-/**
- * @JP
- * @brief マップ検索
- *
- * マップにあるキーと変数をキーで検索する
- *
- * @param map マップ型データの参照
- * @param key 検索する key
- * @param size_key key のサイズ
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 検索結果のイテレータの参照
- *
- * @EN
- * @brief Map finding
- *
- * Find a key-value pair according to a key in a map.
- *
- * @param map A reference of a map type data.
- * @param key Key to search.
- * @param size_key Size of the key.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval otherwise The item found in the map.
- * @ENDL
- */
-extern acp_map_it_t acp_find_map(acp_map_t map, const void* key, size_t size_key);
+extern acp_map_ib_t acp_insert_range_map(acp_map_t map, acp_map_it_t start, acp_map_it_t end);
+extern size_t acp_size_map(acp_map_t map);
+extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
+
+extern acp_map_it_t acp_advance_map_it(acp_map_it_t it, int n);
+extern acp_map_it_t acp_decrement_map_it(acp_map_it_t it);
+extern acp_ga_t acp_dereference_map_it(acp_map_it_t it);
+extern acp_ga_t acp_dereference_value_map_it(acp_map_it_t it);
+extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);
+extern size_t acp_size_map_it(acp_map_it_t it);
+extern size_t acp_size_value_map_it(acp_map_it_t it);
 
 #ifdef __cplusplus
 }

@@ -18,7 +18,7 @@
 #include "acpbl.h"
 #include "acpdl.h"
 
-#if 0
+#if 1
 /*  Algorithm:
  *      K&R malloc with global lock
  *  Map of the DL starter memory:

@@ -334,9 +334,9 @@ void acp_abort(const char *str){
     
     executed_acp_init = false;
     
-    fprintf(stderr, "acp_abort: %s\n", str);
+    fprintf(stderr, "%d acp_abort: %s\n", acp_rank(), str);
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_abort fin\n");
+    fprintf(stdout, "%d internal acp_abort fin\n", acp_rank());
     fflush(stdout);
 #endif
     abort(); 
@@ -349,7 +349,7 @@ int acp_sync(void){
     int nprocs; /* my rank ID */
     
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_sync\n");
+    fprintf(stdout, "%d: internal acp_sync\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -374,7 +374,7 @@ int acp_sync(void){
     }
     
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_sync fin\n");
+    fprintf(stdout, "%d: internal acp_sync fin\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -467,7 +467,8 @@ acp_ga_t acp_query_starter_ga(int rank){
         + ((uint64_t)gmtag << OFFSET_BITS);
     
 #ifdef DEBUG_L3
-    fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+    fprintf(stdout, "%d: rank %d starter memory ga %lx\n", 
+            acp_rank(), rank, ga);
     fflush(stdout);
 #endif
     
@@ -492,7 +493,8 @@ acp_ga_t iacp_query_starter_ga_dl(int rank){
         + offset;
     
 #ifdef DEBUG_L3
-    fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+    fprintf(stdout, "%d: rank %d starter memory ga %lx\n", 
+            acp_rank(), rank, ga);
     fflush(stdout);
 #endif
     
@@ -518,7 +520,8 @@ acp_ga_t iacp_query_starter_ga_cl(int rank){
         + offset;
     
 #ifdef DEBUG_L3
-    fprintf(stdout, "rank %d starter memory ga %lx\n", rank, ga);
+    fprintf(stdout, "%d: rank %d starter memory ga %lx\n", 
+            acp_rank(), rank, ga);
     fflush(stdout);
 #endif
   
@@ -567,7 +570,8 @@ acp_ga_t acp_query_ga(acp_atkey_t atkey, void* addr){
             ga = atkey + offset;
             
 #ifdef DEBUG
-            fprintf(stdout, "rank %d acp_query_ga ga %lx\n", myrank, ga);
+            fprintf(stdout, "%d :rank %d acp_query_ga ga %lx\n", 
+                    acp_rank(), myrank, ga);
             fflush(stdout);
 #endif
             return ga;
@@ -599,14 +603,15 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     acp_handle_t handle; /* acp handle */
 
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_register_memoery\n");
+    fprintf(stdout, "%d: internal acp_register_memoery\n", acp_rank());
     fflush(stdout);
 #endif
     
     /* if color < 0 && color >= acp_colors(), return ACP_GA_NULL.*/
     if (color < 0 && color >= acp_colors()){
 #ifdef DEBUG
-        fprintf(stdout, "color is not exist.\n");
+        fprintf(stdout, "%d: color is not exist.\n", acp_rank());
+        fflush(stdout);
 #endif
         return ACP_ATKEY_NULL;
     }
@@ -634,7 +639,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     fflush(stdout);
 #endif
     if (NULL == mr) {
-        fprintf(stderr, "acp_register_memory error\n");
+        fprintf(stderr, "%d acp_register_memory error\n", acp_rank());
         return ACP_ATKEY_NULL;
     }
 #ifdef DEBUG
@@ -674,6 +679,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
     /* empty tag is not found */
     if (found_empty_tag == false) {
         ibv_dereg_mr(mr);
+        fprintf(stdout, "%d: internal acp_register fin\n", myrank);
         return ACP_ATKEY_NULL;
     }
     else if (found_empty_tag == true && inserted_tag == false) {
@@ -744,6 +750,8 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
 
 #ifdef DEBUG
         fprintf(stdout, "%d: atkey %lx gmtag %d\n", myrank, key, gmtag);
+        fprintf(stdout, "%d: internal acp_register fin\n", myrank);
+        fflush(stdout);
 #endif
     return key;
 }
@@ -776,7 +784,9 @@ int acp_unregister_memory(acp_atkey_t atkey){
     else { /* if global memory */
         if (lrmtb[gmtag].valid == true) {
 #ifdef DEBUG
-            fprintf(stdout, "atkey %llx unregister tag %d valid %d\n", atkey, gmtag, lrmtb[gmtag].valid);
+            fprintf(stdout, 
+                    "%d: atkey %llx unregister tag %d valid %d\n", 
+                    acp_rank(), atkey, gmtag, lrmtb[gmtag].valid);
 #endif
             lrmtb[gmtag].valid = false;
             ibv_dereg_mr(libvmrtb[gmtag]);
@@ -1035,7 +1045,7 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
     CMD *pcmdq;/* pointer of cmdq */
     
 #ifdef DEBUG
-    fprintf(stdout, "internal acp_swap4\n");
+    fprintf(stdout, "%d: internal acp_swap4\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -1856,7 +1866,9 @@ static inline int writebackstat(uint64_t idx){
     sr.num_sge = 1;
     
 #ifdef DEBUG
-    fprintf(stdout, "%d: writeback status wr_id %lx handle %lx\n", acp_rank(), sr.wr_id, rcmdbuf[idx].ishdl);
+    fprintf(stdout, 
+            "%d: writeback status wr_id %lx handle %lx\n", 
+            acp_rank(), sr.wr_id, rcmdbuf[idx].ishdl);
     fflush(stdout);
 #endif
     
@@ -1867,8 +1879,10 @@ static inline int writebackstat(uint64_t idx){
     cmdqidx = (rcmdbuf[idx].ishdl) % MAX_CMDQ_ENTRY;
     
 #ifdef DEBUG
-    fprintf(stdout, "%d: writeback status wr_id %lx handle %lx cmdqidx %lx torank %d, offset_stat %u, *finished_stat_buf %u \n",
-            acp_rank(), sr.wr_id, rcmdbuf[idx].ishdl, cmdqidx, torank, offset_stat, *finished_stat_buf);
+    fprintf(stdout, 
+            "%d: writeback status wr_id %lx handle %lx cmdqidx %lx torank %d, offset_stat %u, *finished_stat_buf %u \n",
+            acp_rank(), sr.wr_id, rcmdbuf[idx].ishdl, 
+            cmdqidx, torank, offset_stat, *finished_stat_buf);
     fflush(stdout);
 #endif
     
@@ -1882,7 +1896,9 @@ static inline int writebackstat(uint64_t idx){
         exit(rc);
     }
 #ifdef DEBUG
-    fprintf(stdout, "writeback cmdq  ibv_post_send return code = %d\n", rc);
+    fprintf(stdout, 
+            "%d: writeback cmdq  ibv_post_send return code = %d\n", 
+            acp_rank(), rc);
     fflush(stdout);
 #endif
     
@@ -2528,7 +2544,7 @@ static inline void rcmdbuf_update_head(){
     /* if after rcmd is not valid,  */
     /* update rcmdbuf_head */
 #ifdef DEBUG
-    fprintf(stdout, "%d: intenrail rcmdbuf_update_head\n", acp_rank()); 
+    fprintf(stdout, "%d: internal rcmdbuf_update_head\n", acp_rank()); 
     fflush(stdout);
 #endif
     
@@ -3139,8 +3155,8 @@ static void *comm_thread_func(void *dm){
                                     if (rrmtb[rrmtb_idx] != NULL) {
 #ifdef DEBUG
                                         fprintf(stdout, 
-                                                "CMD COPY have a rrmtb. rank %d torank %d, rrmtb_idx %d totag %d \n",
-                                                myrank, torank, rrmtb_idx, totag);
+                                                "%d: CMD COPY have a rrmtb. rank %d torank %d, rrmtb_idx %d totag %d \n",
+                                                myrank, myrank, torank, rrmtb_idx, totag);
                                         fflush(stdout);
 #endif
                                         /* if tag entry is active */
@@ -3148,8 +3164,8 @@ static void *comm_thread_func(void *dm){
                                             if (rrmtb[rrmtb_idx][totag].rank == torank) {
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                    "CMD COPY have a entry rank %d torank %d, rrmtb_idx %d, totag %d\n",
-                                                    myrank, torank, rrmtb_idx, totag);
+                                                    "%d: CMD COPY have a entry rank %d torank %d, rrmtb_idx %d, totag %d\n",
+                                                    myrank, myrank, torank, rrmtb_idx, totag);
                                             fflush(stdout);
 #endif
                                             cmdq[idx].stat = ISSUED;
@@ -3159,8 +3175,8 @@ static void *comm_thread_func(void *dm){
                                             else{/* tag entry have wrong data */
 #ifdef DEBUG
                                                 fprintf(stdout, 
-                                                        "CMD COPY tag entry has a wrong data.  rank %d torank %d, rrmtb_idx %d , totag %d\n",
-                                                        myrank, torank, rrmtb_idx, totag);
+                                                        "%d: CMD COPY tag entry has a wrong data.  rank %d torank %d, rrmtb_idx %d , totag %d\n",
+                                                        myrank, myrank, torank, rrmtb_idx, totag);
                                                 fflush(stdout);
 #endif
                                                 if (recv_rrm_flag == true){
@@ -3177,8 +3193,8 @@ static void *comm_thread_func(void *dm){
                                         else { /* if tag entry is non active */
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                    "CMD COPY no entry.  rank %d torank %d, rrmtb_idx %d, totag %d\n",
-                                                    myrank, torank, rrmtb_idx, totag);
+                                                    "%d: CMD COPY no entry.  rank %d torank %d, rrmtb_idx %d, totag %d\n",
+                                                    myrank, myrank, torank, rrmtb_idx, totag);
                                             fflush(stdout);
 #endif
                                             if (recv_rrm_flag == true){
@@ -3195,8 +3211,8 @@ static void *comm_thread_func(void *dm){
                                     else { /* if do not have rm table of target rank */
 #ifdef DEBUG
                                         fprintf(stdout, 
-                                                "CMD COPY no rrmtb.  rank %d torank %d, rrmtb_idx %d, totag %d\n",
-                                                myrank, torank, rrmtb_idx, totag);
+                                                "%d: CMD COPY no rrmtb.  rank %d torank %d, rrmtb_idx %d, totag %d\n",
+                                                myrank, myrank, torank, rrmtb_idx, totag);
                                         fflush(stdout);
 #endif
                                         if (recv_rrm_flag == true){
@@ -3332,8 +3348,8 @@ static void *comm_thread_func(void *dm){
                                 if (rrmtb[rrmtb_idx] != NULL) {
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "CMDRB COPY have a rrmtb. rank %d dstrank %d, rrmtb_idx %d, dsttag %d \n",
-                                            myrank, dstrank, rrmtb_idx, dsttag);
+                                            "%d: CMDRB COPY have a rrmtb. rank %d dstrank %d, rrmtb_idx %d, dsttag %d \n",
+                                            myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                     fflush(stdout);
 #endif
                                     /* if tag entry is active */
@@ -3342,8 +3358,8 @@ static void *comm_thread_func(void *dm){
                                         if(rrmtb[rrmtb_idx][dsttag].rank == dstrank ) {
 #ifdef DEBUG
                                                 fprintf(stdout, 
-                                                        "CMDRB COPY have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
-                                                        myrank, dstrank, rrmtb_idx, dsttag);
+                                                        "%d: CMDRB COPY have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                                        myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                                 fflush(stdout);
 #endif
                                                 rcmdbuf[idx].stat = CMD_ISSUED;
@@ -3354,8 +3370,8 @@ static void *comm_thread_func(void *dm){
                                         else{
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                    "CMDRB COPY tag entry have wrong data.  rank %d dstrank %d, rrmtb_idx %d dsttag %d\n",
-                                                    myrank, dstrank, rrmtb_idx, dsttag);
+                                                    "%d: CMDRB COPY tag entry have wrong data.  rank %d dstrank %d, rrmtb_idx %d dsttag %d\n",
+                                                    myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                             fflush(stdout);
 #endif
                                             if (recv_rrm_flag == true) {
@@ -3372,8 +3388,8 @@ static void *comm_thread_func(void *dm){
                                     else { /* if tag entry is non active */
 #ifdef DEBUG
                                         fprintf(stdout, 
-                                                "CMDRB COPY no entry.  rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
-                                                myrank, dstrank, rrmtb_idx, dsttag);
+                                                "%d: CMDRB COPY no entry.  rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                                myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                         fflush(stdout);
 #endif
                                         if (recv_rrm_flag == true) {
@@ -3390,8 +3406,8 @@ static void *comm_thread_func(void *dm){
                                 else { /* if do not have rm table of dst rank */
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "CMDRB COPY no rrmtb.  rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
-                                            myrank, torank, rrmtb_idx, totag);
+                                            "%d: CMDRB COPY no rrmtb.  rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                            myrank, myrank, torank, rrmtb_idx, totag);
                                     fflush(stdout);
 #endif
                                     if (recv_rrm_flag == true) {
@@ -3435,8 +3451,8 @@ static void *comm_thread_func(void *dm){
                                     selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                            myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                            "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                            myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                     fflush(stdout);
 #endif
                                     putreplydata(idx, dstrank, dsttag, dstoffset, true);
@@ -3445,8 +3461,8 @@ static void *comm_thread_func(void *dm){
                                     selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                            myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                            "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                            myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                     fflush(stdout);
 #endif
                                     putreplydata(idx, dstrank, dsttag, dstoffset, false);
@@ -3459,8 +3475,8 @@ static void *comm_thread_func(void *dm){
                                 if (rrmtb[rrmtb_idx] != NULL ) {
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "CMDRB ATOMIC have a rrmtb. rank %d dstrank %d, rrmtb_idx %d, dsttag %d \n",
-                                            myrank, dstrank, rrmtb_idx, dsttag);
+                                            "%d: CMDRB ATOMIC have a rrmtb. rank %d dstrank %d, rrmtb_idx %d, dsttag %d \n",
+                                            myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                     fflush(stdout);
 #endif
                                     /* if tag entry is active */
@@ -3469,8 +3485,8 @@ static void *comm_thread_func(void *dm){
                                         if(rrmtb[rrmtb_idx][dsttag].rank == dstrank){
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                "CMDRB ATOMIC have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
-                                                    myrank, dstrank, rrmtb_idx, dsttag);
+                                                "%d: CMDRB ATOMIC have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                                    myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                             fflush(stdout);
 #endif
                                             rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
@@ -3478,8 +3494,8 @@ static void *comm_thread_func(void *dm){
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                                 fprintf(stdout, 
-                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                        "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif
                                                 putreplydata(idx, dstrank, dsttag, dstoffset, true);
@@ -3488,8 +3504,8 @@ static void *comm_thread_func(void *dm){
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                                 fprintf(stdout, 
-                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                        "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif
                                                 putreplydata(idx, dstrank, dsttag, dstoffset, false);
@@ -3499,8 +3515,8 @@ static void *comm_thread_func(void *dm){
                                         else{
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                    "CMDRB ATOMIC have a old entry.  rank %d dstrank %d, rrmtb_idx, dsttag %d\n",
-                                                    myrank, dstrank, rrmtb_idx,dsttag);
+                                                    "%d: CMDRB ATOMIC have a old entry.  rank %d dstrank %d, rrmtb_idx, dsttag %d\n",
+                                                    myrank, myrank, dstrank, rrmtb_idx,dsttag);
                                             fflush(stdout);
 #endif
                                             
@@ -3510,8 +3526,8 @@ static void *comm_thread_func(void *dm){
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                                 fprintf(stdout, 
-                                                        "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                                        myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                        "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                        myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif                                              
                                                 getlrm(rcmdbuf[idx].wr_id, dstrank);
@@ -3526,8 +3542,8 @@ static void *comm_thread_func(void *dm){
                                     else {
 #ifdef DEBUG
                                         fprintf(stdout, 
-                                                "CMDRB ATOMIC no entry.  rank %d dstrank %d, rrmtb_idx, dsttag %d\n",
-                                                myrank, dstrank, rrmtb_idx,dsttag);
+                                                "%d: CMDRB ATOMIC no entry.  rank %d dstrank %d, rrmtb_idx, dsttag %d\n",
+                                                myrank, myrank, dstrank, rrmtb_idx,dsttag);
                                         fflush(stdout);
 #endif
                                         
@@ -3537,8 +3553,8 @@ static void *comm_thread_func(void *dm){
                                             selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                    "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                                    myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                    "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                    myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                             fflush(stdout);
 #endif
                                             getlrm(rcmdbuf[idx].wr_id, dstrank);
@@ -3553,8 +3569,8 @@ static void *comm_thread_func(void *dm){
                                 else {
 #ifdef DEBUG
                                     fprintf(stdout, 
-                                            "CMDRB ATOMIC no rrmtb.  rank %d dstrank %d, dsttag %d\n",
-                                            myrank, dstrank, dsttag);
+                                            "%d: CMDRB ATOMIC no rrmtb.  rank %d dstrank %d, dsttag %d\n",
+                                            myrank, myrank, dstrank, dsttag);
                                     fprintf(stdout, "rcmdbuf[idx].wr_id %lx\n", rcmdbuf[idx].wr_id);
                                     fflush(stdout);
 #endif
@@ -3564,8 +3580,8 @@ static void *comm_thread_func(void *dm){
                                         selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                         fprintf(stdout, 
-                                                "ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
-                                                myrank, srcrank, idx, rcmdbuf[idx].replydata);
+                                                "%d: ATOMIC select atomic myrank %d , srcrank %d, rcmdbuf[%d].replydata %lu\n", 
+                                                myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                         fflush(stdout);
 #endif
                                         getlrm(rcmdbuf[idx].wr_id, dstrank);
@@ -3589,9 +3605,12 @@ static void *comm_thread_func(void *dm){
             if (true == rrm_reset_flag_tb[i]) {
                 /* free remote rkey table */
                 for (j = 0; j < MAX_RM_SIZE; j++) {
-                    if (rrmtb[rrmtb_idx][j].valid == true) {
-                        cur_rank = rrmtb[rrmtb_idx][j].rank;
-                        break;
+                    rrmtb_idx = i % rkey_cache_size;
+                    if (rrmtb[rrmtb_idx] != NULL) { 
+                        if (rrmtb[rrmtb_idx][j].valid == true) {
+                            cur_rank = rrmtb[rrmtb_idx][j].rank;
+                            break;
+                        }
                     }
                 }
                 if (cur_rank == i) {

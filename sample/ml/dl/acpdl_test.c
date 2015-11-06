@@ -34,6 +34,8 @@ int main(int argc, char** argv)
     acp_list_t l;
     acp_map_t m;
     int ranks[2];
+    acp_atkey_t dummy_atkey, buf_atkey;
+    acp_ga_t dummy_ga, buf_ga;
     
     setbuf(stdout, NULL);
     
@@ -105,20 +107,23 @@ int main(int argc, char** argv)
             b += b ? 0 : 0x8000;
         }
         
+        dummy_atkey = acp_register_memory((void*)dummy, sizeof(dummy), 0);
+        dummy_ga = acp_query_ga(dummy_atkey, (void*)dummy);
+        
         printf("# acp_insert_map() local 1 process\n              #repetitions      t[usec]\n");
         r = REP;
         ranks[0] = 0;
         m = acp_create_map(1, (void*)ranks, 128, 0);
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
+            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
+            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
@@ -129,14 +134,14 @@ int main(int argc, char** argv)
         m = acp_create_map(1, (void*)ranks, 128, 1);
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
+            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
+            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
@@ -150,17 +155,20 @@ int main(int argc, char** argv)
         m = acp_create_map(4, (void*)ranks, 32, 1);
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_insert_map(m, (void*)dummy + j, 32, (void*)dummy + j, 32);
+            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_find_map(m, (void*)dummy + *(unsigned int*)(dummy + j) % (REP*2), 32);
+            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
+        
+        buf_atkey = acp_register_memory((void*)buf, sizeof(buf), 0);
+        buf_ga = acp_query_ga(buf_atkey, (void*)buf);
         
         printf("# acp_push_back_list() local\n       #bytes #repetitions      t[usec]\n");
         b = 32;
@@ -168,7 +176,7 @@ int main(int argc, char** argv)
         l = acp_create_list(0);
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_push_back_list(l, (void*)buf, b, 0);
+            acp_push_back_list(l, buf_ga, b, 0);
         t1 = get_clock();
         printf("%13d%13d%13.3f\n", b, r, (t1 - t0)/MHZ/r);
         acp_destroy_list(l);
@@ -179,77 +187,17 @@ int main(int argc, char** argv)
         l = acp_create_list(1);
         t0 = get_clock();
         for (j = 0; j < r; j++)
-            acp_push_back_list(l, (void*)buf, b, 1);
+            acp_push_back_list(l, buf_ga, b, 1);
         t1 = get_clock();
         printf("%13d%13d%13.3f\n", b, r, (t1 - t0)/MHZ/r);
         acp_destroy_list(l);
-        
-        printf("# acp_duplicate_vector() local\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-        for ( i = 0; byte_table[i] > 0; i++) {
-            b = byte_table[i];
-            r = rep_table[i];
-            v = acp_create_vector(b, 1, 0);
-            t0 = get_clock();
-            for (j = 0; j < r; j++)
-                dupvec[j] = acp_duplicate_vector(v, 0);
-            t1 = get_clock();
-            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-            acp_destroy_vector(v);
-            for (j = 0; j < r; j++)
-                acp_destroy_vector(dupvec[j]);
-        }
-        
-        printf("# acp_duplicate_vector() local to remote\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-        for ( i = 0; byte_table[i] > 0; i++) {
-            b = byte_table[i];
-            r = rep_table[i];
-            v = acp_create_vector(b, 1, 0);
-            t0 = get_clock();
-            for (j = 0; j < r; j++)
-                dupvec[j] = acp_duplicate_vector(v, 1);
-            t1 = get_clock();
-            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-            acp_destroy_vector(v);
-            for (j = 0; j < r; j++)
-                acp_destroy_vector(dupvec[j]);
-        }
-        
-        printf("# acp_duplicate_vector() remote to local\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-        for ( i = 0; byte_table[i] > 0; i++) {
-            b = byte_table[i];
-            r = rep_table[i];
-            v = acp_create_vector(b, 1, 1);
-            t0 = get_clock();
-            for (j = 0; j < r; j++)
-                dupvec[j] = acp_duplicate_vector(v, 0);
-            t1 = get_clock();
-            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-            acp_destroy_vector(v);
-            for (j = 0; j < r; j++)
-                acp_destroy_vector(dupvec[j]);
-        }
-        
-        printf("# acp_duplicate_vector() remote to remote\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
-        for ( i = 0; byte_table[i] > 0; i++) {
-            b = byte_table[i];
-            r = rep_table[i];
-            v = acp_create_vector(b, 1, 1);
-            t0 = get_clock();
-            for (j = 0; j < r; j++)
-                dupvec[j] = acp_duplicate_vector(v, 2);
-            t1 = get_clock();
-            printf("%13d%13d%13.3f%13.3f\n", b, r, (t1 - t0)/MHZ/r, (MHZ*b*r)/(t1 - t0));
-            acp_destroy_vector(v);
-            for (j = 0; j < r; j++)
-                acp_destroy_vector(dupvec[j]);
-        }
         
         printf("# acp_swap_vector() local and local\n       #bytes #repetitions      t[usec]   Mbytes/sec\n");
         for ( i = 0; byte_table[i] > 0; i++) {
             b = byte_table[i];
             r = rep_table[i];
-            v = acp_create_vector(b, 1, 0);
-            w = acp_create_vector(b, 1, 0);
+            v = acp_create_vector(b, 0);
+            w = acp_create_vector(b, 0);
             t0 = get_clock();
             for (j = 0; j < r; j++)
                 acp_swap_vector(v, w);
@@ -263,8 +211,8 @@ int main(int argc, char** argv)
         for ( i = 0; byte_table[i] > 0; i++) {
             b = byte_table[i];
             r = rep_table[i];
-            v = acp_create_vector(b, 1, 0);
-            w = acp_create_vector(b, 1, 1);
+            v = acp_create_vector(b, 0);
+            w = acp_create_vector(b, 1);
             t0 = get_clock();
             for (j = 0; j < r; j++)
                 acp_swap_vector(v, w);
@@ -278,8 +226,8 @@ int main(int argc, char** argv)
         for ( i = 0; byte_table[i] > 0; i++) {
             b = byte_table[i];
             r = rep_table[i];
-            v = acp_create_vector(b, 1, 1);
-            w = acp_create_vector(b, 1, 2);
+            v = acp_create_vector(b, 1);
+            w = acp_create_vector(b, 2);
             t0 = get_clock();
             for (j = 0; j < r; j++)
                 acp_swap_vector(v, w);

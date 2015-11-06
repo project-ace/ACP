@@ -1744,7 +1744,7 @@ typedef struct {
 } acp_map_ib_t;
 
 #ifdef __cplusplus
-{
+extern "C" {
 #endif
 
 extern void acp_assign_map(acp_map_t map1, acp_map_t map2);

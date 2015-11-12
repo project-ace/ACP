@@ -470,8 +470,8 @@ acp_ga_t acp_malloc(size_t size, int rank)
     size = (size < 8) ? 8 : ((size + 7ULL) & ~7ULL);
     
     /* acquire locks */
-    atkey = acp_register_memory(&var, sizeof(var), rank % acp_colors());
-    var_ga = acp_query_ga(atkey, &var);
+    atkey = acp_register_memory((void*)&var, sizeof(var), rank % acp_colors());
+    var_ga = acp_query_ga(atkey, (void*)&var);
      do {
         acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
@@ -526,12 +526,15 @@ acp_ga_t acp_malloc(size_t size, int rank)
         
         /* merge free blocks and rewind if the succeding block is a free block */
         if ((succ_size & 7) == BLOCK_FREE) {
+            tmp[0] = ptr + (succ_size - BLOCK_FREE);
             tmp[1] = this_size + (succ_size - BLOCK_FREE);
             acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
             acp_copy(ptr + (succ_size - BLOCK_FREE) + 8, local_heap + 8, 8, ACP_HANDLE_NULL);
             acp_copy(prev_ptr, local_heap, 8, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
             
+            if (ptr == head_ga)
+                head_ga = tmp[0];
             ptr = head_ga;
             prev_ptr = global_heap + HEAD;
             continue;
@@ -601,8 +604,8 @@ void acp_free(acp_ga_t ga)
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* acquire locks */
-    atkey = acp_register_memory(&var, sizeof(var), acp_query_rank(ga) % acp_colors());
-    var_ga = acp_query_ga(atkey, &var);
+    atkey = acp_register_memory((void*)&var, sizeof(var), acp_query_rank(ga) % acp_colors());
+    var_ga = acp_query_ga(atkey, (void*)&var);
     do {
         acp_cas8(var_ga, local_heap + LLOCK, 0, 1, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);

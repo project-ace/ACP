@@ -1256,6 +1256,23 @@ extern acp_ga_t acp_at_vector(acp_vector_t vector, int offset);
 extern acp_vector_it_t acp_back_vector(acp_vector_t vector);
 extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
 extern size_t acp_capacity_vector(acp_vector_t vector);
+
+/**
+ * @JP
+ * @brief ベクタ消去
+ *
+ * ベクトルのサイズを０にする。
+ *
+ * @param vector ベクトル型データの参照
+ *
+ * @EN
+ * @brief Vector elimination
+ *
+ * Set the size of the vector to be zero.
+ *
+ * @param vector A reference of vector data.
+ * @ENDL
+ */
 extern void acp_clear_vector(acp_vector_t vector);
 
 /**
@@ -1264,7 +1281,6 @@ extern void acp_clear_vector(acp_vector_t vector);
  *
  * 任意のプロセスでベクトル型データを生成する。
  *
- * @param nelem 要素数
  * @param size 要素サイズ
  * @param rank ランク番号
  * @retval "member ga == ACP_GA_NULL" 失敗
@@ -1275,7 +1291,6 @@ extern void acp_clear_vector(acp_vector_t vector);
  *
  * Creates a vector type data on any process.
  *
- * @param nelem Number of elements.
  * @param size Size of element.
  * @param rank Rank number.
  * @retval "member ga == ACP_GA_NULL" Fail
@@ -1818,6 +1833,27 @@ extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, 
 extern void acp_destroy_map(acp_map_t map);
 
 extern int acp_empty_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップ末尾イテレータ
+ *
+ * マップの最終要素の直後を指すイテレータを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 検索結果のイテレータの参照
+ *
+ * @EN
+ * @brief Map end iterator
+ *
+ * Query for the iterator just after the tail element of a map.
+ *
+ * @param map A reference of map data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The iterator just after the tail element of a map.
+ * @ENDL
+ */
 extern acp_map_it_t acp_end_map(acp_map_t map);
 extern acp_map_it_t acp_erase_map(acp_map_it_t it);
 extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);

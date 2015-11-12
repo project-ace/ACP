@@ -1,8 +1,8 @@
-.TH "ACP Middle Layer Dara Library Deque" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "deque" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Middle Layer Dara Library Deque \- 
+deque \- ACP Middle Layer Dara Library Deque
 .SS "Data Structures"
 
 .in +1c
@@ -11,6 +11,88 @@ ACP Middle Layer Dara Library Deque \-
 .br
 .ti -1c
 .RI "struct \fBacp_deque_it_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBacp_assign_deque\fP (\fBacp_deque_t\fP deque1, \fBacp_deque_t\fP deque2)"
+.br
+.ti -1c
+.RI "void \fBacp_assign_range_deque\fP (\fBacp_deque_t\fP deque, \fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_at_deque\fP (\fBacp_deque_t\fP deque, int offset)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_back_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_begin_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "size_t \fBacp_capacity_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "void \fBacp_clear_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "\fBacp_deque_t\fP \fBacp_create_deque\fP (size_t size, int rank)"
+.br
+.ti -1c
+.RI "void \fBacp_destroy_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "int \fBacp_empty_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_end_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_erase_deque\fP (\fBacp_deque_it_t\fP it, size_t size)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_erase_range_deque\fP (\fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_front_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_insert_deque\fP (\fBacp_deque_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_insert_range_deque\fP (\fBacp_deque_it_t\fP it, \fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_back_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_front_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_push_back_deque\fP (\fBacp_deque_t\fP deque, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_push_front_deque\fP (\fBacp_deque_t\fP deque, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_reserve_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_deque\fP (\fBacp_deque_t\fP deque)"
+.br
+.ti -1c
+.RI "void \fBacp_swap_deque\fP (\fBacp_deque_t\fP deque1, \fBacp_deque_t\fP deque2)"
+.br
+.ti -1c
+.RI "\fBacp_deque_it_t\fP \fBacp_advance_deque_it\fP (\fBacp_deque_it_t\fP it, int n)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_dereference_deque_it\fP (\fBacp_deque_it_t\fP it)"
+.br
+.ti -1c
+.RI "int \fBacp_distance_deque_it\fP (\fBacp_deque_it_t\fP first, \fBacp_deque_it_t\fP last)"
 .br
 .in -1c
 .SH "Detailed Description"

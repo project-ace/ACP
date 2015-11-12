@@ -1,8 +1,8 @@
-.TH "ACP Middle Layer Dara Library List" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "list" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Middle Layer Dara Library List \- 
+list \- ACP Middle Layer Dara Library List
 .SS "Data Structures"
 
 .in +1c
@@ -17,6 +17,22 @@ ACP Middle Layer Dara Library List \-
 
 .in +1c
 .ti -1c
+.RI "void \fBacp_assign_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
+.br
+.ti -1c
+.RI "void \fBacp_assign_range_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_back_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
+.br
+.RI "\fIQuery for the head iterator of a list\&. \fP"
+.ti -1c
+.RI "void \fBacp_clear_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
 .RI "\fBacp_list_t\fP \fBacp_create_list\fP (int rank)"
 .br
 .RI "\fIList creation\&. \fP"
@@ -25,40 +41,93 @@ ACP Middle Layer Dara Library List \-
 .br
 .RI "\fIList destruction\&. \fP"
 .ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_it_t\fP it, const void *ptr, size_t size, int rank)"
+.RI "int \fBacp_empty_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIInsert a list element\&. \fP"
-.ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_it_t\fP it)"
-.br
-.RI "\fIErase a list element\&. \fP"
-.ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_push_back_list\fP (\fBacp_list_t\fP list, const void *ptr, size_t size, int rank)"
-.br
-.RI "\fIErase a list element\&. \fP"
-.ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
-.br
-.RI "\fIQuery for the head iterator of a list\&. \fP"
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_end_list\fP (\fBacp_list_t\fP list)"
 .br
 .RI "\fIQuery for the tail iterator of a list\&. \fP"
 .ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_increment_list\fP (\fBacp_list_it_t\fP it)"
+.RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_it_t\fP it)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_erase_range_list\fP (\fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_front_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size, int rank)"
+.br
+.RI "\fIInsert a list element\&. \fP"
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_insert_range_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
+.br
+.ti -1c
+.RI "void \fBacp_merge_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2, int(*comp)(const \fBacp_list_it_t\fP it1, const \fBacp_list_it_t\fP it2))"
+.br
+.ti -1c
+.RI "void \fBacp_pop_back_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_front_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, const \fBacp_ga_t\fP ga, size_t size, int rank)"
+.br
+.RI "\fIErase a list element\&. \fP"
+.ti -1c
+.RI "void \fBacp_push_front_list\fP (\fBacp_list_t\fP list, const \fBacp_ga_t\fP ga, size_t size, int rank)"
+.br
+.ti -1c
+.RI "void \fBacp_remove_list\fP (\fBacp_list_t\fP list, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_reverse_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "size_t \fBacp_sort_list\fP (\fBacp_list_t\fP list, int(*comp)(const \fBacp_list_it_t\fP it1, const \fBacp_list_it_t\fP it2))"
+.br
+.ti -1c
+.RI "void \fBacp_splice_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "void \fBacp_swap_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
+.br
+.ti -1c
+.RI "void \fBacp_unique_list\fP (\fBacp_list_t\fP list)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_advance_list_it\fP (\fBacp_list_it_t\fP it, int n)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_decrement_list_it\fP (\fBacp_list_it_t\fP it)"
+.br
+.RI "\fIDecrement an iterater of a list data\&. \fP"
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_dereference_list_it\fP (\fBacp_list_it_t\fP it)"
+.br
+.ti -1c
+.RI "int \fBacp_distance_list_it\fP (\fBacp_list_it_t\fP first, \fBacp_list_it_t\fP last)"
+.br
+.ti -1c
+.RI "\fBacp_list_it_t\fP \fBacp_increment_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
 .RI "\fIIncrement an iterater of a list data\&. \fP"
 .ti -1c
-.RI "\fBacp_list_it_t\fP \fBacp_decrement_list\fP (\fBacp_list_it_t\fP it)"
+.RI "size_t \fBacp_size_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIDecrement an iterater of a list data\&. \fP"
 .in -1c
 .SH "Detailed Description"
 .PP 
 ACP Middle Layer Dara Library List 
 .SH "Function Documentation"
 .PP 
-.SS "\fBacp_list_it_t\fP acp_begin_list (\fBacp_list_t\fPlist)"
+.SS "\fBacp_list_it_t\fP acp_begin_list (\fBacp_list_t\fP list)"
 
 .PP
 Query for the head iterator of a list\&. 
@@ -76,7 +145,7 @@ Query for the head iterator of a list\&.
 .RE
 .PP
 
-.SS "\fBacp_list_t\fP acp_create_list (intrank)"
+.SS "\fBacp_list_t\fP acp_create_list (int rank)"
 
 .PP
 List creation\&. Creates a list type data on any process\&.
@@ -94,7 +163,7 @@ List creation\&. Creates a list type data on any process\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_decrement_list (\fBacp_list_it_t\fPit)"
+.SS "\fBacp_list_it_t\fP acp_decrement_list_it (\fBacp_list_it_t\fP it)"
 
 .PP
 Decrement an iterater of a list data\&. Decrements an iterater of a list data\&.
@@ -112,7 +181,7 @@ Decrement an iterater of a list data\&. Decrements an iterater of a list data\&.
 .RE
 .PP
 
-.SS "void acp_destroy_list (\fBacp_list_t\fPlist)"
+.SS "void acp_destroy_list (\fBacp_list_t\fP list)"
 
 .PP
 List destruction\&. Destroies a list type data\&.
@@ -123,7 +192,7 @@ List destruction\&. Destroies a list type data\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_end_list (\fBacp_list_t\fPlist)"
+.SS "\fBacp_list_it_t\fP acp_end_list (\fBacp_list_t\fP list)"
 
 .PP
 Query for the tail iterator of a list\&. 
@@ -139,7 +208,7 @@ Query for the tail iterator of a list\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_erase_list (\fBacp_list_it_t\fPit)"
+.SS "\fBacp_list_it_t\fP acp_erase_list (\fBacp_list_it_t\fP it)"
 
 .PP
 Erase a list element\&. 
@@ -157,7 +226,7 @@ Erase a list element\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_increment_list (\fBacp_list_it_t\fPit)"
+.SS "\fBacp_list_it_t\fP acp_increment_list_it (\fBacp_list_it_t\fP it)"
 
 .PP
 Increment an iterater of a list data\&. 
@@ -175,7 +244,7 @@ Increment an iterater of a list data\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_insert_list (\fBacp_list_it_t\fPit, const void *ptr, size_tsize, intrank)"
+.SS "\fBacp_list_it_t\fP acp_insert_list (\fBacp_list_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size, int rank)"
 
 .PP
 Insert a list element\&. 
@@ -199,7 +268,7 @@ Insert a list element\&.
 .RE
 .PP
 
-.SS "\fBacp_list_it_t\fP acp_push_back_list (\fBacp_list_t\fPlist, const void *ptr, size_tsize, intrank)"
+.SS "void acp_push_back_list (\fBacp_list_t\fP list, const \fBacp_ga_t\fP ga, size_t size, int rank)"
 
 .PP
 Erase a list element\&. 

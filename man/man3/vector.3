@@ -1,8 +1,8 @@
-.TH "ACP Middle Layer Dara Library Vector" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "vector" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Middle Layer Dara Library Vector \- 
+vector \- ACP Middle Layer Dara Library Vector
 .SS "Data Structures"
 
 .in +1c
@@ -17,7 +17,29 @@ ACP Middle Layer Dara Library Vector \-
 
 .in +1c
 .ti -1c
-.RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t nelem, size_t size, int rank)"
+.RI "void \fBacp_assign_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
+.br
+.ti -1c
+.RI "void \fBacp_assign_range_vector\fP (\fBacp_vector_t\fP vector, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_at_vector\fP (\fBacp_vector_t\fP vector, int offset)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_back_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "size_t \fBacp_capacity_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.RI "\fIVector elimination\&. \fP"
+.ti -1c
+.RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t size, int rank)"
 .br
 .RI "\fIVector creation\&. \fP"
 .ti -1c
@@ -25,78 +47,50 @@ ACP Middle Layer Dara Library Vector \-
 .br
 .RI "\fIVector destruction\&. \fP"
 .ti -1c
-.RI "\fBacp_vector_t\fP \fBacp_duplicate_vector\fP (\fBacp_vector_t\fP vector, int rank)"
+.RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIVector duplicate\&. \fP"
 .ti -1c
-.RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP v1, \fBacp_vector_t\fP v2)"
+.RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_it_t\fP it, size_t size)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_erase_range_vector\fP (\fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_front_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_insert_vector\fP (\fBacp_vector_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "\fBacp_vector_it_t\fP \fBacp_insert_range_vector\fP (\fBacp_vector_it_t\fP it, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
+.br
+.ti -1c
+.RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP vector, const \fBacp_ga_t\fP ga, size_t size)"
+.br
+.ti -1c
+.RI "void \fBacp_reserve_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_vector\fP (\fBacp_vector_t\fP vector)"
+.br
+.ti -1c
+.RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 .br
 .RI "\fIVector swap\&. \fP"
 .ti -1c
-.RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP)"
+.RI "\fBacp_vector_it_t\fP \fBacp_advance_vector_it\fP (\fBacp_vector_it_t\fP it, int n)"
 .br
 .ti -1c
-.RI "void \fBacp_insert_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
+.RI "\fBacp_ga_t\fP \fBacp_dereference_vector_it\fP (\fBacp_vector_it_t\fP it)"
 .br
 .ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
-.br
-.ti -1c
-.RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP, void *)"
-.br
-.ti -1c
-.RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_ga_t\fP \fBacp_element_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_it_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_ga_t\fP \fBacp_front_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_ga_t\fP \fBacp_back_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_rbegin_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_rend_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_increment_vector\fP (\fBacp_vector_it_t\fP)"
-.br
-.ti -1c
-.RI "\fBacp_vector_it_t\fP \fBacp_decrement_vector\fP (\fBacp_vector_it_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_max_size_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_not_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_less_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_greater_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_less_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
-.br
-.ti -1c
-.RI "int \fBacp_greater_or_equal_vector\fP (\fBacp_vector_t\fP, \fBacp_vector_t\fP)"
+.RI "int \fBacp_distance_vector_it\fP (\fBacp_vector_it_t\fP first, \fBacp_vector_it_t\fP last)"
 .br
 .in -1c
 .SH "Detailed Description"
@@ -104,15 +98,24 @@ ACP Middle Layer Dara Library Vector \-
 ACP Middle Layer Dara Library Vector 
 .SH "Function Documentation"
 .PP 
-.SS "\fBacp_vector_t\fP acp_create_vector (size_tnelem, size_tsize, intrank)"
+.SS "void acp_clear_vector (\fBacp_vector_t\fP vector)"
+
+.PP
+Vector elimination\&. Set the size of the vector to be zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIvector\fP A reference of vector data\&. 
+.RE
+.PP
+
+.SS "\fBacp_vector_t\fP acp_create_vector (size_t size, int rank)"
 
 .PP
 Vector creation\&. Creates a vector type data on any process\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fInelem\fP Number of elements\&. 
-.br
 \fIsize\fP Size of element\&. 
 .br
 \fIrank\fP Rank number\&. 
@@ -126,7 +129,7 @@ Vector creation\&. Creates a vector type data on any process\&.
 .RE
 .PP
 
-.SS "void acp_destroy_vector (\fBacp_vector_t\fPvector)"
+.SS "void acp_destroy_vector (\fBacp_vector_t\fP vector)"
 
 .PP
 Vector destruction\&. Destroies a vector type data\&.
@@ -137,27 +140,7 @@ Vector destruction\&. Destroies a vector type data\&.
 .RE
 .PP
 
-.SS "\fBacp_vector_t\fP acp_duplicate_vector (\fBacp_vector_t\fPvector, intrank)"
-
-.PP
-Vector duplicate\&. Duplicate a specified vector type data on any processes\&.
-.PP
-\fBParameters:\fP
-.RS 4
-\fIvector\fP A reference of vector data to duplicate\&. 
-.br
-\fIrank\fP A rank number of the process on which a vector type data is duplicated\&. 
-.RE
-.PP
-\fBReturn values:\fP
-.RS 4
-\fImember ga == ACP_GA_NULL\fP Fail 
-.br
-\fIotherwise\fP A reference of created vector data\&. 
-.RE
-.PP
-
-.SS "void acp_swap_vector (\fBacp_vector_t\fPv1, \fBacp_vector_t\fPv2)"
+.SS "void acp_swap_vector (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 
 .PP
 Vector swap\&. 

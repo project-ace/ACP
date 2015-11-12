@@ -197,8 +197,8 @@
    The vector interface provides the data structure and algorithms of 
    dynamic array. The type of for referencing vectors is __acp_vector_t__, 
    and the type of the iterator of vectors is __acp_vector_it_t__. 
-   Vectors can be created via the constractor function, __acp_create_vector__, 
-   or the duplication function, __acp_duplicate_vector__. As an argument, 
+   Vectors can be created via the constructor function, __acp_create_vector__.
+   As an argument, 
    each of these functions accepts the rank to place the instance of the vector.
 
    @subsubsection list List

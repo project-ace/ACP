@@ -497,7 +497,7 @@ static int handl_conchlist(void)
                     if ((msg->buf_entrysz != ch->buf_entrysz) 
                         || (msg->rbuf_entrynum != ch->rbuf_entrynum)
                         || (msg->sbuf_entrynum != ch->sbuf_entrynum)) {
-                        fprintf(stderr, "handl_conchlist: rank %d : Error: channel parameter does not match. peer %d sz %d/%d rnum %d/%d snum %d/%d\n", 
+                        fprintf(stderr, "handl_conchlist: rank %d : Error: channel parameter does not match. peer sz %d/%d rnum %d/%d snum %d/%d\n", 
                                myrank, msg->buf_entrysz, ch->buf_entrysz, 
                                msg->rbuf_entrynum, ch->rbuf_entrynum, 
                                msg->sbuf_entrynum, ch->sbuf_entrynum);
@@ -847,7 +847,7 @@ static void progress_recv(acp_ch_t ch)
              * the protocol to use according to the first message.
              */
             if (msgtype != MSGTYEGR){
-                fprintf(stderr, "progress_recv: %d : Error: Types of the request and the message does not match req: %d, msg: %d\n", 
+                fprintf(stderr, "progress_recv: %d : Error: Types of the request and the message does not match req: %d, msg: %lld\n", 
                         myrank, req->status, msgtype);
                 iacp_abort_cl();
             }
@@ -886,7 +886,7 @@ static void progress_recv(acp_ch_t ch)
             myrank, *crbhead, *crbtail);
 #endif
             if (msgtype != MSGTYDISCONN){
-                fprintf(stderr, "progress_recv: %d : Error: Types of the request and the message does not match req: %d, msg: %d\n", 
+                fprintf(stderr, "progress_recv: %d : Error: Types of the request and the message does not match req: %d, msg: %lld\n", 
                         myrank, req->status, msgtype);
                 iacp_abort_cl();
             }
@@ -1006,7 +1006,7 @@ int iacp_init_cl(void)
     crbsz = 2 * (sizeof(int64_t)) + iacpci_crb_entrynum * sizeof(crbmsg_t) 
              + iacpci_crb_entrynum + sizeof(int64_t);
     if (iacp_starter_memory_size_cl < crbsz) {
-        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %d is smaller than crbsz %d\n",
+        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %lu is smaller than crbsz %d\n",
                 myrank, iacp_starter_memory_size_cl, crbsz);
         iacp_abort_cl();
     }
@@ -1376,7 +1376,7 @@ acp_request_t acp_nbsend_ch(acp_ch_t ch, void *sbuf, size_t sz)
 #endif
 
     if (sz > MSGMAXSZ){
-        fprintf(stderr, "acp_nbsend_ch: rank %d : Error: message size is too large: %lld\n", 
+        fprintf(stderr, "acp_nbsend_ch: rank %d : Error: message size is too large: %lu\n", 
                 myrank, sz);
         ch_unlock();
         iacp_abort_cl();
@@ -1434,7 +1434,7 @@ acp_request_t acp_nbrecv_ch(acp_ch_t ch, void *rbuf, size_t sz)
     fprintf(stderr, "%d: nbrecv: ch %p crbhead %lld crbtail %lld\n", myrank, ch, *crbhead, *crbtail);
 #endif
     if (sz > MSGMAXSZ){
-        fprintf(stderr, "acp_nbrecv_ch: rank %d : Error: message size is too large: %lld\n", 
+        fprintf(stderr, "acp_nbrecv_ch: rank %d : Error: message size is too large: %lu\n", 
                 myrank, sz);
         ch_unlock();
         iacp_abort_cl();

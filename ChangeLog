@@ -1,3 +1,27 @@
+2015-11-12  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 1.2.0
+	* new interface: acp_clear_vector(), acp_end_map()
+	* modified interface: acp_insert_list, acp_push_back_list,
+	acp_insert_map, acp_find_map
+	* modified interface name: acp_increment_list -> acp_increment_list_it
+	* modified interface name: acp_decrement_list -> acp_decrement_list_it
+	* fix acpcl.c: Fixed bugs that had caused hangs in some cases.
+	Also, changed the protocol for long messages from rendezvous to
+	pipelined-eager.
+	* fix acpbl_ib.c: Fixed bugs that had caused incorrect behaviors in
+	acp_init, acp_colors, acp_register_memory and acp_unregister_memory.
+	* fix acpdl_malloc.c: Modified algorithms for acp_malloc and acp_free
+	to achieve better performance.
+
+2015-07-13  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 1.1.1
+	* fix acpbl_ib.c: unregister memory 
+	* fix acpbl_ib.c: atomic oparation
+	* fix acpdl_malloc.c: acp_push_back_list fails
+	* known bugs: Hang may occur sometimes when a process creates more than one receive channels.
+
 2015-05-07  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 1.1.0

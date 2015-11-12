@@ -1,8 +1,8 @@
-.TH "ACP Basic Layer Infrastructure" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "infrastructure" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Basic Layer Infrastructure \- 
+infrastructure \- ACP Basic Layer Infrastructure
 .SS "Functions"
 
 .in +1c
@@ -40,7 +40,7 @@ ACP Basic Layer Infrastructure \-
 These functions perform the infrastructure of ACP Basic Layer\&. 
 .SH "Function Documentation"
 .PP 
-.SS "void acp_abort (const char *str)"
+.SS "void acp_abort (const char * str)"
 
 .PP
 ACP abort\&. Aborts the ACP library\&. It prints out the error message specified as the argument and the system message according to the error number ACP_ERRNO\&. ACP_ERRNO holds a number that shows the reason of the fail of the functions of ACP basic layer\&.
@@ -64,7 +64,7 @@ ACP finalization\&. Finalizes the ACP library\&. All of the resources allocated 
 .RE
 .PP
 
-.SS "int acp_init (int *argc, char ***argv)"
+.SS "int acp_init (int * argc, char *** argv)"
 
 .PP
 ACP initialization\&. Initializes the ACP library\&. Must be invoked before other functions of ACP\&. argc and argv are the pointers for the arguments of the main function\&. It returns after all of the processes complete initialization\&. In this function, the initialization functions of the modules of the middle layer are invoked\&. 
@@ -110,7 +110,7 @@ Query for the process rank\&. Returns the rank number of the process that called
 .RE
 .PP
 
-.SS "int acp_reset (intrank)"
+.SS "int acp_reset (int rank)"
 
 .PP
 ACP Re-initialization\&. Re-initializes the ACP library\&. As rank, the new rank number of this process after this function is specified\&. All of the resources allocated in the library before this function are freed\&. The starter memory of each process is cleared to be zero\&. This function returns after all of the processes complete re-initialization\&. In this function, the functions for the initialization and the finalization of the modules of the middle layer are invoked\&.

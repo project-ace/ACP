@@ -1,8 +1,8 @@
-.TH "ACP Middle Layer Dara Library Set" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "set" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Middle Layer Dara Library Set \- 
+set \- ACP Middle Layer Dara Library Set
 .SS "Data Structures"
 
 .in +1c
@@ -14,6 +14,79 @@ ACP Middle Layer Dara Library Set \-
 .br
 .ti -1c
 .RI "struct \fBacp_set_ib_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBacp_assign_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.ti -1c
+.RI "void \fBacp_assign_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_begin_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_count_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_size_set\fP (\fBacp_set_t\fP set, int index)"
+.br
+.ti -1c
+.RI "void \fBacp_clear_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "\fBacp_set_t\fP \fBacp_create_set\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.ti -1c
+.RI "void \fBacp_destroy_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "int \fBacp_empty_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_end_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_erase_set\fP (\fBacp_set_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_erase_range_set\fP (\fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_find_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_insert_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_insert_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "void \fBacp_swap_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_advance_set_it\fP (\fBacp_set_it_t\fP it, int n)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_decrement_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_dereference_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_increment_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
 .in -1c
 .SH "Detailed Description"

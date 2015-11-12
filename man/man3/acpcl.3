@@ -1,8 +1,8 @@
-.TH "ACP Middle Layer Communication Library" 3 "Fri May 8 2015" "Version 1.1.0" "ACP Library" \" -*- nroff -*-
+.TH "acpcl" 3 "Thu Nov 12 2015" "Version 1.2.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
-ACP Middle Layer Communication Library \- 
+acpcl \- ACP Middle Layer Communication Library
 .SS "Typedefs"
 
 .in +1c
@@ -51,7 +51,7 @@ This library provides \fIChannel\fP interface and \fIcollective\fP communication
 \&.\&.\&.\&.\&.\&.\&.\&.\&. 
 .SH "Function Documentation"
 .PP 
-.SS "acp_ch_t acp_create_ch (intsender, intreceiver)"
+.SS "acp_ch_t acp_create_ch (int sender, int receiver)"
 
 .PP
 Creates an endpoint of a channel to transfer messages from sender to receiver\&. Creates an endpoint of a channel to transfer messages from sender to receiver, and returns a handle of it\&. It returns error if sender and receiver is same, or the caller process is neither the sender nor the receiver\&. This function does not wait for the completion of the connection between sender and receiver\&. The connection will be completed by the completion of the communication through this channel\&. There can be more than one channels for the same sender-receiver pair\&.
@@ -71,7 +71,7 @@ Creates an endpoint of a channel to transfer messages from sender to receiver\&.
 .RE
 .PP
 
-.SS "int acp_free_ch (acp_ch_tch)"
+.SS "int acp_free_ch (acp_ch_t ch)"
 
 .PP
 Frees the endpoint of the channel specified by the handle\&. Frees the endpoint of the channel specified by the handle\&. It waits for the completion of negotiation with the counter peer of the channel for disconnection\&. It returns error if the caller process is neither the sender nor the receiver\&. Behavior of the communication with the handle of the channel endpoint that has already been freed is undefined\&.
@@ -89,7 +89,7 @@ Frees the endpoint of the channel specified by the handle\&. Frees the endpoint 
 .RE
 .PP
 
-.SS "acp_request_t acp_nbfree_ch (acp_ch_tch)"
+.SS "acp_request_t acp_nbfree_ch (acp_ch_t ch)"
 
 .PP
 Starts a nonblocking free of the endpoint of the channel specified by t he handle\&. It returns error if the caller process is neither the sender nor the receiver\&. Otherwise, it returns a handle of the request for waiting the completion of the free operation\&. Communication with the handle of the channel endpoint that has been started to be freed causes an error\&.
@@ -107,7 +107,7 @@ Starts a nonblocking free of the endpoint of the channel specified by t he handl
 .RE
 .PP
 
-.SS "acp_request_t acp_nbrecv_ch (acp_ch_tch, void *buf, size_tsize)"
+.SS "acp_request_t acp_nbrecv_ch (acp_ch_t ch, void * buf, size_t size)"
 
 .PP
 Non-Blocking receive via channels\&. Starts a nonblocking receive of a message through the channel specified by the handle\&. It returns error if the receiver of the channel endpoint specified by the handle is not the caller process\&. Otherwise, it returns a handle of the request for waiting the completion of the nonblocking receive\&. If the message is smaller than the size of the receive buffer, only the region of the message size, starting from the initial address of the receive buffer is modified\&. If the message is larger than the size of the receive buffer, the exceeded part of the message is discarded\&.
@@ -129,7 +129,7 @@ Non-Blocking receive via channels\&. Starts a nonblocking receive of a message t
 .RE
 .PP
 
-.SS "acp_request_t acp_nbsend_ch (acp_ch_tch, void *buf, size_tsize)"
+.SS "acp_request_t acp_nbsend_ch (acp_ch_t ch, void * buf, size_t size)"
 
 .PP
 Non-Blocking send via channels\&. Starts a nonblocking send of a message through the channel specified by the handle\&. It returns error if the sender of the channel endpoint specified by the handle is not the caller process\&. Otherwise, it returns a handle of the request for waiting the completion of the nonblocking send\&.
@@ -151,7 +151,7 @@ Non-Blocking send via channels\&. Starts a nonblocking send of a message through
 .RE
 .PP
 
-.SS "size_t acp_wait_ch (acp_request_trequest)"
+.SS "size_t acp_wait_ch (acp_request_t request)"
 
 .PP
 Waits for the completion of the nonblocking operation\&. Waits for the completion of the nonblocking operation specified by the request handle\&. If the operation is a nonblocking receive, it retruns the size of the received data\&.

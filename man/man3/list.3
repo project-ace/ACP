@@ -247,15 +247,15 @@ Increment an iterater of a list data\&.
 .SS "\fBacp_list_it_t\fP acp_insert_list (\fBacp_list_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size, int rank)"
 
 .PP
-Insert a list element\&. 
+Insert a list element\&. Copy an element to the specified process and inserts it into the specified position of the list\&.
 .PP
 \fBParameters:\fP
 .RS 4
 \fIit\fP An iterater of list type data\&. 
 .br
-\fIptr\fP The pointer of list element\&. 
+\fIga\fP The global address of the data to be added\&. 
 .br
-\fIsize\fP Size of list element\&. 
+\fIsize\fP Size of the data to be added\&. 
 .br
 \fIrank\fP Rank of the process in which the element is copied\&. 
 .RE
@@ -271,15 +271,15 @@ Insert a list element\&.
 .SS "void acp_push_back_list (\fBacp_list_t\fP list, const \fBacp_ga_t\fP ga, size_t size, int rank)"
 
 .PP
-Erase a list element\&. 
+Erase a list element\&. Inserts a data with specified size into the tail of the list\&.
 .PP
 \fBParameters:\fP
 .RS 4
 \fIlist\fP A reference of list type data\&. 
 .br
-\fIptr\fP A pointer of list type data\&. 
+\fIga\fP The global address of the data to be added\&. 
 .br
-\fIsize\fP Size of list type data\&. 
+\fIsize\fP The size of the data to be added\&. 
 .br
 \fIrank\fP Rank of the process in which the element is copied\&. 
 .RE

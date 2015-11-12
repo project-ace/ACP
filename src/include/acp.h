@@ -1,9 +1,9 @@
 /*
  * Advanced Communication Primitives Library Header
  * 
- * Copyright (c) 2014-2014 FUJITSU LIMITED
- * Copyright (c) 2014      Kyushu University
- * Copyright (c) 2014      Institute of Systems, Information Technologies
+ * Copyright (c) 2014-2015 FUJITSU LIMITED
+ * Copyright (c) 2014-2015 Kyushu University
+ * Copyright (c) 2014-2015 Institute of Systems, Information Technologies
  *                         and Nanotechnologies 2014
  *
  * This software is released under the BSD License, see LICENSE.
@@ -1556,8 +1556,8 @@ extern acp_list_it_t acp_front_list(acp_list_t list);
  * 指定したプロセスに要素をコピーし、リスト型データの指定位置に挿入する。
  *
  * @param it リスト型のイテレータ
- * @param ptr 挿入する要素の先頭アドレス
- * @param size 挿入する要素のサイズ
+ * @param ga 挿入するデータのグローバルアドレス
+ * @param size 挿入するデータのサイズ
  * @param rank 要素を複製するプロセス
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 挿入された要素を指すリスト型イテレータ
@@ -1565,11 +1565,11 @@ extern acp_list_it_t acp_front_list(acp_list_t list);
  * @EN
  * @brief Insert a list element
  *
- * 
+ * Copy an element to the specified process and inserts it into the specified position of the list.
  *
  * @param it An iterater of list type data.
- * @param ptr The pointer of list element.
- * @param size Size of list element.
+ * @param ga The global address of the data to be added.
+ * @param size Size of the data to be added.
  * @param rank Rank of the process in which the element is copied.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The iterator that points to the inserted element.
@@ -1589,18 +1589,18 @@ extern void acp_pop_front_list(acp_list_t list);
  * 指定したプロセスに要素をコピーし、リスト型データの末尾に挿入する。
  *
  * @param list リスト型データの参照
- * @param ptr 挿入する要素の先頭アドレス
- * @param size 挿入する要素のサイズ
+ * @param ga 挿入するデータのグローバルアドレス
+ * @param size 挿入するデータのサイズ
  * @param rank 要素を複製するプロセス
  *
  * @EN
  * @brief Erase a list element
  *
- * 
+ * Inserts a data with specified size into the tail of the list.
  *
  * @param list A reference of list type data.
- * @param ptr A pointer of list type data.
- * @param size Size of list type data.
+ * @param ga The global address of the data to be added.
+ * @param size The size of the data to be added.
  * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
@@ -1801,13 +1801,12 @@ extern void acp_clear_map(acp_map_t map);
  * @EN
  * @brief Map creation
  *
- * Creates a empty map type data on any process.
+ * Creates a map type data on any set of processes.
  *
- * @param num_ranks Number of the rank where maps are distributed. '0' means all ranks.
- * @param ranks Pointers of an array for ranks where maps are distributed 
+ * @param num_ranks Number of processes.
+ * @param ranks Array of the rank numbers of the processes to distribute map.
  * @param num_slots Number of slots
- * @param rank Rank number where a map is created
- * @param rank Rank number.
+ * @param rank Rank number to place the information of the map.
  * @retval "member ga == ACP_MAP_NULL" Fail
  * @retval otherwise A reference of created map data.
  * @ENDL
@@ -1865,7 +1864,7 @@ extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);
  * マップにあるキーと変数をキーで検索する
  *
  * @param map マップ型データの参照
- * @param key 検索する key
+ * @param key 検索する key のグローバルアドレス
  * @param size_key key のサイズ
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 検索結果のイテレータの参照
@@ -1876,7 +1875,7 @@ extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);
  * Find a key-value pair according to a key in a map.
  *
  * @param map A reference of a map type data.
- * @param key Key to search.
+ * @param key Global address of the key to search.
  * @param size_key Size of the key.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The item found in the map.
@@ -1891,9 +1890,9 @@ extern acp_map_it_t acp_find_map(acp_map_t map, const acp_ga_t key, size_t key_s
  * マップにキーと変数を挿入する。
  *
  * @param map マップ型データの参照
- * @param key 挿入する key-value ペアの key
+ * @param key 挿入する key-value ペアの key のグローバルアドレス
  * @param size_key key のサイズ
- * @param value 挿入する key-value ペアの value
+ * @param value 挿入する key-value ペアの value のグローバルアドレス
  * @param size_value value のサイズ
  * @retval "member success == 0" 失敗、または既に同じ key-value ペアがある
  * @retval 以外 挿入したイテレータの参照
@@ -1904,9 +1903,9 @@ extern acp_map_it_t acp_find_map(acp_map_t map, const acp_ga_t key, size_t key_s
  * Inserts a key-value pair to a map.
  *
  * @param map A reference of a map type data.
- * @param key Key of the key-value pair.
+ * @param key Global address of the key of the key-value pair.
  * @param size_key Size of the key.
- * @param value Value of the key-value pair.
+ * @param value Global address of the value of the key-value pair.
  * @param size_value Size of the value.
  * @retval "member success == 0" Fail or the same key-value pair is already in the map.
  * @retval otherwise The item inserted to the map.

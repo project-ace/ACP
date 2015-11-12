@@ -120,19 +120,17 @@ Delete elements of lists in a map type data\&.
 .SS "\fBacp_map_t\fP acp_create_map (int num_ranks, const int * ranks, int num_slots, int rank)"
 
 .PP
-Map creation\&. Creates a empty map type data on any process\&.
+Map creation\&. Creates a map type data on any set of processes\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fInum_ranks\fP Number of the rank where maps are distributed\&. '0' means all ranks\&. 
+\fInum_ranks\fP Number of processes\&. 
 .br
-\fIranks\fP Pointers of an array for ranks where maps are distributed 
+\fIranks\fP Array of the rank numbers of the processes to distribute map\&. 
 .br
 \fInum_slots\fP Number of slots 
 .br
-\fIrank\fP Rank number where a map is created 
-.br
-\fIrank\fP Rank number\&. 
+\fIrank\fP Rank number to place the information of the map\&. 
 .RE
 .PP
 \fBReturn values:\fP
@@ -181,7 +179,7 @@ Map finding\&. Find a key-value pair according to a key in a map\&.
 .RS 4
 \fImap\fP A reference of a map type data\&. 
 .br
-\fIkey\fP Key to search\&. 
+\fIkey\fP Global address of the key to search\&. 
 .br
 \fIsize_key\fP Size of the key\&. 
 .RE
@@ -203,11 +201,11 @@ Map creation\&. Inserts a key-value pair to a map\&.
 .RS 4
 \fImap\fP A reference of a map type data\&. 
 .br
-\fIkey\fP Key of the key-value pair\&. 
+\fIkey\fP Global address of the key of the key-value pair\&. 
 .br
 \fIsize_key\fP Size of the key\&. 
 .br
-\fIvalue\fP Value of the key-value pair\&. 
+\fIvalue\fP Global address of the value of the key-value pair\&. 
 .br
 \fIsize_value\fP Size of the value\&. 
 .RE

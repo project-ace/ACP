@@ -552,7 +552,7 @@ void acp_push_back_list(acp_list_t list, const acp_ga_t ga, size_t size, int ran
 //extern void acp_unique_list(acp_list_t list);
 //extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
 
-acp_list_it_t acp_decrement_list(acp_list_it_t it)
+acp_list_it_t acp_decrement_list_it(acp_list_it_t it)
 {
     acp_ga_t buf;
     volatile uint64_t* tmp_elem;
@@ -577,7 +577,7 @@ acp_list_it_t acp_decrement_list(acp_list_it_t it)
 //extern acp_ga_t acp_dereference_list_it(acp_list_it_t it);
 //extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
 
-acp_list_it_t acp_increment_list(acp_list_it_t it)
+acp_list_it_t acp_increment_list_it(acp_list_it_t it)
 {
     acp_ga_t buf;
     volatile uint64_t* tmp_elem;

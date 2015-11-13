@@ -189,8 +189,8 @@ static size_t acp_smdlsize_adj; /* adjust the size of dl starter memory to 8 byt
 static size_t acp_smclsize_adj; /* adjust the size of cl starter memory to 8 byte alignment */
 static size_t acp_smvdsize_adj; /* adjust the size of vd starter memory to 8 byte alignment */
 static size_t ncharflagtb_adj; /* adjust the size of flag table of char to 8 byte alignment */
-static uint32_t my_port; /* my port */
-static uint32_t dst_port; /* destination port */
+static uint16_t my_port; /* my port */
+static uint16_t dst_port; /* destination port */
 static uint32_t dst_addr; /* destination ip address */
 
 static SMI *smi_tb; /* starter memory info table */
@@ -3637,7 +3637,7 @@ int iacp_init(void){
     int sock_s; /* socket server */
     socklen_t addrlen;/* address length */
     struct sockaddr_in myaddr, dstaddr, srcaddr; /* address */
-    
+        
     struct ibv_device **dev_list = NULL; /* IB device list */
     char *dev_name = NULL; /* device name */
     
@@ -3668,6 +3668,8 @@ int iacp_init(void){
     int syssize;
     /* ajusting variable for alignment 8 bytes */
     int alm8_add; 
+    /* enable address resuse, as soon as possible */
+    const int on = 1;
     
     /* initialize head, tail */
     head = 1;
@@ -3819,18 +3821,28 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
-    
-    /* enable address resuse, as soon as possible */
-    int on;
-    on = 1;
-    rc = setsockopt( sock_s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on) );
-    
+
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d socekt scock_s create fin\n", acp_rank());   
+#endif
+ 
     /* initialize myaddr of sockaddr_in  */
     memset(&myaddr, 0, sizeof(myaddr));
     myaddr.sin_family = AF_INET;
-    myaddr.sin_addr.s_addr = INADDR_ANY;
-    myaddr.sin_port = my_port;
-  
+    myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    myaddr.sin_port = htons(my_port);
+    rc = setsockopt( sock_s, SOL_SOCKET, SO_REUSEADDR, (const void*)&on, sizeof(on) );  
+    if(rc == -1){
+        fprintf(stderr, "%d setsockopt rc %d\n", acp_rank(), rc);
+        goto exit;
+    }
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d setsockopt rc %d\n", acp_rank(), rc);
+    char hostname[256];
+    gethostname(hostname, 256);
+    fprintf(stderr, "%d socekt sock_s bind in sp %u my %u %s \n",
+            acp_rank(), myaddr.sin_port, my_port, hostname);
+#endif   
     /* bind socket file descriptor*/
     while (bind(sock_s, (struct sockaddr*)&myaddr, sizeof(myaddr)) < 0) {
         if (errno != EADDRINUSE) {
@@ -3838,44 +3850,90 @@ int iacp_init(void){
             rc = -1;
             goto exit;
         }
+#ifdef TCP_DEBUG
+        perror("bind() failed section 2");
+        fprintf(stderr, "%d: bind() failed errno %d \n", acp_rank(), errno);
+#endif
     }
-    
-    if (listen(sock_s, 2) < 0) {
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d socekt sock_s bind fin\n", acp_rank());   
+#endif
+
+    if (listen(sock_s, 10) < 0) {
         rc = -1;
         goto exit;
     }
-    
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d socekt listen fin\n", acp_rank());   
+#endif
+
     /* generate connection socket */
     if ((sock_connect = socket (AF_INET, SOCK_STREAM, 0)) < 0) {
         fprintf(stderr, "connect socket() failed \n");
+        goto exit;
     }
-    
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d socekt sock_s create for connect\n", acp_rank());    
+#endif    
+
     /* generate destination address */
     memset(&dstaddr, 0, sizeof(dstaddr));
     dstaddr.sin_family = AF_INET;
     dstaddr.sin_addr.s_addr = dst_addr;
-    dstaddr.sin_port = dst_port;
+    dstaddr.sin_port = htons(dst_port);
     
     addrlen = sizeof(srcaddr);
-    
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d: dp sp %u dp %u\n", acp_rank(), dstaddr.sin_port, dst_port);
+#endif
     /* get the size of source address */
     if (acp_numprocs > 1) {
         if ((acp_myrank & 1) == 0) { /* even rank  */
-            if ((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0) {
+            while ((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0) {
                 perror("even accept() failed:");
                 goto exit;
             }
-            while (connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0);
+#ifdef TCP_DEBUG
+            fprintf(stderr, "%d socekt accept fin for connect dp even.\n", acp_rank());
+#endif
+            while (connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0){
+                if (errno != EINTR && errno != EAGAIN && errno != ECONNREFUSED) {
+                    perror("even connect() failed:");
+                    goto exit;
+                }
+                else{
+                    sleep(1);
+                }
+            }
+#ifdef TCP_DEBUG
+            fprintf(stderr, "%d socekt connect for connect even.\n", acp_rank());
+#endif
         }
         else { /* odd rank */
-            while (connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0);
-            if ((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0) {
+            while (connect(sock_connect, (struct sockaddr*)&dstaddr, sizeof(dstaddr)) < 0){
+                if (errno != EINTR && errno != EAGAIN && errno != ECONNREFUSED) {
+                    perror("even connect() failed:");
+                    goto exit;
+                }
+                else{
+                    sleep(1);
+                }
+            }
+#ifdef TCP_DEBUG
+            fprintf(stderr, "%d socekt connect fin for connect odd.\n", acp_rank());
+#endif
+            while ((sock_accept = accept(sock_s, (struct sockaddr *)&srcaddr, &addrlen)) < 0) {
                 perror("odd accept() failed:");
                 goto exit;
             }
+#ifdef TCP_DEBUG
+            fprintf(stderr, "%d socekt accept fin for connect odd.\n", acp_rank());   
+#endif
         }
     }
-    
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d connect establish.\n", acp_rank());   
+#endif
     /* socket close */
     if (sock_s) {
         close(sock_s);

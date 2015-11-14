@@ -3831,6 +3831,7 @@ int iacp_init(void){
     myaddr.sin_family = AF_INET;
     myaddr.sin_addr.s_addr = htonl(INADDR_ANY);
     myaddr.sin_port = htons(my_port);
+
     rc = setsockopt( sock_s, SOL_SOCKET, SO_REUSEADDR, (const void*)&on, sizeof(on) );  
     if(rc == -1){
         fprintf(stderr, "%d setsockopt rc %d\n", acp_rank(), rc);
@@ -3934,11 +3935,15 @@ int iacp_init(void){
 #ifdef TCP_DEBUG
     fprintf(stderr, "%d connect establish.\n", acp_rank());   
 #endif
+
     /* socket close */
     if (sock_s) {
         close(sock_s);
     }
-    
+#ifdef TCP_DEBUG
+    fprintf(stderr, "%d close sochk_s.\n", acp_rank());   
+#endif
+
     /* get device names in the system */
     dev_list = ibv_get_device_list(&num_devices);
     if (!dev_list) {
@@ -3987,7 +3992,7 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
-    
+
     /* allocate Protection Domain */
     res.pd = ibv_alloc_pd(res.ib_ctx);
     if (!res.pd) {
@@ -4005,7 +4010,8 @@ int iacp_init(void){
         rc = -1;
         goto exit;
     }
-    
+
+
     /* register the memory buffer */
     mr_flags = IBV_ACCESS_LOCAL_WRITE | 
         IBV_ACCESS_REMOTE_READ |
@@ -4118,16 +4124,16 @@ int iacp_init(void){
     for (i = 0;i < acp_numprocs - 1;i++) {
         /* TCP sendrecv */
 #ifdef DEBUG
-        fprintf(stdout, "-----------------------------\n");
+        fprintf(stdout, "%d:-----------------------------\n", acp_rank());
         fflush(stdout);
 #endif
         memset(&remote_data, 0, sizeof(remote_data));
         memset(remote_qp_num, 0, sizeof(uint32_t) * acp_numprocs);
         
-        write(sock_connect, &tmp_data, sizeof(tmp_data));
-        recv(sock_accept, &remote_data, sizeof(remote_data),0 );
-        write(sock_connect, tmp_qp_num, sizeof(uint32_t) * acp_numprocs);
-        recv(sock_accept, remote_qp_num, sizeof(uint32_t) * acp_numprocs,0 );
+        while (write(sock_connect, &tmp_data, sizeof(tmp_data)) < 0);
+        while (recv(sock_accept, &remote_data, sizeof(remote_data), MSG_WAITALL) < 0) ;
+        while (write(sock_connect, tmp_qp_num, sizeof(uint32_t) * acp_numprocs) < 0);
+        while (recv(sock_accept, remote_qp_num, sizeof(uint32_t) * acp_numprocs, MSG_WAITALL) < 0);
         
         /* copy addr and rkey to start buffer information table */
         torank = remote_data.rank;
@@ -4136,11 +4142,11 @@ int iacp_init(void){
         
         /* save the remote side attributes, we will need it for the post SR */
 #ifdef DEBUG
-        fprintf(stdout, "Remote address = %lx\n", remote_data.addr);
-        fprintf(stdout, "Remote rkey = %u\n", remote_data.rkey);
-        fprintf(stdout, "Remote rank = %d\n", torank);
-        fprintf(stdout, "Remote LID = %u\n", remote_data.lid);
-        fprintf(stdout, "Remote QP number = %d 0x%x\n", torank, remote_qp_num[acp_myrank]);
+        fprintf(stdout, "%d: Remote address = %lx\n", acp_rank(), remote_data.addr);
+        fprintf(stdout, "%d: Remote rkey = %u\n", acp_rank(), remote_data.rkey);
+        fprintf(stdout, "%d: Remote rank = %d\n", acp_rank(), torank);
+        fprintf(stdout, "%d: Remote LID = %u\n", acp_rank(), remote_data.lid);
+        fprintf(stdout, "%d: Remote QP number = %d 0x%x\n", acp_rank(), torank, remote_qp_num[acp_myrank]);
         fflush(stdout);
 #endif
     
@@ -4276,11 +4282,18 @@ int iacp_init(void){
         tmp_data.rkey = remote_data.rkey;
         tmp_data.lid = remote_data.lid;
         tmp_data.rank = remote_data.rank;
+#ifdef DEBUG
+        fprintf(stdout, "%d: tmp Remote address = %lx\n", acp_rank(), tmp_data.addr);
+        fprintf(stdout, "%d: tmp Remote rkey = %u\n", acp_rank(), tmp_data.rkey);
+        fprintf(stdout, "%d: tmp Remote rank = %d\n", acp_rank(), tmp_data.rank);
+        fprintf(stdout, "%d: tmp Remote LID = %u\n", acp_rank(), tmp_data.lid);
+        fflush(stdout);
+#endif
         for (j = 0;j < acp_numprocs; j++) {
             tmp_qp_num[j] = remote_qp_num[j];
         }
     }
-    
+
     /* free acp_init tmporary */
     if (local_qp_num != NULL) {
         free(local_qp_num);

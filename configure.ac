@@ -31,6 +31,8 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
+AC_CHECK_PROG([RUBY], [ruby], [ruby])
+AX_PROG_RUBY_VERSION([1.8.7], [:], [AC_MSG_ERROR([cannot find ruby ver 1.8.7 or above])])
 AC_PATH_PROG([RUBY], ruby)
 AC_SUBST([RUBY])
 

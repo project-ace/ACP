@@ -646,6 +646,7 @@ WITH_INFINIBAND_FALSE
 WITH_INFINIBAND_TRUE
 WITH_SHARED_LIBS_FALSE
 WITH_SHARED_LIBS_TRUE
+RUBY_VERSION
 RUBY
 CXXCPP
 CPP
@@ -16333,6 +16334,113 @@ else
 $as_echo "no, using $LN_S" >&6; }
 fi
 
+
+# Extract the first word of "ruby", so it can be a program name with args.
+set dummy ruby; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_RUBY+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$RUBY"; then
+  ac_cv_prog_RUBY="$RUBY" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_RUBY="ruby"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+RUBY=$ac_cv_prog_RUBY
+if test -n "$RUBY"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $RUBY" >&5
+$as_echo "$RUBY" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+
+
+
+
+    if test -n "$RUBY"; then :
+
+        ax_ruby_version="1.8.7"
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ruby version" >&5
+$as_echo_n "checking for ruby version... " >&6; }
+
+        ruby_version=`$RUBY --version 2>&1 | $GREP "^ruby " | $SED -e 's/^.* \([0-9]*\.[0-9]*\.[0-9]*\) .*/\1/'`
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ruby_version" >&5
+$as_echo "$ruby_version" >&6; }
+
+	RUBY_VERSION=$ruby_version
+
+
+
+
+
+  # Used to indicate true or false condition
+  ax_compare_version=false
+
+  # Convert the two version strings to be compared into a format that
+  # allows a simple string comparison.  The end result is that a version
+  # string of the form 1.12.5-r617 will be converted to the form
+  # 0001001200050617.  In other words, each number is zero padded to four
+  # digits, and non digits are removed.
+
+  ax_compare_version_A=`echo "$ax_ruby_version" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+  ax_compare_version_B=`echo "$ruby_version" | sed -e 's/\([0-9]*\)/Z\1Z/g' \
+                     -e 's/Z\([0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/Z\([0-9][0-9][0-9]\)Z/Z0\1Z/g' \
+                     -e 's/[^0-9]//g'`
+
+
+    ax_compare_version=`echo "x$ax_compare_version_A
+x$ax_compare_version_B" | sed 's/^ *//' | sort | sed "s/x${ax_compare_version_A}/true/;s/x${ax_compare_version_B}/false/;1q"`
+
+
+
+    if test "$ax_compare_version" = "true" ; then
+
+	    :
+            :
+
+    else
+	    :
+            as_fn_error $? "cannot find ruby ver 1.8.7 or above" "$LINENO" 5
+
+  fi
+
+
+else
+
+        { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: could not find the ruby interpreter" >&5
+$as_echo "$as_me: WARNING: could not find the ruby interpreter" >&2;}
+        as_fn_error $? "cannot find ruby ver 1.8.7 or above" "$LINENO" 5
+
+fi
 
 # Extract the first word of "ruby", so it can be a program name with args.
 set dummy ruby; ac_word=$2

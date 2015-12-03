@@ -70,12 +70,168 @@ uint64_t iacpdl_crc64(const void* ptr, size_t size)
  *      [16:23]  max
  */
 
-//extern void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2);
-//extern void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end);
-//extern acp_ga_t acp_at_vector(acp_vector_t vector, int offset);
-//extern acp_vector_it_t acp_back_vector(acp_vector_t vector);
-//extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
-//extern size_t acp_capacity_vector(acp_vector_t vector);
+void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2)
+{
+    acp_ga_t buf = acp_malloc(48, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector1_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector1_size = (volatile uint64_t*)(ptr + 8);
+    volatile uint64_t* vector1_max  = (volatile uint64_t*)(ptr + 16);
+    volatile acp_ga_t* vector2_ga   = (volatile acp_ga_t*)(ptr + 24);
+    volatile uint64_t* vector2_size = (volatile uint64_t*)(ptr + 32);
+    volatile uint64_t* vector2_max  = (volatile uint64_t*)(ptr + 40);
+    
+    acp_copy(buf,      vector1.ga, 24, ACP_HANDLE_NULL);
+    acp_copy(buf + 24, vector2.ga, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t size2 = *vector2_size;
+    
+    if (size2 == 0) {
+        if (*vector1_size > 0) {
+            *vector1_size = 0;
+            acp_copy(vector1.ga, buf, 24, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+        acp_free(buf);
+        return;
+    }
+    
+    if (size2 == *vector1_size) {
+        acp_copy(*vector1_ga, *vector2_ga, size2, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        acp_free(buf);
+        return;
+    }
+    
+    if (size2 > *vector1_max) {
+        int max2 = size2 + (((size2 + 7) ^ 7) & 7);
+        acp_ga_t new_ga1 = acp_malloc(max2, acp_query_rank(vector1.ga));
+        if (new_ga1 == ACP_GA_NULL) {
+            acp_free(buf);
+            return;
+        }
+        if (*vector1_ga != ACP_GA_NULL) acp_free(*vector1_ga);
+        *vector1_ga  = new_ga1;
+        *vector1_max = max2;
+    }
+    acp_copy(*vector1_ga, *vector2_ga, size2, ACP_HANDLE_NULL);
+    *vector1_size = size2;
+    acp_copy(vector1.ga, buf, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_free(buf);
+    return;
+}
+
+void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end)
+{
+    if (start.vector.ga != end.vector.ga) return;
+    
+    acp_ga_t buf = acp_malloc(48, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector1_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector1_size = (volatile uint64_t*)(ptr + 8);
+    volatile uint64_t* vector1_max  = (volatile uint64_t*)(ptr + 16);
+    volatile acp_ga_t* vector2_ga   = (volatile acp_ga_t*)(ptr + 24);
+    volatile uint64_t* vector2_size = (volatile uint64_t*)(ptr + 32);
+    volatile uint64_t* vector2_max  = (volatile uint64_t*)(ptr + 40);
+    
+    acp_copy(buf,      vector.ga,       24, ACP_HANDLE_NULL);
+    acp_copy(buf + 24, start.vector.ga, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int size = end.index - start.index;
+    
+    if (size <= 0) {
+        if (*vector1_size > 0) {
+            *vector1_size = 0;
+            acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+        acp_free(buf);
+        return;
+    }
+    
+    if (size == *vector1_size) {
+        acp_copy(*vector1_ga, *vector2_ga + start.index, size, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        acp_free(buf);
+        return;
+    }
+    
+    if (size > *vector1_max) {
+        int max = size + (((size + 7) ^ 7) & 7);
+        acp_ga_t new_ga1 = acp_malloc(max, acp_query_rank(vector.ga));
+        if (new_ga1 == ACP_GA_NULL) {
+            acp_free(buf);
+            return;
+        }
+        if (*vector1_ga != ACP_GA_NULL) acp_free(*vector1_ga);
+        *vector1_ga  = new_ga1;
+        *vector1_max = max;
+    }
+    *vector1_size = size;
+    acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
+    acp_copy(*vector1_ga, *vector2_ga + start.index, size, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_free(buf);
+    return;
+}
+
+acp_ga_t acp_at_vector(acp_vector_t vector, int offset)
+{
+    if (offset < 0) return ACP_GA_NULL;
+    
+    acp_ga_t buf = acp_malloc(16, acp_rank());
+    if (buf == ACP_GA_NULL) return ACP_GA_NULL;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    
+    acp_copy(buf, vector.ga, 16, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t size = *vector_size;
+    
+    if (offset >= size) {
+        acp_free(buf);
+        return ACP_GA_NULL;
+    }
+    
+    acp_ga_t ga = *vector_ga + offset;
+    acp_free(buf);
+    return ga;
+}
+
+acp_vector_it_t acp_begin_vector(acp_vector_t vector)
+{
+    acp_vector_it_t it;
+    
+    it.vector.ga = vector.ga;
+    it.index = 0;
+    
+    return it;
+}
+
+size_t acp_capacity_vector(acp_vector_t vector)
+{
+    acp_ga_t buf = acp_malloc(8, acp_rank());
+    if (buf == ACP_GA_NULL) return 0;
+    void* ptr = acp_query_address(buf);
+    volatile uint64_t* vector_max = (volatile uint64_t*)ptr;
+    
+    acp_copy(buf, vector.ga + 16, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t max = *vector_max;
+    
+    acp_free(buf);
+    return (size_t)max;
+}
 
 void acp_clear_vector(acp_vector_t vector)
 {
@@ -111,15 +267,22 @@ acp_vector_t acp_create_vector(size_t size, int rank)
         return vector;
     }
     
-    *vector_ga = acp_malloc(size, rank);
-    if (*vector_ga == ACP_GA_NULL) {
-        acp_free(vector.ga);
-        acp_free(buf);
-        vector.ga = ACP_GA_NULL;
-        return vector;
+    acp_ga_t ga = ACP_GA_NULL;
+    size_t max = size + (((size + 7) ^ 7) & 7);
+    
+    if (max > 0) {
+        ga = acp_malloc(size, rank);
+        if (ga == ACP_GA_NULL) {
+            acp_free(vector.ga);
+            acp_free(buf);
+            vector.ga = ACP_GA_NULL;
+            return vector;
+        }
     }
+    
+    *vector_ga   = ga;
     *vector_size = size;
-    *vector_max  = size;
+    *vector_max  = max;
     
     acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
@@ -144,17 +307,263 @@ void acp_destroy_vector(acp_vector_t vector)
     return;
 }
 
-//extern int acp_empty_vector(acp_vector_t vector);
-//extern acp_vector_it_t acp_end_vector(acp_vector_t vector);
-//extern acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size);
-//extern acp_vector_it_t acp_erase_range_vector(acp_vector_it_t start, acp_vector_it_t end);
-//extern acp_vector_it_t acp_front_vector(acp_vector_t vector);
-//extern acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t size);
-//extern acp_vector_it_t acp_insert_range_vector(acp_vector_it_t it, acp_vector_it_t start, acp_vector_it_t end);
-//extern void acp_pop_back_vector(acp_vector_t vector, size_t size);
-//extern void acp_push_back_vector(acp_vector_t vector, const acp_ga_t ga, size_t size);
-//extern void acp_reserve_vector(acp_vector_t vector, size_t size);
-//extern size_t acp_size_vector(acp_vector_t vector);
+int acp_empty_vector(acp_vector_t vector)
+{
+    acp_ga_t buf = acp_malloc(8, acp_rank());
+    if (buf == ACP_GA_NULL) return 0;
+    void* ptr = acp_query_address(buf);
+    volatile uint64_t* vector_size = (volatile uint64_t*)ptr;
+    
+    acp_copy(buf, vector.ga + 8, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int size = *vector_size;
+    
+    acp_free(buf);
+    return (size == 0) ? 1 : 0;
+}
+
+acp_vector_it_t acp_end_vector(acp_vector_t vector)
+{
+    acp_vector_it_t it;
+    
+    it.vector.ga = vector.ga;
+    it.index = 0;
+    
+    acp_ga_t buf = acp_malloc(8, acp_rank());
+    if (buf == ACP_GA_NULL) return it;
+    void* ptr = acp_query_address(buf);
+    volatile uint64_t* vector_size = (volatile uint64_t*)ptr;
+    
+    acp_copy(buf, vector.ga + 8, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    it.index = *vector_size;
+    
+    acp_free(buf);
+    return it;
+}
+
+acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size)
+{
+    int index = it.index;
+    
+    acp_ga_t buf = acp_malloc(16, acp_rank());
+    if (buf == ACP_GA_NULL) return it;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    
+    acp_copy(buf, it.vector.ga, 16, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t org_ga   = *vector_ga;
+    uint64_t org_size = *vector_size;
+    
+    if (index + size >= org_size) {
+        *vector_size = index;
+    } else {
+        acp_handle_t handle = ACP_HANDLE_NULL;
+        while (index + size < org_size) {
+            handle = acp_copy(org_ga + index, org_ga + index + size, size, handle);
+            index += size;
+        }
+        acp_copy(org_ga + index, org_ga + index + size, org_size - index - size, handle);
+        
+        *vector_size = org_size - size;
+    }
+    acp_copy(it.vector.ga + 8, buf + 8, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    acp_free(buf);
+    return it;
+}
+
+acp_vector_it_t acp_erase_range_vector(acp_vector_it_t start, acp_vector_it_t end)
+{
+    if (start.vector.ga != end.vector.ga || start.index >= end.index) return end;
+    return acp_erase_vector(start, end.index - start.index);
+}
+
+acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t size)
+{
+    int index = it.index;
+    
+    acp_ga_t buf = acp_malloc(24, acp_rank());
+    if (buf == ACP_GA_NULL) return it;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    volatile uint64_t* vector_max  = (volatile uint64_t*)(ptr + 16);
+    
+    acp_copy(buf, it.vector.ga, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t org_ga   = *vector_ga;
+    uint64_t org_size = *vector_size;
+    uint64_t org_max  = *vector_max;
+    
+    if (index > org_size) index = org_size;
+    
+    if (org_max == 0) {
+        int max = size + (((size + 7) ^ 7) & 7);
+        acp_ga_t new_ga = acp_malloc(max, acp_query_rank(it.vector.ga));
+        acp_copy(new_ga, ga, size, ACP_HANDLE_NULL);
+        *vector_ga   = new_ga;
+        *vector_size = org_size + size;
+        *vector_max  = max;
+        acp_copy(it.vector.ga, buf, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } else if (org_size + size > org_max) {
+        int max = org_size + size + (((org_size + size + 7) ^ 7) & 7);
+        acp_ga_t new_ga = acp_malloc(max, acp_query_rank(it.vector.ga));
+        acp_copy(new_ga, org_ga, index, ACP_HANDLE_NULL);
+        acp_copy(new_ga + index, ga, size, ACP_HANDLE_NULL);
+       if (index < org_size) acp_copy(new_ga + index + size, org_ga + index, org_size - index, ACP_HANDLE_NULL);
+        *vector_ga   = new_ga;
+        *vector_size = org_size + size;
+        *vector_max  = max;
+        acp_copy(it.vector.ga, buf, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        acp_free(org_ga);
+    } else {
+        int ptr = org_size;
+        acp_handle_t handle = ACP_HANDLE_NULL;
+        while (ptr > index + size) {
+            ptr -= size;
+            handle = acp_copy(org_ga + ptr + size, org_ga + ptr, size, handle);
+        }
+        if (ptr > index)
+            handle = acp_copy(org_ga + index + size, org_ga + index, ptr - index, handle);
+        acp_copy(org_ga + index, ga, size, handle);
+        
+        *vector_size = org_size + size;
+        acp_copy(it.vector.ga + 8, buf + 8, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    }
+    acp_free(buf);
+    return it;
+}
+
+acp_vector_it_t acp_insert_range_vector(acp_vector_it_t it, acp_vector_it_t start, acp_vector_it_t end)
+{
+    if (start.vector.ga != end.vector.ga || start.index >= end.index) return it;
+    return acp_insert_vector(it, start.vector.ga + start.index, end.index - start.index);
+}
+
+void acp_pop_back_vector(acp_vector_t vector, size_t size)
+{
+    acp_ga_t buf = acp_malloc(8, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    void* ptr = acp_query_address(buf);
+    volatile uint64_t* vector_size = (volatile uint64_t*)ptr;
+    
+    acp_copy(buf, vector.ga + 8, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t org_size = *vector_size;
+    *vector_size = (org_size >= size) ? org_size - size : 0;
+    
+    acp_copy(vector.ga + 8, buf, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    acp_free(buf);
+    return;
+}
+
+void acp_push_back_vector(acp_vector_t vector, const acp_ga_t ga, size_t size)
+{
+    acp_ga_t buf = acp_malloc(24, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    volatile uint64_t* vector_max  = (volatile uint64_t*)(ptr + 16);
+    
+    acp_copy(buf, vector.ga, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t org_ga   = *vector_ga;
+    uint64_t org_size = *vector_size;
+    uint64_t org_max  = *vector_max;
+    
+    if (org_max == 0) {
+        int max = size + (((size + 7) ^ 7) & 7);
+        acp_ga_t new_ga = acp_malloc(max, acp_query_rank(vector.ga));
+        acp_copy(new_ga, ga, size, ACP_HANDLE_NULL);
+        *vector_ga   = new_ga;
+        *vector_size = size;
+        *vector_max  = max;
+        acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        if (org_ga != ACP_GA_NULL) acp_free(org_ga);
+    } else if (org_size + size > org_max) {
+        int max = org_size + size + (((org_size + size + 7) ^ 7) & 7);
+        acp_ga_t new_ga = acp_malloc(max, acp_query_rank(vector.ga));
+        acp_copy(new_ga, org_ga, org_size, ACP_HANDLE_NULL);
+        acp_copy(new_ga + org_size, ga, size, ACP_HANDLE_NULL);
+        *vector_ga   = new_ga;
+        *vector_size = org_size + size;
+        *vector_max  = max;
+        acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        acp_free(org_ga);
+    } else {
+        acp_copy(org_ga + org_size, ga, size, ACP_HANDLE_NULL);
+        
+        *vector_size = org_size + size;
+        acp_copy(vector.ga + 8, buf + 8, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    }
+    acp_free(buf);
+    return;
+}
+
+void acp_reserve_vector(acp_vector_t vector, size_t size)
+{
+    size += (((size + 7) & 7) ^ 7);
+    
+    acp_ga_t buf = acp_malloc(24, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    volatile uint64_t* vector_max  = (volatile uint64_t*)(ptr + 16);
+    
+    acp_copy(buf, vector.ga, 24, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t org_ga   = *vector_ga;
+    uint64_t org_size = *vector_size;
+    uint64_t org_max  = *vector_max;
+    
+    if (size > org_max) {
+        int max = size + (((size + 7) ^ 7) & 7);
+        acp_ga_t new_ga = acp_malloc(max, acp_query_rank(vector.ga));
+        if (org_size > 0) acp_copy(new_ga, org_ga, org_size, ACP_HANDLE_NULL);
+        *vector_ga   = new_ga;
+        *vector_max  = max;
+        acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        if (org_max > 0) acp_free(org_ga);
+    }
+    acp_free(buf);
+    return;
+}
+
+size_t acp_size_vector(acp_vector_t vector)
+{
+    acp_ga_t buf = acp_malloc(8, acp_rank());
+    if (buf == ACP_GA_NULL) return 0;
+    void* ptr = acp_query_address(buf);
+    volatile uint64_t* vector_size = (volatile uint64_t*)ptr;
+    
+    acp_copy(buf, vector.ga + 8, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t org_size = *vector_size;
+    
+    acp_free(buf);
+    return (size_t)org_size;
+}
 
 void acp_swap_vector(acp_vector_t vector1, acp_vector_t vector2)
 {
@@ -177,18 +586,18 @@ void acp_swap_vector(acp_vector_t vector1, acp_vector_t vector2)
     
     *vector1_ga = ACP_GA_NULL;
     *vector2_ga = ACP_GA_NULL;
-    *vector1_max = *vector1_size;
-    *vector2_max = *vector2_size;
+    *vector1_max = *vector1_size + (((*vector1_size + 7) ^ 7) & 7);
+    *vector2_max = *vector2_size + (((*vector2_size + 7) ^ 7) & 7);
     
     if (*vector1_size > 0) {
-        *vector1_ga = acp_malloc(*vector1_size, acp_query_rank(vector1.ga));
+        *vector1_ga = acp_malloc(*vector1_max, acp_query_rank(vector1.ga));
         if (*vector1_ga == ACP_GA_NULL) {
             acp_free(buf);
             return;
         }
     }
     if (*vector2_size > 0) {
-        *vector2_ga = acp_malloc(*vector2_size, acp_query_rank(vector2.ga));
+        *vector2_ga = acp_malloc(*vector2_max, acp_query_rank(vector2.ga));
         if (*vector2_ga == ACP_GA_NULL) {
             acp_free(*vector1_ga);
             acp_free(buf);
@@ -211,9 +620,34 @@ void acp_swap_vector(acp_vector_t vector1, acp_vector_t vector2)
     return;
 }
 
-//extern acp_vector_it_t acp_advance_vector_it(acp_vector_it_t it, int n);
-//extern acp_ga_t acp_dereference_vector_it(acp_vector_it_t it);
-//extern int acp_distance_vector_it(acp_vector_it_t first, acp_vector_it_t last);
+acp_vector_it_t acp_advance_vector_it(acp_vector_it_t it, int n)
+{
+    it.index += n;
+    return it;
+}
+
+acp_ga_t acp_dereference_vector_it(acp_vector_it_t it)
+{
+    if (it.index < 0) return ACP_GA_NULL;
+    
+    acp_ga_t buf = acp_malloc(16, acp_rank());
+    if (buf == ACP_GA_NULL) return ACP_GA_NULL;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* vector_ga   = (volatile acp_ga_t*)ptr;
+    volatile uint64_t* vector_size = (volatile uint64_t*)(ptr + 8);
+    
+    acp_copy(buf, it.vector.ga, 16, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t ga = *vector_ga + it.index;
+    acp_free(buf);
+    return ga;
+}
+
+int acp_distance_vector_it(acp_vector_it_t first, acp_vector_it_t last)
+{
+    return last.index - first.index;
+}
 
 /** Deque
  */

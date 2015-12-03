@@ -1253,7 +1253,6 @@ extern "C" {
 extern void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2);
 extern void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end);
 extern acp_ga_t acp_at_vector(acp_vector_t vector, int offset);
-extern acp_vector_it_t acp_back_vector(acp_vector_t vector);
 extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
 extern size_t acp_capacity_vector(acp_vector_t vector);
 
@@ -1321,7 +1320,6 @@ extern int acp_empty_vector(acp_vector_t vector);
 extern acp_vector_it_t acp_end_vector(acp_vector_t vector);
 extern acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size);
 extern acp_vector_it_t acp_erase_range_vector(acp_vector_it_t start, acp_vector_it_t end);
-extern acp_vector_it_t acp_front_vector(acp_vector_t vector);
 extern acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t size);
 extern acp_vector_it_t acp_insert_range_vector(acp_vector_it_t it, acp_vector_it_t start, acp_vector_it_t end);
 extern void acp_pop_back_vector(acp_vector_t vector, size_t size);

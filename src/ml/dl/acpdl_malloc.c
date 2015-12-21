@@ -38,17 +38,18 @@
  *              user memory size = size - 8
  */
 
-#define LLOCK 32
-#define GLOCK 40
-#define HEAD  48
-#define TOP   56
+#define HEAP  16
+#define LLOCK ((HEAP)+32)
+#define GLOCK ((HEAP)+40)
+#define HEAD  ((HEAP)+48)
+#define TOP   ((HEAP)+56)
 
 void iacpdl_init_malloc(void)
 {
     acp_ga_t local_heap;
     volatile uint64_t* tmp;
     
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* initialize locks */
@@ -77,8 +78,8 @@ acp_ga_t acp_malloc(size_t size, int rank)
     volatile uint64_t var;
     volatile uint64_t* tmp;
     
-    global_heap = iacp_query_starter_ga_dl(rank);
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    global_heap = iacp_query_starter_ga_dl(rank) + HEAP;
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* size adjustment to minimum 24B and alignment to 8B boundary */
@@ -224,8 +225,8 @@ void acp_free(acp_ga_t ga)
     
     if (ga == ACP_GA_NULL || (ga & 7) != 0) return;
     
-    global_heap = iacp_query_starter_ga_dl(acp_query_rank(ga));
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    global_heap = iacp_query_starter_ga_dl(acp_query_rank(ga)) + HEAP;
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* acquire locks */
@@ -408,11 +409,12 @@ void acp_free(acp_ga_t ga)
  *      [Size-8:Size-1] sentinel (0 + 3)
  */
 
-#define LLOCK 40
-#define GLOCK 48
-#define HEAD  56
-#define SNTNL 64
-#define TOP   72
+#define HEAP  16
+#define LLOCK ((HEAP)+40)
+#define GLOCK ((HEAP)+48)
+#define HEAD  ((HEAP)+56)
+#define SNTNL ((HEAP)+64)
+#define TOP   ((HEAP)+72)
 
 #define BLOCK_ALLOCATED 3
 #define BLOCK_FREE      5
@@ -424,7 +426,7 @@ void iacpdl_init_malloc(void)
     volatile uint64_t* tmp;
     size_t s;
     
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     s = iacp_starter_memory_size_dl >> 3;
     
@@ -462,8 +464,8 @@ acp_ga_t acp_malloc(size_t size, int rank)
     volatile uint64_t var;
     volatile uint64_t* tmp;
     
-    global_heap = iacp_query_starter_ga_dl(rank);
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    global_heap = iacp_query_starter_ga_dl(rank) + HEAP;
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* size adjustment to minimum 8B and alignment to 8B boundary */
@@ -599,8 +601,8 @@ void acp_free(acp_ga_t ga)
     
     if (ga == ACP_GA_NULL || (ga & 7) != 0) return;
     
-    global_heap = iacp_query_starter_ga_dl(acp_query_rank(ga));
-    local_heap = iacp_query_starter_ga_dl(acp_rank());
+    global_heap = iacp_query_starter_ga_dl(acp_query_rank(ga)) + HEAP;
+    local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
     
     /* acquire locks */

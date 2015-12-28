@@ -32,7 +32,9 @@
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
 /* H.Honda Nov.16 2015 begin */
+#ifdef MPIACP
 #include "mpi.h"
+#endif /* MPIACP */
 /* H.Honda Nov.16 2015 end   */
 
 static uint16_t my_port;
@@ -351,6 +353,7 @@ int acp_init(int* argc, char*** argv)
     char     rhost[ BUFSIZ ] ;
     ///fprintf( stderr, "zero: np, me: %d, %d\n", nprocs_runtime, myrank_runtime ) ;
 ///
+#ifdef MPIACP
     if ( (*argc >= 4) &&
          (strcmp( (*argv)[ 1 ], "--acp-multrun" ) == 0)) {
         char buf[ BUFSIZ ] ;
@@ -405,7 +408,9 @@ int acp_init(int* argc, char*** argv)
         (*argc) -= 3 ;
         (*argv) += 3 ;
 ///
-    } else if (( *argc >= 8) &&
+    } else {
+#endif /* MPIACP */
+    if (( *argc >= 8) &&
                (strcmp( (*argv)[ 1 ], "--acp-options" ) == 0)) {
         MY_RANK     = strtol((*argv)[2], NULL, 0);
         NUM_PROCS   = strtol((*argv)[3], NULL, 0);
@@ -438,9 +443,11 @@ int acp_init(int* argc, char*** argv)
             parent_addr = *(uint32_t *)host->h_addr_list[0];
         }
     }
+#ifdef MPIACP
+    }
+#endif /* MPIACP */
 ///
 ///    fprintf ( stderr, "final: %d: %10d%10u%10d%10u%10u%20x\n", MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr ) ;
-
 /* H.Honda Nov.16 2015 end   */
  
 /* original version

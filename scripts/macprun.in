@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!@PYTHON@
 #
 # Copyright (c) 2014      Kyushu University 
 # Copyright (c) 2014      Institute of Systems, Information Technologies 
@@ -7,7 +7,7 @@
 #
 # This software is released under the BSD License, see LICENSE. 
 #
-# checked with python2.6
+# This script is supported by python2.6, 2.7, 3.3, or 3.4.
 #
 
 import os, sys, socket, re, copy
@@ -17,7 +17,7 @@ REMOTESHELL      = "ssh"
 
 VERSION          = "@VERSION@"
 STARTER_MEMSIZE  = 10240
-PORTID_START     = 45256
+PORTID_START     = 44256
 TASKID           = 100
 LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
 STR_ENVNETWORK   = "ACP_ENVNET"
@@ -31,14 +31,13 @@ STR_ENVTASKID    = "ACP_TASKID"
 STR_PORTFILEBASE = "Portfile"
 STR_NODEFILEBASE = "Nodefile"
 
-DEBUG_MODE       = False    # or True
-DEBUG_LEVEL      = 200    # change to >200
+DEBUG_MODE       = True    # or Frue
+DEBUG_LEVEL      = 100     # change to >200
 ####
 EXECUTE_COMMAND  = True ## False
-#EXECUTE_COMMAND  = False ## True
 ####
 
-OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ], # only for first argument
+OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-np",                   "NPROCS",     "BLKVAL" ],
            [ "--acp-n",               "NPROCS",     "EQVAL"  ],
            [ "--acp-np",              "NPROCS",     "EQVAL"  ],
@@ -65,12 +64,12 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ], # only for first
            [ "--acp-envnet",          "ENVNET",     "EQVAL"  ],
            #
            [ "-h",                    "HELP",       "NONE"   ],
-           [ "-help",                 "HELP",       "NONE"   ], #[ "-h" , "HELP",    "NONE" ],
-           [ "--acp-help",            "HELP",       "NONE"  ],
+           [ "-help",                 "HELP",       "NONE"   ],
+           [ "--acp-help",            "HELP",       "NONE"   ],
            #
            [ "-v",                    "VERSION",    "NONE"   ],
-           [ "-version",              "VERSION",    "NONE"   ], #[ "-v" , "VERSION", "NONE" ],
-           [ "--acp-version",         "VERSION",    "NONE"  ],
+           [ "-version",              "VERSION",    "NONE"   ],
+           [ "--acp-version",         "VERSION",    "NONE"   ],
            #
            [ "--acp-",                "ERROR",      "NONE"   ] ]
 
@@ -101,6 +100,8 @@ class MAcprun:
     #########################################################
     def __init__( self, envnetwork = LST_ENVNETWORK[ 0 ] ):
         self.myname          = os.path.basename( sys.argv[ 0 ] )
+        self.ver_python      = int( sys.version_info[ 0 ] )
+        self.subver_python   = int( sys.version_info[ 1 ] )
         self.starter_memsize = STARTER_MEMSIZE
         self.nprocs_acp      = 1
         self.flg_reset_nprocs_acp = False
@@ -117,6 +118,8 @@ class MAcprun:
         self.flg_localmode   = True
         self.set_envnetwork( envnetwork )
         self.lst_for_gen_lst_lport = { }
+        if (( self.ver_python < 2 ) or (( self.ver_python == 2 ) and ( self.subver_python < 6 ))):
+            sys.exit( "Error: %s requires python (2.6 <= version <= 3.x).\nCurrent version: %s." % (self.myname, sys.version) )
 
     #########################################################
     def set_envnetwork( self, _envnetwork ):
@@ -130,28 +133,23 @@ class MAcprun:
     #########################################################
     def error_not_supported_network( self, envnetwork ):
         #print "Network %s: not supported.\n" % envnetwork
-        print "Network %s: not supported.\n" % envnetwork
+        print( "Network %s: not supported.\n" % envnetwork )
         sys.exit( "Error" )
 
     #########################################################
     def print_help( self ):
-        print "%s [opts] command args" % self.myname
-        print "opts: -np NPROCS                          or --acp-nprocs=NPROCS                      (default: 1)"
-        print "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)"
-        print "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) "
-        print "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE
-        print "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK
-        print "    : --acp-version"
-        print "    : --acp-help"
-        print "    :   all --acp-* options for %s have to be between %s and command." % (self.myname, self.myname)
-        print "    : other --acp-* options are judged as errors."
+        print( "%s [Opts] Inputfile" % self.myname )
+        print( "Opts: -np NPROCS                          or --acp-nprocs=NPROCS                      (default: 1)" )
+        print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
+        print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
+        print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
+        print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : --acp-version" )
+        print( "    : --acp-help" )
+        print( "Memo: 1. Other --acp-* options are errors." )
+        print( "    : 2. All options for %s have to be before inputfile." % self.myname )
         sys.exit( "" )
 
-#    def make_pattern( self ):
-#        self.pats = []
-#        for i in range( len( OPTDEF ) ):
-#            self.pats.append( re.compile( OPTDEF[ i ][ 0 ] ) )
-    
     #########################################################
     def parse_anarg( self, args, pos ): ### private
         #print args[ pos ], args[ pos + 1 ]
@@ -188,13 +186,11 @@ class MAcprun:
 
     #########################################################
     def parse_argv( self ):
-#        self.make_pattern()
         # 
         args = sys.argv
         self.comm_args = []
         self.nodes     = []
         pos = 1    
-#        print args
         try:
             while pos < len(args):
                 flgopt, flgval, optarg, optval, pos = self.parse_anarg( args, pos )
@@ -251,25 +247,26 @@ class MAcprun:
                     self.print_help()
                     sys.stderr.exit( "help:" )
                 elif flgopt == "VERSION":
-                    print "%s : version %s." % (self.myname, VERSION)
+                    print( "%s : version %s." % (self.myname, VERSION) )
                     sys.exit( "" )
                 elif flgopt == "ERROR":
                     raise ErrorInvalidOption( "Argument: invalid" )
                 else:
                     raise ErrorInvalidOption( "Argument: invalid" )
         except ErrorInvalidOption:
-            print "Error: invalid option: %s" % args
+            print("Error: invalid option: %s" % args)
             sys.exit( "" )
         except ErrorInvalidOptionArgument:
-            print "Error: invalid option argument: %s" % args
+            print("Error: invalid option argument: %s" % args)
             sys.exit( "" )
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "opt: ", "NPROCS= ", self.nprocs_acp
-                print "opt: ", "SMEMSZ= ", self.starter_memsize
-                print "opt: ", " NODES= ", self.nodes
-                print "opt: ", "ENVNET= ", self.flg_envnetwork
-                print "opt: ", "COMARG= ", self.comm_args
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print("opt: ", "NPROCS= ", self.nprocs_acp)
+                print("opt: ", "SMEMSZ= ", self.starter_memsize)
+                print("opt: ", " NODES= ", self.nodes)
+                print("opt: ", "ENVNET= ", self.flg_envnetwork)
+                print("opt: ", "COMARG= ", self.comm_args)
 #
     #########################################################
     def set_taskid( self ):
@@ -296,7 +293,7 @@ class MAcprun:
                     self.lst_nodename.append( nodename )
             #
             except RuntimeError:
-                print "%s: error, while processing nodefile %s" % self.myname, self.nodefile
+                print( "%s: error, while processing nodefile %s" % self.myname, self.nodefile )
                 sys.exit( "" )
 
     #########################################################
@@ -309,38 +306,43 @@ class MAcprun:
                 self.lst_nodeip.append( socket.gethostbyname( nodename ) )
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "lst_nodeip:", self.lst_nodeip
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "lst_nodeip:", self.lst_nodeip )
 
     #########################################################
     def mult_nodenames( self ):
         self.lst_lhost    = []
         self.lst_lhostip  = []
         ip = 0
-#        print "nprocs: ", self.nprocs_acp
         while ip < self.nprocs_acp:
             ipmod = ip % len( self.lst_nodename )
             self.lst_lhost.append(   self.lst_nodename[ ipmod ] )
             self.lst_lhostip.append( self.lst_nodeip[   ipmod ] )
-#            print "ip, ipmod: ", ip, ipmod
             ip += 1
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "lst_lhost:",   self.lst_lhost
-                print "lst_lhostip:", self.lst_lhostip
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "lst_lhost:",   self.lst_lhost )
+                print( "lst_lhostip:", self.lst_lhostip )
 
     #########################################################
     def get_array_lport( self ):
         self.lst_lport = []
         for node in range( self.nprocs_acp ):
-#           print "0", node, self.lst_lport
-            if self.lst_for_gen_lst_lport.has_key( self.lst_lhostip[ node ] ):
+            flg = False
+            if self.ver_python == 2:
+                flg = self.lst_for_gen_lst_lport.has_key( self.lst_lhostip[ node ] )
+            elif self.ver_python == 3:
+                flg = self.lst_lhostip[ node ] in self.lst_for_gen_lst_lport
+            else:
+                sys.exit( "Python version error.: %s", sys.version )
+            # 
+            if flg:
                 ip = self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ]
-#               print "1", node, ip, self.lst_lport
                 self.lst_lport.append( ip + 1 )
                 self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ] = ip + 1
             else:
                 self.lst_lport.append( PORTID_START )
-#               print "2", node, "", self.lst_lport
                 self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ] = PORTID_START
 
     #########################################################
@@ -353,7 +355,7 @@ class MAcprun:
         elif ( self.flg_envnetwork == "TOFU"       ) or ( self.flg_envnetwork == "tofu" ):
             self.get_array_rport_rhostip_tofu()
         else:
-            print "Error: %s: Network %s: not supported.\n" % self.myname, self.flg_envnetwork
+            print( "Error: %s: Network %s: not supported.\n" % self.myname, self.flg_envnetwork )
             sys.exit( "" )
 
     #########################################################
@@ -366,14 +368,22 @@ class MAcprun:
             self.lst_rhost.append( "" )
             self.lst_rhostip.append( "" )
         for node in range( self.nprocs_acp ):
-            self.lst_rport[ node ]   = self.lst_lport  [ node / 2 ]
-            self.lst_rhost[ node ]   = self.lst_lhost  [ node / 2 ]
-            self.lst_rhostip[ node ] = self.lst_lhostip[ node / 2 ]
+            if self.ver_python == 2:
+                self.lst_rport[ node ]   = self.lst_lport  [ node / 2 ]
+                self.lst_rhost[ node ]   = self.lst_lhost  [ node / 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node / 2 ]
+            elif self.ver_python == 3:
+                self.lst_rport[ node ]   = self.lst_lport  [ node // 2 ]
+                self.lst_rhost[ node ]   = self.lst_lhost  [ node // 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node // 2 ]
+            else:
+                sys.exit( "%s: python version error.: %s", (self.myname, sys.version) )
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "lst_rpost:",   self.lst_rpost
-                print "lst_rhost:",   self.lst_rhost
-                print "lst_rhostip:", self.lst_rhostip
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "lst_rpost:",   self.lst_rport )
+                print( "lst_rhost:",   self.lst_rhost )
+                print( "lst_rhostip:", self.lst_rhostip )
 
     #########################################################
     def get_array_rport_rhostip_ib( self ):
@@ -389,9 +399,10 @@ class MAcprun:
         self.lst_rhostip.append( self.lst_lhostip[ 0 ] )
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "lst_rpost:",   self.lst_rpost
-                print "lst_rhost:",   self.lst_rhost
-                print "lst_rhostip:", self.lst_rhostip
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "lst_rpost:",   self.lst_rport )
+                print( "lst_rhost:",   self.lst_rhost )
+                print( "lst_rhostip:", self.lst_rhostip )
 
     #########################################################
     def get_array_rport_rhostip_tofu( self ):
@@ -436,7 +447,6 @@ class MAcprun:
             lines = sys.stdin.readlines()
         else:
             filename = self.comm_args[ 0 ]
-#            print "filename: ", filename
             fp = open( filename )
             lines = fp.readlines()
             fp.close
@@ -449,7 +459,8 @@ class MAcprun:
                 self.lines_input.append( str )
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "inputfile: ", self.lines_input
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "inputfile: ", self.lines_input )
 
     #####################################
     def parse_inputfile( self ):
@@ -493,13 +504,15 @@ class MAcprun:
         #
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
-                print "input: ", "num_runtime  = ", self.num_runtime
-                print "input: ", "runtimes     = ", self.runtimes
-                print "input: ", "nprocs_sum   = ", self.nprocs_sum
-                print "input: ", "nprocs       = ", self.nprocs
-                print "input: ", "offsets_rank = ", self.offsets_rank
-                print "input: ", "idruntime    = ", self.idruntime
-                print "input: ", "commands     = ", self.commands
+                print( "In " + sys._getframe().f_code.co_name + "():" )
+                print( "input: ", "num_runtime  = ", self.num_runtime )
+                print( "input: ", "num_runtime  = ", self.num_runtime )
+                print( "input: ", "runtimes     = ", self.runtimes )
+                print( "input: ", "nprocs_sum   = ", self.nprocs_sum )
+                print( "input: ", "nprocs       = ", self.nprocs )
+                print( "input: ", "offsets_rank = ", self.offsets_rank )
+                print( "input: ", "idruntime    = ", self.idruntime )
+                print( "input: ", "commands     = ", self.commands )
     
     #####################################
     def gen_intermediate_files( self ):
@@ -530,26 +543,27 @@ class MAcprun:
 
     #####################################
     def print_intermediate_files( self ):
-        print self.portfile, ":"
+        print( "Intermediate files:" )
+        print( self.portfile + ":" )
         iport = open( self.portfile )
         lines = iport.readlines()
         iport.close()
         for i in range( len(lines) ):
-            print lines[ i ].rstrip()
+            print( lines[ i ].rstrip() )
         for i in range( self.num_runtime ):
-            print self.nodefiles[ i ], ":"
+            print( self.nodefiles[ i ] + ":" )
             iport = open( self.nodefiles[ i ] )
             lines = iport.readlines()
             iport.close()
             for i in range( len(lines) ):
-                print lines[ i ].rstrip()
+                print( lines[ i ].rstrip() )
 
     #####################################
     def gen_runtime_commands( self ):
         self.comms_runtime = []
         for i in range( self.num_runtime ):
             self.comms_runtime.append(
-                        "%s -machinefile %s -np %d %s --mult-runtime %s %d" % \
+                        "%s -machinefile %s -np %d %s --acp-multrun %s %d" % \
                                 ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
                                   self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
             if ( i != (self.num_runtime-1) ):
@@ -584,8 +598,9 @@ if DEBUG_MODE:
 #
 ma.gen_runtime_commands()
 if DEBUG_MODE:
+    print( "Executed commands:" )
     for i in range( len( ma.comms_runtime ) ):
-        print ma.comms_runtime[ i ]
+        print( ma.comms_runtime[ i ] )
 #
 if EXECUTE_COMMAND:
     ma.exec_runtime_commands()

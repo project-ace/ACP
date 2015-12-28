@@ -31,10 +31,52 @@ AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
-AC_CHECK_PROG([RUBY], [ruby], [ruby])
-AX_PROG_RUBY_VERSION([1.8.7], [:], [AC_MSG_ERROR([cannot find ruby ver 1.8.7 or above])])
-AC_PATH_PROG([RUBY], ruby)
-AC_SUBST([RUBY])
+#AC_CHECK_PROG([RUBY], [ruby], [ruby])
+#AX_PROG_RUBY_VERSION([1.8.7], [:], [AC_MSG_ERROR([cannot find ruby ver 1.8.7 or above])])
+#AC_PATH_PROG([RUBY], ruby)
+#AC_SUBST([RUBY])
+
+# for mpiacp
+AC_ARG_WITH(mpi,
+[  --with-mpi             include MPI support [[default=auto]]],
+if test "$withval" = "no"
+then
+  try_mpi=no
+fi,
+try_mpi=yes)
+
+AC_ARG_VAR(MPICC, path to MPI compiler wrapper)
+#AC_ARG_VAR(MPILINK, linker commands for MPI (cross-build))
+
+dnl Check for MPI apparatus?
+if test "$try_mpi" = "yes" ; then
+  if test x"${MPICC}" = x ; then 
+    AC_DEFUN([AC_PROG_MPICC],
+    [AC_CHECK_PROG(HAVE_MPICC,mpicc,yes)])
+
+    AC_PROG_MPICC
+  else
+    HAVE_MPICC="yes"
+  fi
+  if test "x${HAVE_MPICC}" = "xyes" ; then
+    have_mpi="yes"
+    AC_PATH_PROG(MPICC,mpicc)
+#    AC_C_MPI
+  else
+    have_mpi="no"
+  fi
+else
+  have_mpi="no"
+fi
+
+AC_SUBST(have_mpi)
+AM_CONDITIONAL([HAVE_MPICC], [test "$have_mpi" = "yes"])
+
+dnl
+dnl Check for Python.
+dnl
+AM_PATH_PYTHON([2.6],,[:])
+AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # Check to see if building shared libraries
 libtool_build_shared_libs='no'

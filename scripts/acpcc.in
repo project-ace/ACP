@@ -87,6 +87,15 @@ case $COMMAND in
 	acpifort)
 		COMPILER=ifort
 		;;
+	macpcc | macpgcc)
+		COMPILER=mpicc
+		;;
+	macpc++ | macpg++ | macpcxx | macpgxx | macpCC)
+		COMPILER=mpic++
+		;;
+	macpfc)
+		COMPILER=mpifort
+		;;
 esac
 
 while [ $# -ge 1 ]; do

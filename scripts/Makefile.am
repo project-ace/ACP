@@ -10,6 +10,13 @@ acprun: acprun.in
 CLEANFILES = acprun
 EXTRA_DIST = acprun.in
 
+bin_SCRIPTS += macprun
+acprun: macprun.in
+	( cd $(top_builddir) && ./config.status --file=${subdir}/macprun:${subdir}/macprun.in ) \
+	&& chmod 755 macprun
+CLEANFILES = macprun
+EXTRA_DIST = macprun.in
+
 bin_SCRIPTS += acpcc
 acpcc: acpcc.in
 	( cd $(top_builddir) && ./config.status --file=${subdir}/acpcc:${subdir}/acpcc.in ) \
@@ -22,6 +29,13 @@ install-exec-hook-always:
 	(cd $(DESTDIR)$(bindir); rm -f acpgcc; $(LN_S) acpcc acpgcc)
 	(cd $(DESTDIR)$(bindir); rm -f acpc++; $(LN_S) acpcc acpc++)
 	(cd $(DESTDIR)$(bindir); rm -f acpcxx; $(LN_S) acpcc acpcxx)
+#	(cd $(DESTDIR)$(bindir); rm -f macpcc; $(LN_S) acpcc macpcc)
+#	(cd $(DESTDIR)$(bindir); rm -f macpgcc; $(LN_S) acpcc macpgcc)
+#	(cd $(DESTDIR)$(bindir); rm -f macpc++; $(LN_S) acpcc macpc++)
+#	(cd $(DESTDIR)$(bindir); rm -f macpg++; $(LN_S) acpcc macpg++)
+#	(cd $(DESTDIR)$(bindir); rm -f macpcxx; $(LN_S) acpcc macpcxx)
+#	(cd $(DESTDIR)$(bindir); rm -f macpgxx; $(LN_S) acpcc macpgxx)
+#	(cd $(DESTDIR)$(bindir); rm -f macpCC; $(LN_S) acpcc macpCC)
 
 uninstall-local-always:
 	rm -f $(DESTDIR)$(bindir)/acpgcc \

@@ -16,20 +16,29 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <unistd.h> /* write() */
 #include <string.h> /* memset() */
 #include <stdlib.h> /* malloc() */
 #include <pthread.h>
 #include <errno.h>
 #include <infiniband/verbs.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"
 /* H.Honda Nov.16 2015 begin */
 #ifdef MPIACP
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <poll.h>
+
 #include "mpi.h"
 #endif /* MPIACP */
 /* H.Honda Nov.16 2015 end   */
@@ -259,7 +268,6 @@ static int recv_rrm_flag = true; /* get enable recv rrm falg */
 static int executed_acp_init = false; /* check if acp_init executed or not. */ 
 
 static pthread_t comm_thread_id; /* communcation thread ID */
-
 
 void acp_abort(const char *str){
   
@@ -4474,11 +4482,9 @@ int acp_init(int *argc, char ***argv){
         dst_port         = rport ;
         dst_addr         = inet_addr( rhost );
         if ( dst_addr == 0xffffffff ) {
-            fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
-            exit( 1 ) ;
-            ///struct hostent *host;
-            ///if ((host = gethostbyname( rhost )) == NULL) { return -1 ; }
-            ///dst_addr     = *(uint32_t *)host->h_addr_list[0];
+            struct hostent *host;
+            if ((host = gethostbyname( rhost )) == NULL) { return -1 ; }
+            dst_addr     = *(uint32_t *)host->h_addr_list[0];
         }
         (*argv)[3] = (*argv)[0];
         (*argc) -= 3 ;
@@ -4494,11 +4500,9 @@ int acp_init(int *argc, char ***argv){
             dst_port     = strtol((*argv)[7], NULL, 0);
             dst_addr     = inet_addr((*argv)[8]);
             if ( dst_addr == 0xffffffff ) {
-                fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
-                exit( 1 ) ;
-                ///struct hostent *host;
-                ///if ((host = gethostbyname((*argv)[8])) == NULL) { return -1 ; }
-                ///dst_addr = *(uint32_t *)host->h_addr_list[0];
+                struct hostent *host;
+                if ((host = gethostbyname((*argv)[8])) == NULL) { return -1 ; }
+                dst_addr = *(uint32_t *)host->h_addr_list[0];
             }
             (*argv)[8] = (*argv)[0];
             (*argc) -= 8 ;
@@ -4512,11 +4516,9 @@ int acp_init(int *argc, char ***argv){
             dst_port     = strtol(getenv("ACP_RPORT"),           NULL, 0);
             dst_addr     = inet_addr(getenv("ACP_RHOST"));
             if ( dst_addr == 0xffffffff ) {
-                fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
-                exit( 1 ) ;
-                ///struct hostent *host;
-                ///if ((host = gethostbyname(getenv("ACP_RHOST"))) == NULL) { return -1 ; }
-                ///dst_addr = *(uint32_t *)host->h_addr_list[0];
+                struct hostent *host;
+                if ((host = gethostbyname(getenv("ACP_RHOST"))) == NULL) { return -1 ; }
+                dst_addr = *(uint32_t *)host->h_addr_list[0];
             }
         }
 #ifdef MPIACP

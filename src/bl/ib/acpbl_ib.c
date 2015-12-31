@@ -28,6 +28,11 @@
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"
+/* H.Honda Nov.16 2015 begin */
+#ifdef MPIACP
+#include "mpi.h"
+#endif /* MPIACP */
+/* H.Honda Nov.16 2015 end   */
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -4409,20 +4414,118 @@ exit:
 }
 
 int acp_init(int *argc, char ***argv){
-    
     int rc; /* return code */
+
+/* H.Honda Nov.16 2015 begin */
+    ///int myrank, nprocs ;
+    int      rank, offset_rank,   nprocs,   rank_runtime, size_smem, myrank_runtime, nprocs_runtime ;
+    int64_t  rank64, offset_rank64, nprocs64, rank_runtime64, size_smem64 ;
+    uint64_t lport64, rport64, taskid64 ;
+    uint32_t taskid ;
+    uint16_t lport, rport ;
+    char     rhost[ BUFSIZ ] ;
+    ///fprintf( stderr, "zero: np, me: %d, %d\n", nprocs_runtime, myrank_runtime ) ;
     
     if (executed_acp_init == true) {
         return 0;
     }
+#ifdef MPIACP
+    if ((*argc >= 4) && (strcmp( (*argv)[ 1 ], "--acp-multrun" ) == 0)) {
+        char buf[ BUFSIZ ] ;
+        char *filename = strdup( (*argv)[ 2 ] ) ;
+        offset_rank = atoi( (*argv)[ 3 ] ) ;
+///
+        MPI_Comm_rank( MPI_COMM_WORLD, &myrank_runtime ) ;
+        MPI_Comm_size( MPI_COMM_WORLD, &nprocs_runtime ) ;
+        ///fprintf( stderr, "first: np, me, offset: %d, %d, %d\n", nprocs_runtime, myrank_runtime, offset_rank ) ;
+        {
+            int  i ;
+            FILE *fp = fopen( filename, "r" ) ;
+            if ( fp == (FILE *)NULL ) {
+               fprintf( stderr, "File: %s :open error:\n", filename ) ;
+               exit( 1 ) ;
+            }
+            i = 0 ;
+            while( fgets( buf, BUFSIZ, fp ) != NULL ) {
+                ///fprintf ( stderr, "%4d%4d : buf %s\n", offset_rank, myrank_runtime, buf ) ;
+                if ( i >= (myrank_runtime + offset_rank)) {
+                    break ;
+                }
+                i++ ;
+            }
+            free( filename ) ;
+        }
+        sscanf( buf, "%ld %ld %lu %lu %s %lu %ld",  &rank64, &nprocs64, &lport64, &rport64, rhost, &taskid64, &size_smem64 ) ;
+        ///fprintf ( stderr, "read: %s => read: %d%d: %4d%4d%10lu%10lu %s %10lu%10ld\n",
+        ///                  buf, myrank_runtime, offset_rank, rank64, nprocs64, lport64, rport64, rhost, taskid64, size_smem64 ) ;
+        rank                = ( int ) rank64 ;
+        nprocs              = ( int ) nprocs64 ;
+        lport               = ( uint16_t ) lport64 ;
+        rport               = ( uint16_t ) rport64 ;
+        taskid              = ( uint32_t ) taskid64 ;
+        size_smem           = ( int ) size_smem64 ;
+        ///fprintf ( stderr, "rank: %6d%6d:%6d%6d:%7u%7u %10u%10ld   %s\n",
+        ///                  myrank_runtime, offset_rank, rank, nprocs, lport, rport, taskid, size_smem, rhost ) ;
+        acp_myrank       = offset_rank + myrank_runtime ;
+        acp_numprocs     = nprocs ;
+        ///TASKID        = taskid ;
+        acp_smsize       = size_smem ;
+        my_port          = lport ;
+        dst_port         = rport ;
+        dst_addr         = inet_addr( rhost );
+        if ( dst_addr == 0xffffffff ) {
+            fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
+            exit( 1 ) ;
+            ///struct hostent *host;
+            ///if ((host = gethostbyname( rhost )) == NULL) { return -1 ; }
+            ///dst_addr     = *(uint32_t *)host->h_addr_list[0];
+        }
+        (*argv)[3] = (*argv)[0];
+        (*argc) -= 3 ;
+        (*argv) += 3 ;
+    } else {
+#endif /* MPIACP */
+        if (( *argc >= 8) && (strcmp( (*argv)[ 1 ], "--acp-options" ) == 0)) {
+            acp_myrank   = strtol((*argv)[2], NULL, 0);
+            acp_numprocs = strtol((*argv)[3], NULL, 0);
+            ///TASKID    = strtol((*argv)[4], NULL, 0);
+            acp_smsize   = strtol((*argv)[5], NULL, 0);
+            my_port      = strtol((*argv)[6], NULL, 0);
+            dst_port     = strtol((*argv)[7], NULL, 0);
+            dst_addr     = inet_addr((*argv)[8]);
+            if ( dst_addr == 0xffffffff ) {
+                fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
+                exit( 1 ) ;
+                ///struct hostent *host;
+                ///if ((host = gethostbyname((*argv)[8])) == NULL) { return -1 ; }
+                ///dst_addr = *(uint32_t *)host->h_addr_list[0];
+            }
+            (*argv)[8] = (*argv)[0];
+            (*argc) -= 8 ;
+            (*argv) += 8 ;
+        } else {
+            acp_myrank   = strtol(getenv("ACP_MYRANK"),          NULL ,0);
+            acp_numprocs = strtol(getenv("ACP_NUMPROCS"),        NULL, 0);
+            ///TASKID    = strtol(getenv("ACP_TASKID"),          NULL, 0);
+            acp_smsize   = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
+            my_port      = strtol(getenv("ACP_LPORT"),           NULL, 0);
+            dst_port     = strtol(getenv("ACP_RPORT"),           NULL, 0);
+            dst_addr     = inet_addr(getenv("ACP_RHOST"));
+            if ( dst_addr == 0xffffffff ) {
+                fprintf(stderr, "acp_init: input ipaddress:\n" ) ;
+                exit( 1 ) ;
+                ///struct hostent *host;
+                ///if ((host = gethostbyname(getenv("ACP_RHOST"))) == NULL) { return -1 ; }
+                ///dst_addr = *(uint32_t *)host->h_addr_list[0];
+            }
+        }
+#ifdef MPIACP
+    }
+#endif /* MPIACP */
+///    fprintf ( stderr, "final: %d: %10d%10u%10d%10u%10u%20x\n",
+///                      acp_myport, acp_numport, 100, acp_smsize, my_port, dst_port, dst_addr ) ;
+/* H.Honda Nov.16 2015 end   */
     
-    /* set acp variables from enviromnent one. */
-    acp_myrank = strtol(getenv("ACP_MYRANK"), NULL ,0);
-    acp_numprocs = strtol(getenv("ACP_NUMPROCS"), NULL, 0);
-    acp_smsize = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
-    my_port = strtol(getenv("ACP_LPORT"), NULL, 0);
-    dst_port = strtol(getenv("ACP_RPORT"), NULL, 0);
-    dst_addr = inet_addr(getenv("ACP_RHOST"));
     
     /* print acp_init arguments. */
 #ifdef DEBUG

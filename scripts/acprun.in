@@ -289,6 +289,12 @@ class Acprun:
                 print( "opt: COMARG = %s" % self.comm_args )
 #
     #########################################################
+    def set_nprocs_acp( self ):
+        self.lst_nprocs_acp = []
+        for i in range( self.nprocs ):
+            self.lst_nprocs_acp.append( self.nprocs )
+
+    #########################################################
     def set_taskid( self ):
         self.lst_taskid = []
         for i in range( self.nprocs ):
@@ -499,6 +505,7 @@ if ( acprun.flg_multrun ):
     acprun.read_ports_ipaddresses_from_file()
 else:
     # Normal acprun
+    acprun.set_nprocs_acp()
     acprun.set_taskid()
     acprun.read_nodenames()
     acprun.mult_nodenames()
@@ -511,9 +518,9 @@ if DEBUG_MODE:
     for i in range( len( acprun.comms_ssh )-1 ):
         print( acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
     if ( acprun.flg_multrun ):
-        print( acprun.myname + ":" + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
+        print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
     else:
-        print( acprun.myname + ":" + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+        print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
 #
 if EXECUTE_COMMAND:
     acprun.exec_ssh_commands()

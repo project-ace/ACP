@@ -31,10 +31,10 @@ STR_ENVTASKID    = "ACP_TASKID"
 STR_PORTFILEBASE = "Portfile"
 STR_NODEFILEBASE = "Nodefile"
 
-DEBUG_MODE       = True    # or Frue
-DEBUG_LEVEL      = 100     # change to >200
+DEBUG_MODE       = True  ## or Frue
+DEBUG_LEVEL      = 100   ## change to >200
 ####
-EXECUTE_COMMAND  = True ## False
+EXECUTE_COMMAND  = True  ## False
 ####
 
 OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
@@ -103,8 +103,10 @@ class MAcprun:
         self.ver_python      = int( sys.version_info[ 0 ] )
         self.subver_python   = int( sys.version_info[ 1 ] )
         self.starter_memsize = STARTER_MEMSIZE
-        self.nprocs_acp      = 1
-        self.flg_reset_nprocs_acp = False
+        self.nprocs_total    = 0
+        self.nprocs_acp      = 0
+        self.nprocs_mpi      = 0
+        self.flg_reset_nprocs_total = False
         self.lst_taskid      = [ TASKID ]
         self.nodefile        = ""
         self.nodes           = []
@@ -205,12 +207,12 @@ class MAcprun:
                         pos += 1
                     break
                 elif flgopt == "NPROCS":
-                    self.flg_reset_nprocs_acp = True
+                    self.flg_reset_nprocs_total = True
                     if   flgval == "BLKVAL":
-                        self.nprocs_acp      = int( optarg )
+                        self.nprocs_total      = int( optarg )
                     elif flgval == "EQVAL":
-                        self.nprocs_acp      = int( optval )
-                    if self.nprocs_acp      <= 0:
+                        self.nprocs_total      = int( optval )
+                    if self.nprocs_total      <= 0:
                         raise ErrorInvalidOptionArgument( "Argument: np <= 0" )
                 elif flgopt == "STARTERMEM":
                     if   flgval == "BLKVAL":
@@ -262,7 +264,7 @@ class MAcprun:
         if DEBUG_MODE:
             if DEBUG_LEVEL > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
-                print("opt: ", "NPROCS= ", self.nprocs_acp)
+                print("opt: ", "NPROCS= ", self.nprocs_total)
                 print("opt: ", "SMEMSZ= ", self.starter_memsize)
                 print("opt: ", " NODES= ", self.nodes)
                 print("opt: ", "ENVNET= ", self.flg_envnetwork)
@@ -271,14 +273,14 @@ class MAcprun:
     #########################################################
     def set_taskid( self ):
         self.lst_taskid = []
-        for i in range( self.nprocs_acp ):
+        for i in range( self.nprocs_total ):
             self.lst_taskid.append( TASKID )
 
     #########################################################
     def read_nodenames( self ):
         self.lst_nodename = []
         if ( len( self.nodefile ) <= 0 ):
-            for i in range( self.nprocs_acp ):
+            for i in range( self.nprocs_total ):
                 self.lst_nodename.append( "localhost" )
         else:
             try:
@@ -314,7 +316,7 @@ class MAcprun:
         self.lst_lhost    = []
         self.lst_lhostip  = []
         ip = 0
-        while ip < self.nprocs_acp:
+        while ip < self.nprocs_total:
             ipmod = ip % len( self.lst_nodename )
             self.lst_lhost.append(   self.lst_nodename[ ipmod ] )
             self.lst_lhostip.append( self.lst_nodeip[   ipmod ] )
@@ -328,7 +330,7 @@ class MAcprun:
     #########################################################
     def get_array_lport( self ):
         self.lst_lport = []
-        for node in range( self.nprocs_acp ):
+        for node in range( self.nprocs_total ):
             flg = False
             if self.ver_python == 2:
                 flg = self.lst_for_gen_lst_lport.has_key( self.lst_lhostip[ node ] )
@@ -363,11 +365,11 @@ class MAcprun:
         self.lst_rport   = []
         self.lst_rhost   = []
         self.lst_rhostip = []
-        for i in range( self.nprocs_acp ):
+        for i in range( self.nprocs_total ):
             self.lst_rport.append( 0 )
             self.lst_rhost.append( "" )
             self.lst_rhostip.append( "" )
-        for node in range( self.nprocs_acp ):
+        for node in range( self.nprocs_total ):
             if self.ver_python == 2:
                 self.lst_rport[ node ]   = self.lst_lport  [ node / 2 ]
                 self.lst_rhost[ node ]   = self.lst_lhost  [ node / 2 ]
@@ -390,7 +392,7 @@ class MAcprun:
         self.lst_rport   = []
         self.lst_rhost   = []
         self.lst_rhostip = []
-        for node in range( self.nprocs_acp-1 ):
+        for node in range( self.nprocs_total-1 ):
             self.lst_rport.append(   self.lst_lport  [ node + 1 ] )
             self.lst_rhost.append(   self.lst_lhost  [ node + 1 ] )
             self.lst_rhostip.append( self.lst_lhostip[ node + 1 ] )
@@ -407,36 +409,6 @@ class MAcprun:
     #########################################################
     def get_array_rport_rhostip_tofu( self ):
         error_not_supported_network( self.flg_envnetwork )
-
-    #########################################################
-    def gen_ssh_commands( self ):
-        self.comms_ssh = []
-        lcomm = ""
-        for ip in range( len(self.comm_args) ):
-            lcomm = lcomm + " " + self.comm_args[ ip ]
-        for ip in range( self.nprocs_acp ):
-            comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
-                   ( self.cwd, STR_ENVMYRANK, ip,                           \
-                     STR_ENVNPROCS, self.nprocs_acp,                  \
-                     STR_ENVTASKID, self.lst_taskid[ ip ],        \
-                     STR_ENVLPORT,  self.lst_lport [ ip ],        \
-                     STR_ENVRPORT,  self.lst_rport [ ip ],        \
-                     STR_ENVRHOST,  self.lst_rhostip[ ip ],       \
-                     STR_ENVSMSIZE, self.starter_memsize,   lcomm )
-            if (not self.flg_localmode):
-                #comm = "ssh " + self.[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                #comm = REMOTESHELL + " " + self.[ ip ] + " \"" + comm + "\""
-                comm = REMOTESHELL + " " + self.lst_lhostip[ ip ] + " \"" + comm + "\""
-            if ip == (self.nprocs_acp-1):
-                comm = comm + "\n"
-            else:
-                comm = comm + " &"
-            self.comms_ssh.append( comm )
-
-    #########################################################
-    def exec_ssh_commands( self ):
-        for ip in range( self.nprocs_acp ):
-            os.system( self.comms_ssh[ ip ] )
 
     ###############################################################################
     ###############################################################################
@@ -473,24 +445,26 @@ class MAcprun:
             self.runtimes.append( self.lines_input[ il ] )
             il += 1
         # 
-        self.nprocs_sum = 0
+        self.nprocs_mpi = 0
         self.nprocs = []
         self.offsets_rank = []
         for i in range( self.num_runtime ):
             self.nprocs.append( int(self.lines_input[ il ]) )
-            self.nprocs_sum += self.nprocs[ i ]
+            self.nprocs_mpi += self.nprocs[ i ]
             if ( i == 0 ):
                 self.offsets_rank.append( 0 )
             else:
                 self.offsets_rank.append( self.nprocs[ i - 1 ] + self.offsets_rank[ i - 1 ] )
             il += 1
         #
-        if (self.flg_reset_nprocs_acp and (self.nprocs_sum > self.nprocs_acp)):
+        if (self.flg_reset_nprocs_total and (self.nprocs_mpi > self.nprocs_total)):
             str = "Error: %s: Inputfile total nprocs > Argument nprocs: " % self.myname + \
-            "%s => %d > %d" % (self.nprocs, self.nprocs_sum, self.nprocs_acp)
+            "%s => %d > %d" % (self.nprocs, self.nprocs_mpi, self.nprocs_total)
             sys.exit( str )
-        if ( self.flg_reset_nprocs_acp == False ):
-            self.nprocs_acp = self.nprocs_sum
+        if ( self.flg_reset_nprocs_total == False ):
+            self.nprocs_total = self.nprocs_mpi
+        #
+        self.nprocs_acp = self.nprocs_total - self.nprocs_mpi
         #
         self.idruntime = []
         for i in range( self.num_runtime ):
@@ -506,9 +480,9 @@ class MAcprun:
             if DEBUG_LEVEL > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "input: ", "num_runtime  = ", self.num_runtime )
-                print( "input: ", "num_runtime  = ", self.num_runtime )
                 print( "input: ", "runtimes     = ", self.runtimes )
-                print( "input: ", "nprocs_sum   = ", self.nprocs_sum )
+                print( "input: ", "nprocs_mpi   = ", self.nprocs_mpi )
+                print( "input: ", "nprocs_acp   = ", self.nprocs_acp )
                 print( "input: ", "nprocs       = ", self.nprocs )
                 print( "input: ", "offsets_rank = ", self.offsets_rank )
                 print( "input: ", "idruntime    = ", self.idruntime )
@@ -524,10 +498,10 @@ class MAcprun:
         #
         # portfile
         oport = open( self.portfile, "w" )
-        for ip in range( self.nprocs_acp ):
+        for ip in range( self.nprocs_total ):
             str = "%10d%10d%20s%20s%20s%10d%10d    %s %s\n" % \
-                 ( ip, self.nprocs_acp, \
-                   self.lst_lport[ ip ],  self.lst_rport[ ip ], self.lst_rhost[ ip ], \
+                 ( ip, self.nprocs_total, \
+                   self.lst_lport[ ip ],  self.lst_rport[ ip ], self.lst_rhostip[ ip ], \
                    self.lst_taskid[ ip ], self.starter_memsize, self.lst_lhost[ ip ], self.lst_lhostip[ ip ] )
             oport.write( str )
         oport.close()
@@ -562,8 +536,15 @@ class MAcprun:
     def gen_runtime_commands( self ):
         self.comms_runtime = []
         for i in range( self.num_runtime ):
-            self.comms_runtime.append(
-                        "%s -machinefile %s -np %d %s --acp-multrun %s %d" % \
+            #print( "str: %s, %s" % (self.runtimes[ i ][ 0:6 ], self.runtimes[ i ][ 0:6 ] == "acprun") )
+            if ( self.runtimes[ i ][ 0:6 ] == "acprun" ):
+                self.comms_runtime.append(
+                                "%s -multrun -machinefile %s -np %d -portfile %s -offsetrank %d %s" % \
+                                ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
+                                  self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+            else:
+                self.comms_runtime.append(
+                                "%s -machinefile %s -np %d %s --acp-multrun %s %d" % \
                                 ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
                                   self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
             if ( i != (self.num_runtime-1) ):
@@ -573,6 +554,42 @@ class MAcprun:
     def exec_runtime_commands( self ):
         for i in range( self.num_runtime ):
             os.system( self.comms_runtime[ i ] )
+
+    #########################################################
+    #########################################################
+    #########################################################
+    def gen_ssh_commands( self ):
+        self.comms_ssh = []
+        lcomm = ""
+        for ip in range( len(self.comm_args) ):
+            lcomm = lcomm + " " + self.comm_args[ ip ]
+        for ip in range( self.nprocs_total ):
+            comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
+                   ( self.cwd, STR_ENVMYRANK, ip,                           \
+                     STR_ENVNPROCS, self.nprocs_total,                  \
+                     STR_ENVTASKID, self.lst_taskid[ ip ],        \
+                     STR_ENVLPORT,  self.lst_lport [ ip ],        \
+                     STR_ENVRPORT,  self.lst_rport [ ip ],        \
+                     STR_ENVRHOST,  self.lst_rhostip[ ip ],       \
+                     STR_ENVSMSIZE, self.starter_memsize,   lcomm )
+            if (not self.flg_localmode):
+                #comm = "ssh " + self.[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
+                #comm = REMOTESHELL + " " + self.[ ip ] + " \"" + comm + "\""
+                comm = REMOTESHELL + " " + self.lst_lhostip[ ip ] + " \"" + comm + "\""
+            if ip == (self.nprocs_total-1):
+                comm = comm + "\n"
+            else:
+                comm = comm + " &"
+            self.comms_ssh.append( comm )
+        #
+        #if DEBUG_MODE:
+        #    for i in range( len( self.comms_ssh ) ):
+        #        print( "%s" % self.comms_ssh[ i ] )
+#
+    #########################################################
+    def exec_ssh_commands( self ):
+        for ip in range( self.nprocs_total ):
+            os.system( self.comms_ssh[ ip ] )
 
 ###############################################################################
 ###############################################################################
@@ -591,6 +608,7 @@ ma.resolv_nodenames()
 ma.mult_nodenames()
 ma.get_array_lport()
 ma.get_array_rport_rhostip()
+ma.gen_ssh_commands()
 #
 ma.gen_intermediate_files()
 if DEBUG_MODE:

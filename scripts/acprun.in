@@ -16,8 +16,8 @@ ENVNETWORK       = "@NETDEV@"
 REMOTESHELL      = "ssh"
 
 VERSION          = "@VERSION@"
-STARTER_MEMSIZE  = 2048
-PORTID_START     = 55256
+STARTER_MEMSIZE  = 10240
+PORTID_START     = 44256
 TASKID           = 100
 LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
 STR_ENVNETWORK   = "ACP_ENVNET"
@@ -30,9 +30,9 @@ STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
 STR_ENVTASKID    = "ACP_TASKID"
 
 DEBUG_MODE       = True   # or Frue
-DEBUG_LEVEL      = 1000    # change to >200
+DEBUG_LEVEL      = 100    # change to >200
 ####
-EXECUTE_COMMAND  = True ## False
+EXECUTE_COMMAND  = True  ## False
 ####
 
 OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
@@ -57,13 +57,20 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "--acp-node",            "NODES",      "EQVAL"  ],
            #
            [ "-net",                  "ENVNET",     "BLKVAL" ],
-           [ "-dev",                  "ENVNET",     "BLKVAL" ],
            [ "-envnet",               "ENVNET",     "BLKVAL" ],
-           [ "-netdev",               "ENVNET",     "BLKVAL" ],
            [ "--acp-net",             "ENVNET",     "EQVAL"  ],
-           [ "--acp-dev",             "ENVNET",     "EQVAL"  ],
            [ "--acp-envnet",          "ENVNET",     "EQVAL"  ],
-           [ "--acp-netdev",          "ENVNET",     "EQVAL"  ],
+           #
+           [ "-mult",                 "MULTRUN",    "NONE"   ],
+           [ "-multrun",              "MULTRUN",    "NONE"   ],
+           [ "--acp-mult",            "MULTRUN",    "NONE"   ],
+           [ "--acp-multrun",         "MULTRUN",    "NONE"   ],
+           #
+           [ "-portfile",             "PORTFILE",   "BLKVAL" ],
+           [ "--acp-portfile",        "PORTFILE",   "EQVAL"  ],
+           #
+           [ "-offsetrank",           "OFFSETRANK", "BLKVAL" ],
+           [ "--acp-offsetrank",      "OFFSETRANK", "EQVAL"  ],
            #
            [ "-h",                    "HELP",       "NONE"   ],
            [ "-help",                 "HELP",       "NONE"   ],
@@ -105,9 +112,12 @@ class Acprun:
         self.ver_python      = int( sys.version_info[ 0 ] )
         self.subver_python   = int( sys.version_info[ 1 ] )
         self.starter_memsize = STARTER_MEMSIZE
+        self.flg_multrun     = False
         self.nprocs          = 1
         self.lst_taskid      = [ TASKID ]
         self.nodefile        = ""
+        self.portfile        = ""
+        self.offsetrank      = 0
         self.nodes           = []
         self.cwd             = os.getcwd()
         self.lst_lport       = PORTID_START
@@ -141,10 +151,14 @@ class Acprun:
         print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
         print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
         print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -multrun                            or --acp-multrun                             (default: False)" )
+        print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
+        print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
         print( "    : --acp-version" )
         print( "    : --acp-help" )
         print( "Memo: 1. Other --acp-* options are errors." )
         print( "    : 2. All options for %s have to be before inputfile." % self.myname )
+        print( "    : 3. If -multrun option is used, ports and ipaddresses are determined from node and port files." )
         sys.exit( "" )
 
     #########################################################
@@ -237,6 +251,22 @@ class Acprun:
                         self.flg_envnetwork  = optval
                     if self.flg_envnetwork  == "":
                         raise ErrorInvalidOptionArgument( "Argument: ENVNET value is null" )
+                elif flgopt == "MULTRUN":
+                    self.flg_multrun         = True
+                elif flgopt == "PORTFILE":
+                    if   flgval == "BLKVAL":
+                        self.portfile        = optarg
+                    elif flgval == "EQVAL":
+                        self.portfile        = optval
+                    if self.portfile == "":
+                        raise ErrorInvalidOptionArgument( "Argument: PORTFILE value is null" )
+                elif flgopt == "OFFSETRANK":
+                    if   flgval == "BLKVAL":
+                        self.offsetrank      = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.offsetrank      = int( optval )
+                    if self.flg_envnetwork  == "":
+                        raise ErrorInvalidOptionArgument( "Argument: OFFSETRANK value is invalid" )
                 elif flgopt == "HELP":
                     self.print_help()
                     sys.stderr.exit( "help:" )
@@ -380,6 +410,38 @@ class Acprun:
         error_not_supported_network( self.flg_envnetwork )
 
     #########################################################
+    def read_ports_ipaddresses_from_file( self ):
+        filename = self.portfile
+        rport    = open( filename, "r" )
+        rlines   = rport.readlines()
+        rport.close()
+        lines            = []
+        for i in range( len( rlines ) ):
+            lines.append( rlines[ i ].rstrip().split() )
+        #
+        self.lst_nprocs_acp = []
+        self.lst_taskid     = []
+        self.lst_lport      = []
+        self.lst_rport      = []
+        self.lst_rhostip    = []
+        self.lst_lhostip    = []
+        for i in range( len( lines ) ):
+            self.lst_nprocs_acp.append( int( lines[ i ][ 1 ] ) )
+            self.lst_taskid.append(     int( lines[ i ][ 5 ] ) )
+            self.lst_lport.append(      int( lines[ i ][ 2 ] ) )
+            self.lst_rport.append(      int( lines[ i ][ 3 ] ) )
+            self.lst_rhostip.append(         lines[ i ][ 4 ]   )
+            self.lst_lhostip.append(         lines[ i ][ 8 ]   )
+        if DEBUG_MODE:
+            if DEBUG_LEVEL > 200:
+                print( "lst_nprocs: %s"  % self.lst_nprocs_acp )
+                print( "lst_taskid: %s"  % self.lst_taskid )
+                print( "lst_lport: %s"   % self.lst_lport )
+                print( "lst_rport: %s"   % self.lst_rport )
+                print( "lst_rhostip: %s" % self.lst_rhostip )
+                print( "lst_lhostip: %s" % self.lst_lhostip )
+
+    #########################################################
     def gen_ssh_commands( self ):
         self.comms_ssh = []
         self.sepcomms_ssh = []
@@ -389,7 +451,7 @@ class Acprun:
         for ip in range( self.nprocs ):
             comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
                    ( self.cwd, STR_ENVMYRANK, ip,                           \
-                               STR_ENVNPROCS, self.nprocs,                  \
+                               STR_ENVNPROCS, self.lst_nprocs_acp[ ip ],    \
                                STR_ENVTASKID, self.lst_taskid[ ip ],        \
                                STR_ENVLPORT,  self.lst_lport [ ip ],        \
                                STR_ENVRPORT,  self.lst_rport [ ip ],        \
@@ -409,7 +471,10 @@ class Acprun:
             comm = shlex.split( self.comms_ssh[ ip ] )
             subprocess.Popen( comm )                             # background
         comm = shlex.split( self.comms_ssh[ self.nprocs-1 ] )
-        subprocess.call( comm )                                  # foreground
+        if ( self.flg_multrun ):
+            subprocess.Popen( comm )                             # foreground
+        else:
+            subprocess.call( comm )                              # foreground
 
 ###############################################################################
 ###############################################################################
@@ -429,17 +494,26 @@ if ( len( acprun.nodefile ) > 0 ):
     if (not os.path.isfile( acprun.nodefile )):
         sys.exit( "Error: %s: could not open file : %s" % acprun.myname, acprun.nodefile )
 #
-acprun.set_taskid()
-acprun.read_nodenames()
-acprun.mult_nodenames()
-acprun.resolv_nodenames()
-acprun.get_array_lport()
-acprun.get_array_rport_rhostip()
+if ( acprun.flg_multrun ):
+    # Called from macprun
+    acprun.read_ports_ipaddresses_from_file()
+else:
+    # Normal acprun
+    acprun.set_taskid()
+    acprun.read_nodenames()
+    acprun.mult_nodenames()
+    acprun.resolv_nodenames()
+    acprun.get_array_lport()
+    acprun.get_array_rport_rhostip()
+#
 acprun.gen_ssh_commands()
 if DEBUG_MODE:
     for i in range( len( acprun.comms_ssh )-1 ):
-        print( acprun.comms_ssh[ i ] + " &" )
-    print( acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+        print( acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
+    if ( acprun.flg_multrun ):
+        print( acprun.myname + ":" + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
+    else:
+        print( acprun.myname + ":" + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
 #
 if EXECUTE_COMMAND:
     acprun.exec_ssh_commands()

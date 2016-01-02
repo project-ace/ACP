@@ -28,7 +28,7 @@
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"
-/* H.Honda Nov.16 2015 begin */
+/* H.Honda Dec.31 2015 begin */
 #ifdef MPIACP
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,10 +38,9 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <poll.h>
-
 #include "mpi.h"
 #endif /* MPIACP */
-/* H.Honda Nov.16 2015 end   */
+/* H.Honda Dec.31 2015 end   */
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -4424,7 +4423,7 @@ exit:
 int acp_init(int *argc, char ***argv){
     int rc; /* return code */
 
-/* H.Honda Nov.16 2015 begin */
+/* H.Honda Dec.31 2015 begin */
     ///int myrank, nprocs ;
     int      rank, offset_rank,   nprocs,   rank_runtime, size_smem, myrank_runtime, nprocs_runtime ;
     int64_t  rank64, offset_rank64, nprocs64, rank_runtime64, size_smem64 ;
@@ -4524,9 +4523,9 @@ int acp_init(int *argc, char ***argv){
 #ifdef MPIACP
     }
 #endif /* MPIACP */
-///    fprintf ( stderr, "final: %d: %10d%10u%10d%10u%10u%20x\n",
-///                      acp_myport, acp_numport, 100, acp_smsize, my_port, dst_port, dst_addr ) ;
-/* H.Honda Nov.16 2015 end   */
+///    fprintf ( stderr, "final: %10d%10d%10u%10d%10u%10u%20x\n",
+///                      acp_myrank, acp_numprocs, 100, acp_smsize, my_port, dst_port, dst_addr ) ;
+/* H.Honda Dec.31 2015 end   */
     
     
     /* print acp_init arguments. */

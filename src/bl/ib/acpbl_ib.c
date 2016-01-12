@@ -28,6 +28,9 @@
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"
+/* H.Honda Jan.12 2016 begin */
+#include <netdb.h>
+/* H.Honda Jan.12 2016 end   */
 /* H.Honda Dec.31 2015 begin */
 #ifdef MPIACP
 #include <stdio.h>

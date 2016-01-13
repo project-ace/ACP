@@ -1228,6 +1228,18 @@ extern void acp_free(acp_ga_t);
 #define acp_size(type, ...)                 acp_size_##type(__VA_ARGS__)
 #define acp_size_value(type, ...)           acp_size_value_##type(__VA_ARGS__)
 
+/* Element, Pair */
+
+typedef struct {
+    acp_ga_t ga;
+    size_t size;
+} acp_element_t;
+
+typedef struct {
+    acp_element_t first;
+    acp_element_t second;
+} acp_pair_t;
+
 /* Vector */
 /** \defgroup vector ACP Middle Layer Dara Library Vector
  * @ingroup acpdl
@@ -1252,7 +1264,7 @@ extern "C" {
 
 extern void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2);
 extern void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end);
-extern acp_ga_t acp_at_vector(acp_vector_t vector, int offset);
+extern acp_ga_t acp_at_vector(acp_vector_t vector, int index);
 extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
 extern size_t acp_capacity_vector(acp_vector_t vector);
 
@@ -1381,8 +1393,7 @@ extern "C" {
 
 extern void acp_assign_deque(acp_deque_t deque1, acp_deque_t deque2);
 extern void acp_assign_range_deque(acp_deque_t deque, acp_deque_it_t start, acp_deque_it_t end);
-extern acp_ga_t acp_at_deque(acp_deque_t deque, int offset);
-extern acp_deque_it_t acp_back_deque(acp_deque_t deque);
+extern acp_ga_t acp_at_deque(acp_deque_t deque, int index);
 extern acp_deque_it_t acp_begin_deque(acp_deque_t deque);
 extern size_t acp_capacity_deque(acp_deque_t deque);
 extern void acp_clear_deque(acp_deque_t deque);
@@ -1392,7 +1403,6 @@ extern int acp_empty_deque(acp_deque_t deque);
 extern acp_deque_it_t acp_end_deque(acp_deque_t deque);
 extern acp_deque_it_t acp_erase_deque(acp_deque_it_t it, size_t size);
 extern acp_deque_it_t acp_erase_range_deque(acp_deque_it_t start, acp_deque_it_t end);
-extern acp_deque_it_t acp_front_deque(acp_deque_t deque);
 extern acp_deque_it_t acp_insert_deque(acp_deque_it_t it, const acp_ga_t ga, size_t size);
 extern acp_deque_it_t acp_insert_range_deque(acp_deque_it_t it, acp_deque_it_t start, acp_deque_it_t end);
 extern void acp_pop_back_deque(acp_deque_t deque, size_t size);
@@ -1403,7 +1413,7 @@ extern void acp_reserve_deque(acp_deque_t deque, size_t size);
 extern size_t acp_size_deque(acp_deque_t deque);
 extern void acp_swap_deque(acp_deque_t deque1, acp_deque_t deque2);
 extern acp_deque_it_t acp_advance_deque_it(acp_deque_it_t it, int n);
-extern acp_ga_t acp_dereference_deque_it(acp_deque_it_t it);
+extern acp_pair_t acp_dereference_deque_it(acp_deque_it_t it, size_t size);
 extern int acp_distance_deque_it(acp_deque_it_t first, acp_deque_it_t last);
 
 #ifdef __cplusplus
@@ -1636,7 +1646,7 @@ extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
  */
 extern acp_list_it_t acp_decrement_list_it(acp_list_it_t it);
 
-extern acp_ga_t acp_dereference_list_it(acp_list_it_t it);
+extern acp_element_t acp_dereference_list_it(acp_list_it_t it);
 extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
 
 /**
@@ -1659,8 +1669,6 @@ extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
  * @ENDL
  */
 extern acp_list_it_t acp_increment_list_it(acp_list_it_t it);
-
-extern size_t acp_size_list_it(acp_list_it_t it);
 
 #ifdef __cplusplus
 }
@@ -1718,9 +1726,8 @@ extern void acp_swap_set(acp_set_t set1, acp_set_t set2);
 
 extern acp_set_it_t acp_advance_set_it(acp_set_it_t it, int n);
 extern acp_set_it_t acp_decrement_set_it(acp_set_it_t it);
-extern acp_ga_t acp_dereference_set_it(acp_set_it_t it);
+extern acp_element_t acp_dereference_set_it(acp_set_it_t it);
 extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
-extern size_t acp_size_set_it(acp_set_it_t it);
 
 #ifdef __cplusplus
 }
@@ -1917,11 +1924,8 @@ extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
 
 extern acp_map_it_t acp_advance_map_it(acp_map_it_t it, int n);
 extern acp_map_it_t acp_decrement_map_it(acp_map_it_t it);
-extern acp_ga_t acp_dereference_map_it(acp_map_it_t it);
-extern acp_ga_t acp_dereference_value_map_it(acp_map_it_t it);
+extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
 extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);
-extern size_t acp_size_map_it(acp_map_it_t it);
-extern size_t acp_size_value_map_it(acp_map_it_t it);
 
 #ifdef __cplusplus
 }

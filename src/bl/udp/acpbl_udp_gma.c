@@ -1430,8 +1430,18 @@ static void* comm_thread_func(void *param)
         
         for (i = dshead; i >= 0; i = ds[i].next) {
             if (time >= ds[i].time) {
+                if (ds[i].stat == DSSTAT_COPY_READ && ga2rank(ds[i].dst) == ga2rank(ds[i].src)) {
+                    /* Remote local copy */
+                    memcpy(ga2address(ds[i].dst), ga2address(ds[i].src), ds[i].size);
+                    ds[i].stat = DSSTAT_COPY_END;
+                    ds[i].time = time;
+                    *dg_type(ds[i].dg) = dsid2type(TYPE_END, dsid, 0);
+                    ds[i].len = 24;
+                    ds[i].addr.sin_port = PORT_TABLE[*dg_rank(ds[i].dg)];
+                    ds[i].addr.sin_addr.s_addr = ADDR_TABLE[*dg_rank(ds[i].dg)];
+                }
                 if (ds[i].stat == DSSTAT_COPY_READ || ds[i].stat == DSSTAT_COPY2_READ) {
-                    /* Fill stream window */
+                    /* Fill streaming window */
                     while (!ds[i].complete && is_sw_not_full(i)) {
                         j = sw_add(i, time);
                         len = ds[i].size - ds[i].offset;
@@ -1441,9 +1451,9 @@ static void* comm_thread_func(void *param)
                         ds[i].sw[j].src = ds[i].src + ds[i].offset;
                         ds[i].sw[j].len = len;
                         ds[i].offset += len;
-			if(ds[i].size <= ds[i].offset){
-  			    ds[i].complete = 1;
-			}
+                        if(ds[i].size <= ds[i].offset){
+                            ds[i].complete = 1;
+                        }
                     }
                     
                 } else if (ds[i].stat == DSSTAT_ATOMIC_WRITE || ds[i].stat == DSSTAT_COPY_END || ds[i].stat == DSSTAT_ATOMIC_END) {

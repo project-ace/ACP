@@ -59,6 +59,7 @@
 #define TYPE_READACK   18
 #define TYPE_END       19
 #define TYPE_ENDACK    20
+#define TYPE_SCOPY     21
 
 #define BIT_TYPE       5
 #define WIDTH_TYPE     (1 << BIT_TYPE)
@@ -172,10 +173,8 @@ static uint32_t inc_rxseq(uint32_t rank)
 
 static int compare_seq(uint32_t seq1, uint32_t seq2)
 {
-    if (seq1 > seq2)
-        return (seq2 - seq1 <  0x80000000U) ?  1 : -1;
-    else if (seq1 < seq2)
-        return (seq1 - seq2 <= 0x80000000U) ? -1 :  1;
+    if (seq2 > seq1) return (seq2 - seq1 <  0x80000000U) ? -1 :  1;
+    if (seq1 > seq2) return (seq1 - seq2 <= 0x80000000U) ?  1 : -1;
     return 0;
 }
 
@@ -200,6 +199,7 @@ static int compare_seq(uint32_t seq1, uint32_t seq2)
 #define CQSTAT_ATOMIC1READY  -13
 #define CQSTAT_ATOMIC1TRY    -14
 #define CQSTAT_ATOMIC0       -15
+#define CQSTAT_SCOPY3        -16
 
 typedef struct {
     volatile int stat;
@@ -218,12 +218,16 @@ typedef struct {
 
 static volatile cqe_t cq[WIDTH_CQ];
 static volatile uint64_t cqlk, cqwp, cqfp, cqrp, cqcp;
+static uint64_t last_copy_cqp;
+static acp_ga_t last_copy_dst, last_copy_src;
 
 static void cq_reset(void)
 {
     cqwp = cqfp = cqrp = cqcp = 1;
     sync_synchronize();
     cqlk = 0;
+    last_copy_cqp = 0;
+    last_copy_dst = last_copy_src = ACP_GA_NULL;
     return;
 }
 
@@ -267,6 +271,16 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     cq[p].dst  = dst;
     cq[p].src  = src;
     cq[p].size = size;
+    if (cqwp == last_copy_cqp + 1 && ga2rank(dst) == ga2rank(last_copy_dst) && ga2rank(src) == ga2rank(last_copy_src)) {
+        if (cq[p].stat == CQSTAT_COPY3READY) {
+            cq[p].order = ACP_HANDLE_NULL;
+            cq[p].stat = CQSTAT_SCOPY3;
+            cq[p].type = TYPE_SCOPY;
+        }
+    }
+//    last_copy_cqp = cqwp;
+    last_copy_dst = dst;
+    last_copy_src = src;
     return (acp_handle_t)cq_unlock();
 }
 
@@ -565,6 +579,7 @@ static inline void cs_free(int pos, uint64_t time)
 #define DSSTAT_COPY2_READ    3
 #define DSSTAT_ATOMIC_WRITE  4
 #define DSSTAT_ATOMIC_END    5
+#define DSSTAT_COPY_FENCE    6
 
 typedef struct {
     int prev;
@@ -805,7 +820,7 @@ static void* comm_thread_func(void *param)
         uint32_t type, pos, rank, seq;
         uint32_t dsid, swid, drank;
         uint32_t reverse_seq;
-        int i, j;
+        int i, j, stat;
         
         time = get_clock();
         
@@ -841,6 +856,27 @@ static void* comm_thread_func(void *param)
                 cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
                 sync_synchronize();
                 cq[p].stat = CQSTAT_COPY3TRY;
+            }
+            
+            /* Delegating Serialized Copy to destination */
+            if (cq[p].stat == CQSTAT_SCOPY3 && is_cs_not_full()) {
+                stat = 0;
+                if (cqp - 1 > cqrp) stat = cq[(cqp - 1) & MASK_CQ].stat;
+                if (stat == CQSTAT_COPY3TRY || stat == CQSTAT_COPY3WAIT || stat == 0) {
+                    pos = cs_add(cqp, time);
+                    rank = cs[pos].rank = ga2rank(cq[p].dst);
+                    *dg_type(cs[pos].dg) = TYPE_SCOPY;
+                    *dg_seq (cs[pos].dg) = inc_txseq(rank);
+                    *dg_ptr (cs[pos].dg) = cqp;
+                    *dg_dst (cs[pos].dg) = cq[p].dst;
+                    *dg_src (cs[pos].dg) = cq[p].src;
+                    *dg_size(cs[pos].dg) = cq[p].size;
+                    cs[pos].len = DG_HEADER_SIZE + 16;
+                    cs[pos].addr.sin_port = PORT_TABLE[rank];
+                    cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
+                    sync_synchronize();
+                    cq[p].stat = CQSTAT_COPY3TRY;
+                }
             }
             
             /* Delegating Copy locally */
@@ -1023,6 +1059,28 @@ static void* comm_thread_func(void *param)
                         *dg_type(dg) = TYPE_RETRY;
                     } else if (rxseq_table[rank] == seq) {
                         pos = ds_add(DSSTAT_COPY_READ, time);
+                        ds[pos].dst  = *dg_dst(dg);
+                        ds[pos].src  = *dg_src(dg);
+                        ds[pos].size = *dg_size(dg);
+                        ds[pos].offset = 0;
+                        *dg_rank(ds[pos].dg) = rank;
+                        *dg_ptr (ds[pos].dg) = *dg_ptr(dg);
+                        drank = ga2rank(*dg_src(dg));
+                        ds[pos].len = DG_HEADER_SIZE;
+                        ds[pos].addr.sin_port = PORT_TABLE[drank];
+                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
+                        inc_rxseq(rank);
+                    }
+                    *dg_rank(dg) = MY_RANK;
+                    *dg_seq (dg) = rxseq_table[rank];
+                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
+                    
+                } else if (type == TYPE_SCOPY) {
+                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
+                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
+                        *dg_type(dg) = TYPE_RETRY;
+                    } else if (rxseq_table[rank] == seq) {
+                        pos = ds_add(DSSTAT_COPY_FENCE, time);
                         ds[pos].dst  = *dg_dst(dg);
                         ds[pos].src  = *dg_src(dg);
                         ds[pos].size = *dg_size(dg);
@@ -1344,15 +1402,15 @@ static void* comm_thread_func(void *param)
                     /* check command station */
                     for (i = cshead; i >= 0; i = cs[i].next)
                         if (cs[i].rank == rank) {
-                            if (compare_seq(*dg_seq(cs[i].dg), seq) > 0) {
+                            if (compare_seq(*dg_seq(cs[i].dg), seq) < 0) {
                                 if      (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_COPY3TRY  ) cq[cs[i].cqp & MASK_CQ].stat = CQSTAT_COPY3WAIT;
                                 else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_COPY1TRY  ) cq[cs[i].cqp & MASK_CQ].stat = 0;
                                 else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_ATOMIC2TRY) cq[cs[i].cqp & MASK_CQ].stat = CQSTAT_ATOMIC2WAIT;
                                 else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_ATOMIC1TRY) cq[cs[i].cqp & MASK_CQ].stat = 0;
                                 cs_free(i, time);
-                            } else if (type == TYPE_NACK && *dg_seq(cs[i].dg) == inc_seq(seq))
+                            } else if (type == TYPE_NACK && *dg_seq(cs[i].dg) == seq)
                                 cs[i].time = time;
-                            else if (type == TYPE_RETRY && *dg_seq(cs[i].dg) == inc_seq(seq))
+                            else if (type == TYPE_RETRY && *dg_seq(cs[i].dg) == seq)
                                 cs[i].count = 0;
                         }
                     
@@ -1360,9 +1418,10 @@ static void* comm_thread_func(void *param)
                     for (i = dshead; i >= 0; i = ds[i].next)
                         if (ds[i].stat == DSSTAT_ATOMIC_WRITE)
                             if (ga2rank(*dg_dst(ds[i].dg)) == rank)
-                                if (compare_seq(*dg_seq(ds[i].dg), seq) > 0) {
+                                if (compare_seq(*dg_seq(ds[i].dg), seq) < 0) {
                                     ds[i].stat = DSSTAT_ATOMIC_END;
                                     ds[i].time = time;
+                                    ds[i].count = 0;
                                     *dg_type(ds[i].dg) = dsid2type(TYPE_END, i, 0);
                                     *dg_ptr(ds[i].dg) = ds[i].offset;
                                     ds[i].len = 24;
@@ -1387,6 +1446,7 @@ static void* comm_thread_func(void *param)
                                 if (ds[dsid].stat == DSSTAT_COPY_READ) {
                                     ds[dsid].stat = DSSTAT_COPY_END;
                                     ds[dsid].time = time;
+                                    ds[dsid].count = 0;
                                     *dg_type(ds[dsid].dg) = dsid2type(TYPE_END, dsid, 0);
                                     ds[dsid].len = 24;
                                     ds[dsid].addr.sin_port = PORT_TABLE[*dg_rank(ds[dsid].dg)];
@@ -1430,11 +1490,19 @@ static void* comm_thread_func(void *param)
         
         for (i = dshead; i >= 0; i = ds[i].next) {
             if (time >= ds[i].time) {
+                if (ds[i].stat == DSSTAT_COPY_FENCE) {
+                    rank = *dg_rank(ds[i].dg);
+                    cqp = *dg_ptr(ds[i].dg);
+                    for (j = dshead; j >= 0; j = ds[j].next)
+                        if (j != i && *dg_rank(ds[j].dg) == rank && *dg_ptr(ds[j].dg) < cqp && (ds[j].stat == DSSTAT_COPY_FENCE || ds[j].stat == DSSTAT_COPY_READ)) break;
+                    if (j < 0) ds[i].stat = DSSTAT_COPY_READ;
+                }
                 if (ds[i].stat == DSSTAT_COPY_READ && ga2rank(ds[i].dst) == ga2rank(ds[i].src)) {
                     /* Remote local copy */
                     memcpy(ga2address(ds[i].dst), ga2address(ds[i].src), ds[i].size);
                     ds[i].stat = DSSTAT_COPY_END;
                     ds[i].time = time;
+                    ds[i].count = 0;
                     *dg_type(ds[i].dg) = dsid2type(TYPE_END, dsid, 0);
                     ds[i].len = 24;
                     ds[i].addr.sin_port = PORT_TABLE[*dg_rank(ds[i].dg)];

@@ -12,6 +12,7 @@
  *
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -44,6 +45,9 @@
 #include "mpi.h"
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
+
+
+#include "sched.h" /* for set affnity */
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -281,9 +285,10 @@ void acp_abort(const char *str){
     fflush(stdout);
 #endif
     
+#if 0
     iacp_abort_cl();
     iacp_abort_dl();
-    
+#endif
     /* close IB resouce */
     if (res.mr != NULL) {
         ibv_dereg_mr(res.mr);
@@ -338,7 +343,7 @@ void acp_abort(const char *str){
         free(rrmtb);
         rrmtb = NULL;
     }
-    if (system != NULL) {
+    if (sysmem != NULL) {
         free(sysmem);
         sysmem = NULL;
     }
@@ -2661,11 +2666,22 @@ static void *comm_thread_func(void *dm){
     uint32_t rrmtb_idx; /* index of rrm table */
     uint32_t cur_rank; /* current of rank on rrmt table */
   
-
-      uint64_t iter = 0, pre_iter = 0;
-      uint64_t clk = 0, pre_clk = 0;
-
     
+    uint64_t iter = 0, pre_iter = 0;
+    uint64_t clk = 0, pre_clk = 0;
+    
+    cpu_set_t mask;
+    int cpuid;
+    
+    CPU_ZERO(&mask);
+    cpuid = 0;
+    CPU_SET(cpuid, &mask);
+    rc = sched_setaffinity(comm_thread_id, sizeof(cpu_set_t), &mask);
+    if (0 != rc) {
+        perror("failed schecd_setaffinity");
+        exit(1);
+    }
+        
     /* get my rank id */
     myrank = acp_rank();
     /* get # of rank */
@@ -3701,7 +3717,10 @@ int iacp_init(void){
     alm8_add = acp_smsize & 7;
     alm8_add_func(alm8_add);
     acp_smsize_adj = acp_smsize + alm8_add ;
-
+#if 1
+    iacp_starter_memory_size_dl = 0;
+    iacp_starter_memory_size_cl = 0;
+#endif
     /* adjust starter memory for dl */
     alm8_add = iacp_starter_memory_size_dl & 7;
     alm8_add_func(alm8_add);
@@ -3810,9 +3829,9 @@ int iacp_init(void){
     
 #ifdef DEBUG
     fprintf(stdout, 
-            "sm %p acp_cl_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu\n", 
+            "sm %p acp_cl_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu %d\n", 
             sysmem, (char *)acp_buf_cl + acp_smclsize_adj, 
-            syssize, sysmem + syssize, offset_acp_buf_cl);
+            syssize, sysmem + syssize, offset_acp_buf_cl, sizeof(CMD));
     fflush(stdout);
 #endif
     /* remote register memory table */
@@ -4322,13 +4341,14 @@ int iacp_init(void){
         free(remote_qp_num);
         remote_qp_num = NULL;
     }
-    
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
     
     /* exec internel init function dl and cl */
+#if 0
     if (iacp_init_dl()) return -1;
     if (iacp_init_cl()) return -1;
-    
+#endif
+
     return rc;
     
 exit:
@@ -4561,10 +4581,10 @@ int acp_finalize(){
     fprintf(stdout, "%d: internal acp_finalize\n", acp_rank());
     fflush(stdout);
 #endif
-    
+#if 0
     iacp_finalize_cl();
     iacp_finalize_dl();
-
+#endif
     /* Insert FIN command into cmdq */
     while (tail - head == MAX_CMDQ_ENTRY - 1) ;
     
@@ -4645,7 +4665,7 @@ int acp_finalize(){
         free(rrmtb);
         rrmtb = NULL;
     }
-    if (system != NULL) {
+    if (sysmem != NULL) {
         free(sysmem);
         sysmem = NULL;
     }

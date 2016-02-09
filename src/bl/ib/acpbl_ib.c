@@ -46,8 +46,9 @@
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
 
-
-#include "sched.h" /* for set affnity */
+#ifdef SETAFFINITY
+#include <sched.h> /* for set affnity */
+#endif
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -285,7 +286,7 @@ void acp_abort(const char *str){
     fflush(stdout);
 #endif
     
-#if 0
+#ifndef ACPBLONLY
     iacp_abort_cl();
     iacp_abort_dl();
 #endif
@@ -2670,6 +2671,7 @@ static void *comm_thread_func(void *dm){
     uint64_t iter = 0, pre_iter = 0;
     uint64_t clk = 0, pre_clk = 0;
     
+#ifdef SETAFFINITY
     cpu_set_t mask;
     int cpuid;
     
@@ -2681,7 +2683,8 @@ static void *comm_thread_func(void *dm){
         perror("failed schecd_setaffinity");
         exit(1);
     }
-        
+#endif
+
     /* get my rank id */
     myrank = acp_rank();
     /* get # of rank */
@@ -3717,7 +3720,7 @@ int iacp_init(void){
     alm8_add = acp_smsize & 7;
     alm8_add_func(alm8_add);
     acp_smsize_adj = acp_smsize + alm8_add ;
-#if 1
+#ifdef ACPBLONLY
     iacp_starter_memory_size_dl = 0;
     iacp_starter_memory_size_cl = 0;
 #endif
@@ -4344,7 +4347,7 @@ int iacp_init(void){
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
     
     /* exec internel init function dl and cl */
-#if 0
+#ifndef ACPBLONLY
     if (iacp_init_dl()) return -1;
     if (iacp_init_cl()) return -1;
 #endif
@@ -4581,7 +4584,7 @@ int acp_finalize(){
     fprintf(stdout, "%d: internal acp_finalize\n", acp_rank());
     fflush(stdout);
 #endif
-#if 0
+#ifndef ACPBLONLY
     iacp_finalize_cl();
     iacp_finalize_dl();
 #endif

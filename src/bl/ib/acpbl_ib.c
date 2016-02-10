@@ -2674,15 +2674,32 @@ static void *comm_thread_func(void *dm){
 #ifdef SETAFFINITY
     cpu_set_t mask;
     int cpuid;
+    int cpumax;
+
+    fprintf(stdout, "%d: getcpu %d\n", acp_rank(), sched_getcpu());
     
+    rc = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
+    if (0 != rc) {
+        perror("failed schecd_getaffinity");
+        exit(1);
+    }
+#ifdef SETAFFINITY_LAST
+    cpumax = CPU_COUNT(&mask);
+    fprintf(stdout, "%d: getcpu %d maxcpu %d \n", acp_rank(), sched_getcpu(), cpumax);
+    CPU_ZERO(&mask);
+    cpuid = cpumax - 1;
+#elif SETAFFINITY_FIRST
     CPU_ZERO(&mask);
     cpuid = 0;
+#endif
+
     CPU_SET(cpuid, &mask);
-    rc = sched_setaffinity(comm_thread_id, sizeof(cpu_set_t), &mask);
+    rc = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
     if (0 != rc) {
         perror("failed schecd_setaffinity");
         exit(1);
     }
+    fprintf(stdout, "%d: setaffnity getcpu %d\n", acp_rank(), sched_getcpu());
 #endif
 
     /* get my rank id */
@@ -3720,10 +3737,12 @@ int iacp_init(void){
     alm8_add = acp_smsize & 7;
     alm8_add_func(alm8_add);
     acp_smsize_adj = acp_smsize + alm8_add ;
+
 #ifdef ACPBLONLY
     iacp_starter_memory_size_dl = 0;
     iacp_starter_memory_size_cl = 0;
 #endif
+
     /* adjust starter memory for dl */
     alm8_add = iacp_starter_memory_size_dl & 7;
     alm8_add_func(alm8_add);

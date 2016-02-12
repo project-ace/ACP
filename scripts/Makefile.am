@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012-2014 ACE Project
+# Copyright (c) 2012-2016 ACE Project
 # $COPYRIGHT$
 #
 
@@ -11,7 +11,7 @@ CLEANFILES = acprun
 EXTRA_DIST = acprun.in
 
 bin_SCRIPTS += macprun
-acprun: macprun.in
+macprun: macprun.in
 	( cd $(top_builddir) && ./config.status --file=${subdir}/macprun:${subdir}/macprun.in ) \
 	&& chmod 755 macprun
 CLEANFILES = macprun

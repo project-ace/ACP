@@ -14,9 +14,9 @@ exec_prefix=@exec_prefix@
 INCLUDEDIR=@includedir@
 LIBDIR=@libdir@
 LIBS=@LIBS@
-LIBS_UDP="-lacpml -lacpbl_udp"
-LIBS_IB="-lacpml -lacpbl_ib"
-LIBS_TOFU="-lacpml -lacpbl_tofu"
+LIBS_BL="-lacpbl"
+LIBS_ML="-lacpml"
+MPIACP=
 OPTIONS=
 SOURCES=
 OUTFILE="a.out"
@@ -56,18 +56,6 @@ check_source()
   esac
 }
 
-case $NETDEV in
-	UDP | udp)
-		DEF_LIBS="$LIBS $LIBS_UDP"
-		;;
-	INFINIBAND | inifiniband | IB | ib)
-		DEF_LIBS="$LIBS $LIBS_IB"
-		;;
-	TOFU | tofu)
-		DEF_LIBS="$LIBS $LIBS_TOFU"
-		;;
-esac
-
 case $COMMAND in
 	acpcc | acpgcc)
 		COMPILER=gcc
@@ -88,12 +76,15 @@ case $COMMAND in
 		COMPILER=ifort
 		;;
 	macpcc | macpgcc)
+		MPIACP=_mpi
 		COMPILER=mpicc
 		;;
 	macpc++ | macpg++ | macpcxx | macpgxx | macpCC)
+		MPIACP=_mpi
 		COMPILER=mpic++
 		;;
 	macpfc)
+		MPIACP=_mpi
 		COMPILER=mpifort
 		;;
 esac
@@ -199,21 +190,19 @@ while [ $# -ge 1 ]; do
 	esac
 done
 
-[ -z "$SOURCES" ] && exit 0
-
 if [ "$MODE" = "compile" -a "${OUTFILE}" = "a.out" ]; then
 	OUTFILE="${SOURCES%.*}.o"
 fi
 
 case $NETDEV in
 	UDP | udp)
-		LIBS="$LIBS $LIBS_UDP"
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_udp${MPIACP}"
 		;;
 	INFINIBAND | inifiniband | IB | ib)
-		LIBS="$LIBS $LIBS_IB"
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_ib${MPIACP}"
 		;;
 	TOFU | tofu)
-		LIBS="$LIBS $LIBS_TOFU"
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_tofu${MPIACP}"
 		;;
 	*)
 		echo "${COMMAND}: Error: unsupported network device is given."
@@ -262,6 +251,8 @@ case $SHOWME in
 	*)
 		;;
 esac
+
+[ -z "$SOURCES" ] && exit 0
 
 ##### COMPILE #####
 if test "$MODE" = 'link'; then

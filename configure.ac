@@ -46,7 +46,6 @@ fi,
 try_mpi=yes)
 
 AC_ARG_VAR(MPICC, path to MPI compiler wrapper)
-#AC_ARG_VAR(MPILINK, linker commands for MPI (cross-build))
 
 dnl Check for MPI apparatus?
 if test "$try_mpi" = "yes" ; then
@@ -71,6 +70,15 @@ fi
 
 AC_SUBST(have_mpi)
 AM_CONDITIONAL([HAVE_MPICC], [test "$have_mpi" = "yes"])
+
+AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
+if test "$have_mpi" = "yes" ; then
+  mpi_cppflags="`mpicc -showme:compile`"
+  if test x"${mpi_cppflags}" = x ; then
+    mpi_cppflags="`mpicc -compile_info`"
+  fi
+fi
+AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")
 
 dnl
 dnl Check for Python.

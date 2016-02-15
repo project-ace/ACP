@@ -657,6 +657,7 @@ PYTHON_EXEC_PREFIX
 PYTHON_PREFIX
 PYTHON_VERSION
 PYTHON
+MPI_CPPFLAGS
 HAVE_MPICC_FALSE
 HAVE_MPICC_TRUE
 have_mpi
@@ -814,6 +815,7 @@ CCC
 CPP
 CXXCPP
 MPICC
+MPI_CPPFLAGS
 PYTHON'
 
 
@@ -1473,6 +1475,8 @@ Some influential environment variables:
   CPP         C preprocessor
   CXXCPP      C++ preprocessor
   MPICC       path to MPI compiler wrapper
+  MPI_CPPFLAGS
+              flags added when compiling for MPI
   PYTHON      the Python interpreter
 
 Use these variables to override the choices made by `configure' or to help
@@ -16375,7 +16379,6 @@ fi
 
 
 
-#AC_ARG_VAR(MPILINK, linker commands for MPI (cross-build))
 
 if test "$try_mpi" = "yes" ; then
   if test x"${MPICC}" = x ; then
@@ -16479,6 +16482,16 @@ else
   HAVE_MPICC_TRUE='#'
   HAVE_MPICC_FALSE=
 fi
+
+
+
+if test "$have_mpi" = "yes" ; then
+  mpi_cppflags="`mpicc -showme:compile`"
+  if test x"${mpi_cppflags}" = x ; then
+    mpi_cppflags="`mpicc -compile_info`"
+  fi
+fi
+MPI_CPPFLAGS="$mpi_cppflags"
 
 
 

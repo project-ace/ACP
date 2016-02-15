@@ -9,7 +9,7 @@
 # This software is released under the BSD License, see LICENSE. 
 
 AC_PREREQ(2.60)
-AC_INIT(ACP, 1.2.0, [http://ace.cc.kyushu-u.ac.jp])
+AC_INIT(ACP, 1.99.0, [http://ace.cc.kyushu-u.ac.jp])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)

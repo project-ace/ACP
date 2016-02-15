@@ -6,4 +6,4 @@ libacpbl_ib_version=0:0:0
 libacpml_version=0:0:0
 
 # acp date for man
-ACP_DATE='Nov 12, 2015'
+ACP_DATE='Feb 15, 2016'

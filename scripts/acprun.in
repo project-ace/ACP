@@ -478,10 +478,11 @@ class Acprun:
             comm = shlex.split( self.comms_ssh[ ip ] )
             subprocess.Popen( comm )                             # background
         comm = shlex.split( self.comms_ssh[ self.nprocs-1 ] )
-        if ( self.flg_multrun ):
-            subprocess.Popen( comm )                             # foreground
-        else:
-            subprocess.call( comm )                              # foreground
+        subprocess.call( comm )                                  # foreground
+        #if ( self.flg_multrun ):
+        #    subprocess.Popen( comm )                             # foreground
+        #else:
+        #    subprocess.call( comm )                              # foreground
 
 ###############################################################################
 ###############################################################################
@@ -518,10 +519,11 @@ acprun.gen_ssh_commands()
 if DEBUG_MODE:
     for i in range( len( acprun.comms_ssh )-1 ):
         print( acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
-    if ( acprun.flg_multrun ):
-        print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
-    else:
-        print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+    #if ( acprun.flg_multrun ):
+    #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
+    #else:
+    #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
 #
 if EXECUTE_COMMAND:
     acprun.exec_ssh_commands()

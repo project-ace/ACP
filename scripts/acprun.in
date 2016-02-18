@@ -455,18 +455,19 @@ class Acprun:
         for ip in range( len(self.comm_args) ):
             lcomm = lcomm + " " + self.comm_args[ ip ]
         for ip in range( self.nprocs ):
+            ipp  = self.offsetrank + ip
             comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
-                   ( self.cwd, STR_ENVMYRANK, ip,                           \
-                               STR_ENVNPROCS, self.lst_nprocs_acp[ ip ],    \
-                               STR_ENVTASKID, self.lst_taskid[ ip ],        \
-                               STR_ENVLPORT,  self.lst_lport [ ip ],        \
-                               STR_ENVRPORT,  self.lst_rport [ ip ],        \
-                               STR_ENVRHOST,  self.lst_rhostip[ ip ],       \
+                   ( self.cwd, STR_ENVMYRANK, ipp,         \
+                               STR_ENVNPROCS, self.lst_nprocs_acp[ ipp ],    \
+                               STR_ENVTASKID, self.lst_taskid[ ipp ],        \
+                               STR_ENVLPORT,  self.lst_lport [ ipp ],        \
+                               STR_ENVRPORT,  self.lst_rport [ ipp ],        \
+                               STR_ENVRHOST,  self.lst_rhostip[ ipp ],       \
                                STR_ENVSMSIZE, self.starter_memsize,   lcomm )
             if (not self.flg_localmode):
-                #comm = "ssh " + self.lst_lhost[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                #comm = REMOTESHELL + " " + self.lst_lhost[ ip ] + " \"" + comm + "\""
-                comm = REMOTESHELL + " " + self.lst_lhostip[ ip ] + " \"" + comm + "\""
+                #comm = "ssh " + self.lst_lhost[ ipp ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ipp ) + " 2>&1"
+                #comm = REMOTESHELL + " " + self.lst_lhost[ ipp ] + " \"" + comm + "\""
+                comm = REMOTESHELL + " " + self.lst_lhostip[ ipp ] + " \"" + comm + "\""
             self.comms_ssh.append( comm )
 
     #########################################################

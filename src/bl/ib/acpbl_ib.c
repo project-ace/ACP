@@ -55,7 +55,8 @@
 /* define sizes */
 #define MAX_RM_SIZE     255U
 #define MAX_CQ_SIZE     4096U
-#define MAX_CMDQ_ENTRY  4096U
+///#define MAX_CMDQ_ENTRY  4096U
+#define MAX_CMDQ_ENTRY  16U
 #define MAX_RCMDB_SIZE  4096U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU
 #define MAX_RKEY_CASH_SIZE 1024
@@ -3850,11 +3851,11 @@ int iacp_init(void){
     offset_acp_buf_cl = offset_acp_buf_dl + acp_smdlsize_adj;
     
 #ifdef DEBUG
-    fprintf(stdout, 
+    fprintf(stderr, 
             "sm %p acp_cl_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu %d\n", 
             sysmem, (char *)acp_buf_cl + acp_smclsize_adj, 
             syssize, sysmem + syssize, offset_acp_buf_cl, sizeof(CMD));
-    fflush(stdout);
+    fflush(stderr);
 #endif
     /* remote register memory table */
     if(acp_numprocs > MAX_RKEY_CASH_SIZE){
@@ -4538,7 +4539,7 @@ int acp_init(int *argc, char ***argv){
         if (( *argc >= 8) && (strcmp( (*argv)[ 1 ], "--acp-options" ) == 0)) {
             acp_myrank   = strtol((*argv)[2], NULL, 0);
             acp_numprocs = strtol((*argv)[3], NULL, 0);
-            ///TASKID    = strtol((*argv)[4], NULL, 0);
+            taskid       = strtol((*argv)[4], NULL, 0);
             acp_smsize   = strtol((*argv)[5], NULL, 0);
             my_port      = strtol((*argv)[6], NULL, 0);
             dst_port     = strtol((*argv)[7], NULL, 0);
@@ -4554,7 +4555,7 @@ int acp_init(int *argc, char ***argv){
         } else {
             acp_myrank   = strtol(getenv("ACP_MYRANK"),          NULL ,0);
             acp_numprocs = strtol(getenv("ACP_NUMPROCS"),        NULL, 0);
-            ///TASKID    = strtol(getenv("ACP_TASKID"),          NULL, 0);
+            taskid       = strtol(getenv("ACP_TASKID"),          NULL, 0);
             acp_smsize   = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
             my_port      = strtol(getenv("ACP_LPORT"),           NULL, 0);
             dst_port     = strtol(getenv("ACP_RPORT"),           NULL, 0);
@@ -4567,9 +4568,9 @@ int acp_init(int *argc, char ***argv){
         }
 #ifdef MPIACP
     }
+    fprintf ( stderr, "mpiacp: acp_init: info: %10d%10d%10u%10d%10u%10u%20x\n",
+                      acp_myrank, acp_numprocs, taskid, acp_smsize, my_port, dst_port, dst_addr ) ;
 #endif /* MPIACP */
-///    fprintf ( stderr, "final: %10d%10d%10u%10d%10u%10u%20x\n",
-///                      acp_myrank, acp_numprocs, 100, acp_smsize, my_port, dst_port, dst_addr ) ;
 /* H.Honda Dec.31 2015 end   */
     
     
@@ -4604,8 +4605,8 @@ int acp_finalize(){
     fflush(stdout);
 #endif
 #ifndef ACPBLONLY
-    iacp_finalize_cl();
-    iacp_finalize_dl();
+///    iacp_finalize_cl();
+///    iacp_finalize_dl();
 #endif
     /* Insert FIN command into cmdq */
     while (tail - head == MAX_CMDQ_ENTRY - 1) ;

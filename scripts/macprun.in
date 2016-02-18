@@ -10,7 +10,7 @@
 # This script is supported by python2.6, 2.7, 3.3, or 3.4.
 #
 
-import os, sys, socket, re, copy
+import os, sys, socket, re, copy, time
 
 ENVNETWORK       = "@NETDEV@"
 REMOTESHELL      = "ssh"
@@ -620,5 +620,6 @@ if DEBUG_MODE:
     for i in range( len( ma.comms_runtime ) ):
         print( ma.comms_runtime[ i ] )
 #
+time.sleep( 1 )
 if EXECUTE_COMMAND:
     ma.exec_runtime_commands()

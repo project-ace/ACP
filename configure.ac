@@ -73,9 +73,13 @@ AM_CONDITIONAL([HAVE_MPICC], [test "$have_mpi" = "yes"])
 
 AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
 if test "$have_mpi" = "yes" ; then
-  mpi_cppflags="`mpicc -showme:compile`"
+  mpi_cppflags="`mpicc -showme:compile ||:`"
   if test x"${mpi_cppflags}" = x ; then
-    mpi_cppflags="`mpicc -compile_info`"
+    for incdir in `mpicc -show ||:`
+    do
+      incdir="${incdir} `echo $i | grep -e '^-I'`"
+    done
+    mpi_cppflags="${incdir}"
   fi
 fi
 AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")

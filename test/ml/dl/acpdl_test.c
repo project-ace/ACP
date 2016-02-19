@@ -36,6 +36,7 @@ int main(int argc, char** argv)
     int ranks[2];
     acp_atkey_t dummy_atkey, buf_atkey;
     acp_ga_t dummy_ga, buf_ga;
+    acp_element_t elem;
     
     setbuf(stdout, NULL);
     
@@ -175,8 +176,10 @@ int main(int argc, char** argv)
         r = REP;
         l = acp_create_list(0);
         t0 = get_clock();
+        elem.ga = buf_ga;
+        elem.size = b;
         for (j = 0; j < r; j++)
-            acp_push_back_list(l, buf_ga, b, 0);
+            acp_push_back_list(l, elem, 0);
         t1 = get_clock();
         printf("%13d%13d%13.3f\n", b, r, (t1 - t0)/MHZ/r);
         acp_destroy_list(l);
@@ -186,8 +189,10 @@ int main(int argc, char** argv)
         r = REP;
         l = acp_create_list(1);
         t0 = get_clock();
+        elem.ga = buf_ga;
+        elem.size = b;
         for (j = 0; j < r; j++)
-            acp_push_back_list(l, buf_ga, b, 1);
+            acp_push_back_list(l, elem, 1);
         t1 = get_clock();
         printf("%13d%13d%13.3f\n", b, r, (t1 - t0)/MHZ/r);
         acp_destroy_list(l);

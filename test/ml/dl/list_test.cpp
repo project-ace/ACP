@@ -68,7 +68,10 @@ int insert_mark(acp_list_t l, const int n, const int mark, const int rank){
 			stga = acp_query_starter_ga(acp_rank() );
 			stla = (acp_ga_t *)acp_query_address(stga);
 			*((int *)stla) = mark;
-			acp_push_back_list(l, stga, sizeof(n), rank);
+			acp_element_t elem;
+			elem.ga = stga;
+			elem.size = sizeof(n);
+			acp_push_back_list(l, elem, rank);
 		}
 		it = acp_increment_list_it(it); 
 	}
@@ -143,7 +146,10 @@ int main(int argc, char* argv[]){
 		it = acp_begin_list(seq);
 		for( i = 0; i < len; i++ ){
 			arr_p[i] = i+1;
-			acp_push_back_list (seq, ga+i*sizeof(int), sizeof(int), rank);
+			acp_element_t elem;
+			elem.ga = ga+i*sizeof(int);
+			elem.size = sizeof(int);
+			acp_push_back_list (seq, elem, rank);
 			//if(it.elem == ACP_GA_NULL){
 			//	std::cout  << "------ insert failed : " << i << " ------";
 			//	continue;

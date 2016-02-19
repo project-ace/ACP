@@ -389,7 +389,7 @@ acp_vector_it_t acp_end_vector(acp_vector_t vector)
 acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size)
 {
     acp_ga_t buf = acp_malloc(24, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return it;
     void* ptr = acp_query_address(buf);
     volatile acp_ga_t* buf_ga   = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_size = (volatile uint64_t*)(ptr + 8);
@@ -433,7 +433,7 @@ acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t 
     int index = it.index;
     
     acp_ga_t buf = acp_malloc(24, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return it;
     void* ptr = acp_query_address(buf);
     volatile acp_ga_t* buf_ga   = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_size = (volatile uint64_t*)(ptr + 8);
@@ -601,7 +601,7 @@ void acp_reserve_vector(acp_vector_t vector, size_t size)
 size_t acp_size_vector(acp_vector_t vector)
 {
     acp_ga_t buf = acp_malloc(24, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return 0;
     void* ptr = acp_query_address(buf);
     volatile acp_ga_t* buf_ga   = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_size = (volatile uint64_t*)(ptr + 8);
@@ -687,7 +687,7 @@ acp_ga_t acp_dereference_vector_it(acp_vector_it_t it)
     if (it.index < 0) return ACP_GA_NULL;
     
     acp_ga_t buf = acp_malloc(24, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return ACP_GA_NULL;
     void* ptr = acp_query_address(buf);
     volatile acp_ga_t* buf_ga   = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_size = (volatile uint64_t*)(ptr + 8);

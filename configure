@@ -1458,7 +1458,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-mpi             include MPI support [default=auto]
+  --with-mpi             include MPI support [default=no]
   --with-ndev=NAME        the priority order of default network device [ib,
                           udp]
 
@@ -16369,12 +16369,12 @@ fi
 
 # Check whether --with-mpi was given.
 if test "${with_mpi+set}" = set; then :
-  withval=$with_mpi; if test "$withval" = "no"
+  withval=$with_mpi; if test "$withval" = "yes"
 then
-  try_mpi=no
+  try_mpi=yes
 fi
 else
-  try_mpi=yes
+  try_mpi=no
 fi
 
 

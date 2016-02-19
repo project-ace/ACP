@@ -38,12 +38,12 @@ AC_PROG_LN_S
 
 # for mpiacp
 AC_ARG_WITH(mpi,
-[  --with-mpi             include MPI support [[default=auto]]],
-if test "$withval" = "no"
+[  --with-mpi             include MPI support [[default=no]]],
+if test "$withval" = "yes"
 then
-  try_mpi=no
+  try_mpi=yes
 fi,
-try_mpi=yes)
+try_mpi=no)
 
 AC_ARG_VAR(MPICC, path to MPI compiler wrapper)
 

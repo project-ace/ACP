@@ -1445,7 +1445,6 @@ extern "C" {
 
 extern void acp_assign_list(acp_list_t list1, acp_list_t list2);
 extern void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t end);
-extern acp_list_it_t acp_back_list(acp_list_t list);
 
 /**
  * @JP
@@ -1555,7 +1554,6 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
 extern acp_list_it_t acp_erase_list(acp_list_it_t it);
 
 extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end);
-extern acp_list_it_t acp_front_list(acp_list_t list);
 
 /**
  * @JP
@@ -1583,10 +1581,10 @@ extern acp_list_it_t acp_front_list(acp_list_t list);
  * @retval otherwise The iterator that points to the inserted element.
  * @ENDL
  */
-extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_ga_t ga, size_t size, int rank);
+extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int rank);
 
 extern acp_list_it_t acp_insert_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
-extern void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_list_it_t it1, const acp_list_it_t it2));
+extern void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_element_t elem1, const acp_element_t elem2));
 extern void acp_pop_back_list(acp_list_t list);
 extern void acp_pop_front_list(acp_list_t list);
 
@@ -1612,14 +1610,15 @@ extern void acp_pop_front_list(acp_list_t list);
  * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
-extern void acp_push_back_list(acp_list_t list, const acp_ga_t ga, size_t size, int rank);
+extern void acp_push_back_list(acp_list_t list, const acp_element_t elem, int rank);
 
-extern void acp_push_front_list(acp_list_t list, const acp_ga_t ga, size_t size, int rank);
-extern void acp_remove_list(acp_list_t list, const acp_ga_t ga, size_t size);
+extern void acp_push_front_list(acp_list_t list, const acp_element_t elem, int rank);
+extern void acp_remove_list(acp_list_t list, const acp_element_t elem);
 extern void acp_reverse_list(acp_list_t list);
 extern size_t acp_size_list(acp_list_t list);
-extern size_t acp_sort_list(acp_list_t list, int (*comp)(const acp_list_it_t it1, const acp_list_it_t it2));
-extern void acp_splice_list(acp_list_it_t it, acp_list_t list);
+extern void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1, const acp_element_t elem2));
+extern void acp_splice_list(acp_list_it_t it1, acp_list_it_t it2);
+extern void acp_splice_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
 extern void acp_swap_list(acp_list_t list1, acp_list_t list2);
 extern void acp_unique_list(acp_list_t list);
 extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);

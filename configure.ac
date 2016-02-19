@@ -75,7 +75,8 @@ AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
 if test "$have_mpi" = "yes" ; then
   mpi_cppflags="`mpicc -showme:compile ||:`"
   if test x"${mpi_cppflags}" = x ; then
-    for incdir in `mpicc -show ||:`
+    incdir=
+    for i in `mpicc -show ||:`
     do
       incdir="${incdir} `echo $i | grep -e '^-I'`"
     done

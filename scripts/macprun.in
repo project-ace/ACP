@@ -30,6 +30,9 @@ STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
 STR_ENVTASKID    = "ACP_TASKID"
 STR_PORTFILEBASE = "Portfile"
 STR_NODEFILEBASE = "Nodefile"
+#
+STR_COMM_ACPRUN  = "acprun"
+
 
 DEBUG_MODE       = True  ## or Frue
 DEBUG_LEVEL      = 100   ## change to >200
@@ -536,8 +539,9 @@ class MAcprun:
     def gen_runtime_commands( self ):
         self.comms_runtime = []
         for i in range( self.num_runtime ):
-            #print( "str: %s, %s" % (self.runtimes[ i ][ 0:6 ], self.runtimes[ i ][ 0:6 ] == "acprun") )
-            if ( self.runtimes[ i ][ 0:6 ] == "acprun" ):
+            basename_comm_opts = os.path.basename( self.runtimes[ i ] )
+            basename_comm = basename_comm_opts.split()[ 0 ]
+            if ( basename_comm == STR_COMM_ACPRUN ):
                 self.comms_runtime.append(
                                 "%s -multrun -machinefile %s -np %d -portfile %s -offsetrank %d %s" % \
                                 ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \

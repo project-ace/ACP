@@ -620,9 +620,9 @@ if DEBUG_MODE:
 #
 ma.gen_runtime_commands()
 if DEBUG_MODE:
-    print( self.myname + ": " + "Executed commands:" )
+    print( ma.myname + ": " + "Executed commands:" )
     for i in range( len( ma.comms_runtime ) ):
-        print( self.myname + ": " +  ma.comms_runtime[ i ] )
+        print( ma.myname + ": " +  ma.comms_runtime[ i ] )
 #
 time.sleep( 1 )
 if EXECUTE_COMMAND:

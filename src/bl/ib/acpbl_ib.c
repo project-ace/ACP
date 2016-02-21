@@ -4568,17 +4568,14 @@ int acp_init(int *argc, char ***argv){
         }
 #ifdef MPIACP
     }
-    fprintf ( stderr, "mpiacp: acp_init: info: %10d%10d%10u%10d%10u%10u%20x\n",
-                      acp_myrank, acp_numprocs, taskid, acp_smsize, my_port, dst_port, dst_addr ) ;
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
-    
     
     /* print acp_init arguments. */
 #ifdef DEBUG
     fprintf(stdout, 
             "rk %d np %d ss %lu mp %u dp %u da %u\n", 
-            acp_myrank, acp_numprocs, acp_smsize, 
+            acp_myrank, acp_numprocs, acp_smsize,
             my_port, dst_port, dst_addr);
     fflush(stdout);
 #endif

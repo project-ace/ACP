@@ -518,8 +518,8 @@ else:
 acprun.gen_ssh_commands()
 if DEBUG_MODE:
     for i in range( len( acprun.comms_ssh )-1 ):
-        print( acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
-    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+        print( " " + acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
+    print( " " + acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
     #if ( acprun.flg_multrun ):
     #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
     #else:

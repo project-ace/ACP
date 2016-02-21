@@ -520,20 +520,20 @@ class MAcprun:
 
     #####################################
     def print_intermediate_files( self ):
-        print( "Intermediate files:" )
-        print( self.portfile + ":" )
+        print( self.myname + ": " + "Intermediate files:" )
+        print( self.myname + ": " + self.portfile + ":" )
         iport = open( self.portfile )
         lines = iport.readlines()
         iport.close()
         for i in range( len(lines) ):
-            print( lines[ i ].rstrip() )
+            print( self.myname + ": " + lines[ i ].rstrip() )
         for i in range( self.num_runtime ):
-            print( self.nodefiles[ i ] + ":" )
+            print( self.myname + ": " + self.nodefiles[ i ] + ":" )
             iport = open( self.nodefiles[ i ] )
             lines = iport.readlines()
             iport.close()
             for i in range( len(lines) ):
-                print( lines[ i ].rstrip() )
+                print( self.myname + ": " + lines[ i ].rstrip() )
 
     #####################################
     def gen_runtime_commands( self ):
@@ -620,9 +620,9 @@ if DEBUG_MODE:
 #
 ma.gen_runtime_commands()
 if DEBUG_MODE:
-    print( "Executed commands:" )
+    print( self.myname + ": " + "Executed commands:" )
     for i in range( len( ma.comms_runtime ) ):
-        print( ma.comms_runtime[ i ] )
+        print( self.myname + ": " +  ma.comms_runtime[ i ] )
 #
 time.sleep( 1 )
 if EXECUTE_COMMAND:

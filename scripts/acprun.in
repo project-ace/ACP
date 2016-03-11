@@ -29,8 +29,8 @@ STR_ENVNPROCS    = "ACP_NUMPROCS"
 STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
 STR_ENVTASKID    = "ACP_TASKID"
 
-DEBUG_MODE       = True   # or Frue
-DEBUG_LEVEL      = 100    # change to >200
+DEBUG_MODE       = True  # or Frue
+DEBUG_LEVEL      = 100   # change to >200
 ####
 EXECUTE_COMMAND  = True  ## False
 ####
@@ -457,14 +457,16 @@ class Acprun:
         for ip in range( self.nprocs ):
             ipp  = self.offsetrank + ip
             comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
-                   ( self.cwd, STR_ENVMYRANK, ipp,         \
-                               STR_ENVNPROCS, self.lst_nprocs_acp[ ipp ],    \
-                               STR_ENVTASKID, self.lst_taskid[ ipp ],        \
-                               STR_ENVLPORT,  self.lst_lport [ ipp ],        \
-                               STR_ENVRPORT,  self.lst_rport [ ipp ],        \
-                               STR_ENVRHOST,  self.lst_rhostip[ ipp ],       \
-                               STR_ENVSMSIZE, self.starter_memsize,   lcomm )
-            if (not self.flg_localmode):
+                   ( self.cwd, STR_ENVMYRANK, ipp,                          \
+                               STR_ENVNPROCS, self.lst_nprocs_acp[ ipp ],   \
+                               STR_ENVTASKID, self.lst_taskid[ ipp ],       \
+                               STR_ENVLPORT,  self.lst_lport [ ipp ],       \
+                               STR_ENVRPORT,  self.lst_rport [ ipp ],       \
+                               STR_ENVRHOST,  self.lst_rhostip[ ipp ],      \
+                               STR_ENVSMSIZE, self.starter_memsize, lcomm )
+            if (self.flg_localmode):
+                comm = "sh -c" + " \"" + comm + "\""
+            else:
                 #comm = "ssh " + self.lst_lhost[ ipp ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ipp ) + " 2>&1"
                 #comm = REMOTESHELL + " " + self.lst_lhost[ ipp ] + " \"" + comm + "\""
                 comm = REMOTESHELL + " " + self.lst_lhostip[ ipp ] + " \"" + comm + "\""

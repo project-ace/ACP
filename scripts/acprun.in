@@ -107,7 +107,7 @@ class Acprun:
     # flg_localmode, flg_envnetwork, comm_args, comms_ssh
 
     #########################################################
-    def __init__( self, envnetwork = LST_ENVNETWORK[ 0 ] ):
+    def __init__( self ):
         self.myname          = os.path.basename( sys.argv[ 0 ] )
         self.ver_python      = int( sys.version_info[ 0 ] )
         self.subver_python   = int( sys.version_info[ 1 ] )
@@ -124,19 +124,18 @@ class Acprun:
         self.lst_rport       = PORTID_START
         self.lst_lhostip     = [ "127.0.0.1" ]
         self.lst_rhostip     = [ "127.0.0.1" ]
-        self.lst_lhost    = [ "localhost" ]
+        self.lst_lhost       = [ "localhost" ]
         self.flg_localmode   = True
-        self.set_envnetwork( envnetwork )
+        self.flg_envnetwork  = ENVNETWORK
+        self.flg_setenvnetwork = False
         self.lst_for_gen_lst_lport = { }
         if (( self.ver_python < 2 ) or (( self.ver_python == 2 ) and ( self.subver_python < 6 ))):
             sys.exit( "Error: %s requires python (2.6 <= version <= 3.x).\nCurrent version: %s." % (self.myname, sys.version) )
 
     #########################################################
-    def set_envnetwork( self, _envnetwork ):
-        if LST_ENVNETWORK.index( _envnetwork ):
-            self.flg_envnetwork = _envnetwork
-        else:
-            error_not_supported_network( _envnetwork )
+    def check_envnetwork( self ):
+        if (not (self.flg_envnetwork in LST_ENVNETWORK)):
+            self.error_not_supported_network( self.flg_envnetwork )
             sys.exit( "Error" )
 
     #########################################################
@@ -151,7 +150,7 @@ class Acprun:
         print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
         print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
         print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
-        print( "    : -multrun                            or --acp-multrun                             (default: False)" )
+        print( "    : -multrun                            or --acp-multrun                            (default: False)" )
         print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
         print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
         print( "    : --acp-version" )
@@ -245,6 +244,7 @@ class Acprun:
                     if self.nodes           == "":
                         raise ErrorInvalidOptionArgument( "Argument: host names are null" )
                 elif flgopt == "ENVNET":
+                    self.flg_setenvnetwork  = True
                     if   flgval == "BLKVAL":
                         self.flg_envnetwork  = optarg
                     elif flgval == "EQVAL":
@@ -491,14 +491,13 @@ class Acprun:
 ###### MAIN ###################################################################
 ###############################################################################
 ###############################################################################
-acprun = Acprun( ENVNETWORK )
+acprun = Acprun()
 
 acprun.cwd = os.environ.get( "PWD" )
-envnetwork = os.environ.get( STR_ENVNETWORK )
-if envnetwork:
-    acprun.set_envnetwork( envnetwork )
-#
 acprun.parse_argv()
+#
+acprun.check_envnetwork()
+#
 if ( len( acprun.nodefile ) > 0 ):
     acprun.localmode = 0 
     if (not os.path.isfile( acprun.nodefile )):

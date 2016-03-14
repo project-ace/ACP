@@ -29,8 +29,8 @@ STR_ENVNPROCS    = "ACP_NUMPROCS"
 STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
 STR_ENVTASKID    = "ACP_TASKID"
 
-DEBUG_MODE       = True  # or Frue
-DEBUG_LEVEL      = 100   # change to >200
+FLG_DEBUG        = False # or True
+DEBUGLEVEL       = 1000  # change to >200
 ####
 EXECUTE_COMMAND  = True  ## False
 ####
@@ -57,9 +57,18 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "--acp-node",            "NODES",      "EQVAL"  ],
            #
            [ "-net",                  "ENVNET",     "BLKVAL" ],
+           [ "-ndev",                 "ENVNET",     "BLKVAL" ],
            [ "-envnet",               "ENVNET",     "BLKVAL" ],
            [ "--acp-net",             "ENVNET",     "EQVAL"  ],
+           [ "--acp-ndev",            "ENVNET",     "EQVAL"  ],
            [ "--acp-envnet",          "ENVNET",     "EQVAL"  ],
+           #
+           [ "-rsh",                  "RSH",        "BLKVAL" ],
+           [ "-ssh",                  "RSH",        "BLKVAL" ],
+           [ "-remoteshell",          "RSH",        "BLKVAL" ],
+           [ "--acp-rsh",             "RSH",        "EQVAL"  ],
+           [ "--acp-ssh",             "RSH",        "EQVAL"  ],
+           [ "--acp-remoteshell",     "RSH",        "EQVAL"  ],
            #
            [ "-mult",                 "MULTRUN",    "NONE"   ],
            [ "-multrun",              "MULTRUN",    "NONE"   ],
@@ -79,6 +88,9 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-v",                    "VERSION",    "NONE"   ],
            [ "-version",              "VERSION",    "NONE"   ],
            [ "--acp-version",         "VERSION",    "NONE"   ],
+           #
+           [ "-debug",                "DEBUG",      "NONE"   ],
+           [ "--acp-debug",           "DEBUG",      "NONE"   ],
            #
            [ "--acp-",                "ERROR",      "NONE"   ] ]
 
@@ -128,6 +140,9 @@ class Acprun:
         self.flg_localmode   = True
         self.flg_envnetwork  = ENVNETWORK
         self.flg_setenvnetwork = False
+        self.flg_debug       = FLG_DEBUG
+        self.debuglevel      = DEBUGLEVEL
+        self.remoteshell     = REMOTESHELL
         self.lst_for_gen_lst_lport = { }
         if (( self.ver_python < 2 ) or (( self.ver_python == 2 ) and ( self.subver_python < 6 ))):
             sys.exit( "Error: %s requires python (2.6 <= version <= 3.x).\nCurrent version: %s." % (self.myname, sys.version) )
@@ -150,11 +165,13 @@ class Acprun:
         print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
         print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
         print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -ssh/-rsh REMOTESHELL               or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
         print( "    : -multrun                            or --acp-multrun                            (default: False)" )
         print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
         print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
-        print( "    : --acp-version" )
-        print( "    : --acp-help" )
+        print( "    : -debug                              or --acp-debug                              (default: debug is False)" )
+        print( "    : -v/-version                         or --acp-version" )
+        print( "    : -h/-help                            or --acp-help" )
         print( "Memo: 1. Other --acp-* options are errors." )
         print( "    : 2. All options for %s have to be before inputfile." % self.myname )
         print( "    : 3. If -multrun option is used, ports and ipaddresses are determined from node and port files." )
@@ -202,10 +219,6 @@ class Acprun:
         try:
             while pos < len(args):
                 flgopt, flgval, optarg, optval, pos = self.parse_anarg( args, pos )
-                #if DEBUG_MODE:
-                #    if DEBUG_LEVEL > 200:
-                #        print "opt: ", "flgopt=",flgopt, "flgval=",flgval, "optarg=",optarg, "optval=",optval, "pos=",pos
-                #
                 if ( flgopt == "NONE" ):
                     self.comm_args.append( optval )
                     while pos < len( args ):
@@ -243,6 +256,13 @@ class Acprun:
                     self.nodes               = nodes.split( "," )
                     if self.nodes           == "":
                         raise ErrorInvalidOptionArgument( "Argument: host names are null" )
+                elif flgopt == "RSH":
+                    if   flgval == "BLKVAL":
+                        self.remoteshell     = optarg
+                    elif flgval == "EQVAL":
+                        self.remoteshell     = optval
+                    if self.nodes           == "":
+                        raise ErrorInvalidOptionArgument( "Argument: remote shell name is null" )
                 elif flgopt == "ENVNET":
                     self.flg_setenvnetwork  = True
                     if   flgval == "BLKVAL":
@@ -269,24 +289,44 @@ class Acprun:
                         raise ErrorInvalidOptionArgument( "Argument: OFFSETRANK value is invalid" )
                 elif flgopt == "HELP":
                     self.print_help()
-                    sys.stderr.exit( "help:" )
+                    sys.exit( "help:" )
                 elif flgopt == "VERSION":
                     sys.exit( "%s : version %s." % (self.myname, VERSION) )
+                
+                ##### Hidden option #####
+                elif flgopt == "DEBUG":
+                    self.flg_debug           = True
+                    #if   flgval == "BLKVAL":
+                    #    if ((not (optarg is None)) and optarg.isdigit()):
+                    #        self.debuglevel  = int( optarg )
+                    #elif flgval == "EQVAL":
+                    #    if ((not (optval is None)) and optval.isdigit()):
+                    #        self.debuglevel  = int( optval )
+                    if self.debuglevel <= 0:
+                        sys.exit( "Argument: debuglevel <= 0. Modify DEBUGLEVEL value to 1000 in %s." % self.myname )
+                #########################
                 elif flgopt == "ERROR":
                     raise ErrorInvalidOption( "Argument: invalid" )
                 else:
                     raise ErrorInvalidOption( "Argument: invalid" )
         except ErrorInvalidOption:
-            sys.exit( "Error: invalid option: %s" % args )
+            sys.exit( "Error: invalid option: %s. (%s, %s, %s)" % (args, flgopt, optarg, optval) )
         except ErrorInvalidOptionArgument:
             sys.exit( "Error: invalid option argument: %s" % args )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
-                print( "opt: NPROCS = %s" % self.nprocs )
-                print( "opt: SMEMSZ = %s" % self.starter_memsize )
-                print( "opt:  NODES = %s" % self.nodes )
-                print( "opt: ENVNET = %s" % self.flg_envnetwork )
-                print( "opt: COMARG = %s" % self.comm_args )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: opt: nprocs         = %s" % (self.myname, self.nprocs) )
+                print( " %s: opt: smem size      = %s" % (self.myname, self.starter_memsize) )
+                print( " %s: opt: nodefile       = %s" % (self.myname, self.nodefile) )
+                print( " %s: opt: nodes          = %s" % (self.myname, self.nodes) )
+                print( " %s: opt: network env    = %s" % (self.myname, self.flg_envnetwork) )
+                print( " %s: opt: command args   = %s" % (self.myname, self.comm_args) )
+                print( " %s: opt: remote shell   = %s" % (self.myname, self.remoteshell) )
+                print( " %s: opt: flg_debug      = %s" % (self.myname, self.flg_debug) )
+                print( " %s: opt: debuglevel     = %s" % (self.myname, self.debuglevel) )
+                if ( self.flg_multrun ):
+                    print( " %s: opt: portfile   = %s" % (self.myname, self.portfile) )
+                    print( " %s: opt: offsetrank = %s" % (self.myname, self.offsetrank) )
 #
     #########################################################
     def set_nprocs_acp( self ):
@@ -328,10 +368,10 @@ class Acprun:
                 self.lst_lhostip.append( "127.0.0.1" )
             else:
                 self.lst_lhostip.append( socket.gethostbyname( nodename ) )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
-                print( "In " + sys._getframe().f_code.co_name + "():" )
-                print( "lst_lhostip: %s" % self.lst_lhostip )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: In %s():" % (self.myname, sys._getframe().f_code.co_name) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
 
     #########################################################
     def mult_nodenames( self ):
@@ -342,11 +382,11 @@ class Acprun:
                 ipmod = ip % len( self.lst_nodename_read )
                 self.lst_lhost.append( self.lst_nodename_read[ ipmod ] )
                 ip += 1
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
-                print( "In " + sys._getframe().f_code.co_name + "():" )
-                print( "lst_lhost:   %s" % self.lst_lhost )
-                print( "lst_lhostip: %s" % self.lst_lhostip )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: In %s():" % (self.myname, sys._getframe().f_code.co_name) )
+                print( " %s: lst_lhost:   %s" % (self.myname, self.lst_lhost) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
 
     #########################################################
     def get_array_lport( self ):
@@ -438,14 +478,14 @@ class Acprun:
             self.lst_rport.append(      int( lines[ i ][ 3 ] ) )
             self.lst_rhostip.append(         lines[ i ][ 4 ]   )
             self.lst_lhostip.append(         lines[ i ][ 8 ]   )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
-                print( "lst_nprocs: %s"  % self.lst_nprocs_acp )
-                print( "lst_taskid: %s"  % self.lst_taskid )
-                print( "lst_lport: %s"   % self.lst_lport )
-                print( "lst_rport: %s"   % self.lst_rport )
-                print( "lst_rhostip: %s" % self.lst_rhostip )
-                print( "lst_lhostip: %s" % self.lst_lhostip )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: lst_nprocs: %s"  % (self.myname, self.lst_nprocs_acp) )
+                print( " %s: lst_taskid: %s"  % (self.myname, self.lst_taskid) )
+                print( " %s: lst_lport: %s"   % (self.myname, self.lst_lport) )
+                print( " %s: lst_rport: %s"   % (self.myname, self.lst_rport) )
+                print( " %s: lst_rhostip: %s" % (self.myname, self.lst_rhostip) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
 
     #########################################################
     def gen_ssh_commands( self ):
@@ -469,7 +509,7 @@ class Acprun:
             else:
                 #comm = "ssh " + self.lst_lhost[ ipp ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ipp ) + " 2>&1"
                 #comm = REMOTESHELL + " " + self.lst_lhost[ ipp ] + " \"" + comm + "\""
-                comm = REMOTESHELL + " " + self.lst_lhostip[ ipp ] + " \"" + comm + "\""
+                comm = self.remoteshell + " " + self.lst_lhostip[ ipp ] + " \"" + comm + "\""
             self.comms_ssh.append( comm )
 
     #########################################################
@@ -517,7 +557,8 @@ else:
     acprun.get_array_rport_rhostip()
 #
 acprun.gen_ssh_commands()
-if DEBUG_MODE:
+if acprun.flg_debug:
+    print( " %s: executed command:" % acprun.myname )
     for i in range( len( acprun.comms_ssh )-1 ):
         print( " " + acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
     print( " " + acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )

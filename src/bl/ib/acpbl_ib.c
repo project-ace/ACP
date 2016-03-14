@@ -55,8 +55,7 @@
 /* define sizes */
 #define MAX_RM_SIZE     255U
 #define MAX_CQ_SIZE     4096U
-///#define MAX_CMDQ_ENTRY  4096U
-#define MAX_CMDQ_ENTRY  16U
+#define MAX_CMDQ_ENTRY  4096U
 #define MAX_RCMDB_SIZE  4096U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU
 #define MAX_RKEY_CASH_SIZE 1024
@@ -4103,7 +4102,8 @@ int iacp_init(void){
     qp_init_attr.sq_sig_all = 1; /* if work request COMPLETE, CQE enqueue cq. */
     qp_init_attr.send_cq = cq;
     qp_init_attr.recv_cq = cq;
-    qp_init_attr.cap.max_send_wr = cq_size;
+///    qp_init_attr.cap.max_send_wr = cq_size;
+    qp_init_attr.cap.max_send_wr = 8;
     qp_init_attr.cap.max_recv_wr = 1; /* use only first post recv */
     qp_init_attr.cap.max_send_sge = 1;
     qp_init_attr.cap.max_recv_sge = 1;
@@ -4602,8 +4602,8 @@ int acp_finalize(){
     fflush(stdout);
 #endif
 #ifndef ACPBLONLY
-///    iacp_finalize_cl();
-///    iacp_finalize_dl();
+    iacp_finalize_cl();
+    iacp_finalize_dl();
 #endif
     /* Insert FIN command into cmdq */
     while (tail - head == MAX_CMDQ_ENTRY - 1) ;

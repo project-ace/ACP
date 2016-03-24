@@ -1728,9 +1728,10 @@ void acp_assign_list(acp_list_t list1, acp_list_t list2)
     acp_ga_t tmp_head = *list_head;
     acp_ga_t tmp_tail = *list_tail;
     uint64_t tmp_num  = *list_num;
+    uint64_t tmp_num2;
     
     acp_ga_t next = tmp_head;
-    while (next != list1.ga) {
+    while (tmp_num-- > 0 && next != list1.ga) {
         acp_copy(buf + 24, next, 8, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
         acp_free(next);
@@ -1745,11 +1746,11 @@ void acp_assign_list(acp_list_t list1, acp_list_t list2)
     tmp_tail = *list_tail;
     tmp_num  = *list_num;
     
-    tmp_num        = 0;
+    tmp_num2       = 0;
     next           = tmp_head;
     acp_ga_t prev  = list1.ga;
-    acp_ga_t first = ACP_GA_NULL;
-    while (next != list2.ga) {
+    acp_ga_t first = list1.ga;
+    while (tmp_num-- > 0 && next != list2.ga) {
         acp_copy(buf + 24, next, 24, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
         acp_ga_t tmp_next = *elem_next;
@@ -1758,18 +1759,19 @@ void acp_assign_list(acp_list_t list1, acp_list_t list2)
         acp_ga_t new_elem = acp_malloc(24 + tmp_size, acp_query_rank(next));
         if (new_elem != ACP_GA_NULL) {
             acp_copy(new_elem + 16, next + 16, tmp_size + 8, ACP_HANDLE_NULL);
-            if (first != ACP_GA_NULL) {
+            if (first != list1.ga) {
                 *prev_next = new_elem;
                 acp_copy(prev, buf + 48, 16, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
             } else
                 first = new_elem;
             *prev_prev = prev;
             prev = new_elem;
-            tmp_num++;
+            tmp_num2++;
         }
         next = tmp_next;
     }
-    if (first != ACP_GA_NULL) {
+    if (first != list1.ga) {
         *prev_next = list1.ga;
         acp_copy(prev, buf + 48, 16, ACP_HANDLE_NULL);
     }
@@ -1777,7 +1779,7 @@ void acp_assign_list(acp_list_t list1, acp_list_t list2)
     /* set new list1 */
     *list_head = first;
     *list_tail = prev;
-    *list_num = tmp_num;
+    *list_num  = tmp_num2;
     acp_copy(list1.ga, buf, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
@@ -1821,7 +1823,7 @@ void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t e
     tmp_num        = 0;
     next           = start.elem;
     acp_ga_t prev  = list.ga;
-    acp_ga_t first = ACP_GA_NULL;
+    acp_ga_t first = list.ga;
     while (next != end.elem) {
         acp_copy(buf + 24, next, 24, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
@@ -1831,9 +1833,10 @@ void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t e
         acp_ga_t new_elem = acp_malloc(24 + tmp_size, acp_query_rank(next));
         if (new_elem != ACP_GA_NULL) {
             acp_copy(new_elem + 16, next + 16, tmp_size + 8, ACP_HANDLE_NULL);
-            if (first != ACP_GA_NULL) {
+            if (first != list.ga) {
                 *prev_next = new_elem;
                 acp_copy(prev, buf + 48, 16, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
             } else
                 first = new_elem;
             *prev_prev = prev;
@@ -1842,7 +1845,7 @@ void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t e
         }
         next = tmp_next;
     }
-    if (first != ACP_GA_NULL) {
+    if (first != list.ga) {
         *prev_next = list.ga;
         acp_copy(prev, buf + 48, 16, ACP_HANDLE_NULL);
     }
@@ -1850,7 +1853,7 @@ void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t e
     /* set new list */
     *list_head = first;
     *list_tail = prev;
-    *list_num = tmp_num;
+    *list_num  = tmp_num;
     acp_copy(list.ga, buf, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
@@ -2051,7 +2054,7 @@ acp_list_it_t acp_erase_list(acp_list_it_t it)
     } else if (tmp_num > 1 && tmp_head == it.elem ) {
         /* the head element is erased */
         *list_head = tmp_next;
-        *list_num--;
+        *list_num  = tmp_num - 1;
         acp_copy(it.list.ga, buf, 24, ACP_HANDLE_NULL);
         acp_copy(tmp_next + 8, buf + 24 + 8, 8, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
@@ -2060,7 +2063,7 @@ acp_list_it_t acp_erase_list(acp_list_it_t it)
     } else if (tmp_num > 1 && tmp_tail == it.elem) {
         /* the tail element is erased and it returns an end iterator */
         *list_tail = tmp_prev;
-        *list_num--;
+        *list_num  = tmp_num - 1;
         acp_copy(it.list.ga, buf, 24, ACP_HANDLE_NULL);
         acp_copy(tmp_prev, buf + 24, 8, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
@@ -2068,7 +2071,7 @@ acp_list_it_t acp_erase_list(acp_list_it_t it)
         it.elem = it.list.ga;
     } else if (tmp_num > 1 && it.elem != it.list.ga && it.elem != ACP_GA_NULL) {
         /* an intermediate element is erased and it returns an iterator to the next element */
-        *list_num--;
+        *list_num  = tmp_num - 1;
         acp_copy(it.list.ga, buf, 24, ACP_HANDLE_NULL);
         acp_copy(tmp_next + 8, buf + 24 + 8, 8, ACP_HANDLE_NULL);
         acp_copy(tmp_prev, buf + 24, 8, ACP_HANDLE_NULL);
@@ -2189,7 +2192,6 @@ acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end)
 
 acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int rank)
 {
-    it.elem = ACP_GA_NULL;
     acp_ga_t buf = acp_malloc(56, acp_rank());
     if (buf == ACP_GA_NULL) return it;
     void* ptr = acp_query_address(buf);
@@ -2209,7 +2211,7 @@ acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int ra
     }
     
     acp_copy(buf, it.list.ga, 24, ACP_HANDLE_NULL);
-    acp_copy(buf + 24 + 8, it.elem + 8, 8, ACP_HANDLE_NULL);
+    acp_copy(buf + 24 + 8, it.elem + 8, 8, ACP_HANDLE_ALL);
     acp_complete(ACP_HANDLE_ALL);
     
     acp_ga_t tmp_head = *list_head;
@@ -2219,7 +2221,7 @@ acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int ra
     acp_ga_t tmp_prev = *elem_prev;
     uint64_t tmp_size = elem.size;
     
-    *list_num++;
+    *list_num  = tmp_num + 1;
     *elem_next = tmp_next;
     *elem_size = tmp_size;
     *elem_ga   = new_elem;
@@ -2239,7 +2241,6 @@ acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int ra
 
 acp_list_it_t acp_insert_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end)
 {
-    it.elem = ACP_GA_NULL;
     acp_ga_t buf = acp_malloc(64, acp_rank());
     if (buf == ACP_GA_NULL) return it;
     void* ptr = acp_query_address(buf);
@@ -2275,6 +2276,7 @@ acp_list_it_t acp_insert_range_list(acp_list_it_t it, acp_list_it_t start, acp_l
             if (first != ACP_GA_NULL) {
                 *prev_next = new_elem;
                 acp_copy(prev, buf + 48, 16, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
             } else
                 first = new_elem;
             *prev_prev = prev;
@@ -2566,7 +2568,7 @@ void acp_push_back_list(acp_list_t list, const acp_element_t elem, int rank)
         acp_complete(ACP_HANDLE_ALL);
     } else {
         *list_tail = new_elem;
-        *list_num++;
+        *list_num  = tmp_num + 1;
         *elem_next = list.ga;
         *elem_prev = tmp_tail;
         *elem_size = elem.size;
@@ -2621,7 +2623,7 @@ void acp_push_front_list(acp_list_t list, const acp_element_t elem, int rank)
         acp_complete(ACP_HANDLE_ALL);
     } else {
         *list_head = new_elem;
-        *list_num++;
+        *list_num  = tmp_num + 1;
         *elem_next = tmp_head;
         *elem_prev = list.ga;
         *elem_size = elem.size;

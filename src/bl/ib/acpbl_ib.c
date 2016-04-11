@@ -3721,7 +3721,9 @@ int iacp_init(void){
     int alm8_add; 
     /* enable address resuse, as soon as possible */
     const int on = 1;
-    
+    /* create iacp_starter_memory_size_dl_heap */
+    uint64_t iacp_starter_memory_size_dl_heap = 256;
+
     /* initialize head, tail */
     head = 1;
     tail = 1;  
@@ -3740,13 +3742,14 @@ int iacp_init(void){
 
 #ifdef ACPBLONLY
     iacp_starter_memory_size_dl = 0;
+    iacp_starter_memory_size_dl_heap = 0;
     iacp_starter_memory_size_cl = 0;
 #endif
 
     /* adjust starter memory for dl */
     alm8_add = iacp_starter_memory_size_dl & 7;
     alm8_add_func(alm8_add);
-    acp_smdlsize_adj = iacp_starter_memory_size_dl + alm8_add;
+    acp_smdlsize_adj = iacp_starter_memory_size_dl + iacp_starter_memory_size_dl_heap + alm8_add;
     
     /* adjust starter memory for cl */
     alm8_add = iacp_starter_memory_size_cl & 7;

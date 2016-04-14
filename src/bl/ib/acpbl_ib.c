@@ -4105,8 +4105,7 @@ int iacp_init(void){
     qp_init_attr.sq_sig_all = 1; /* if work request COMPLETE, CQE enqueue cq. */
     qp_init_attr.send_cq = cq;
     qp_init_attr.recv_cq = cq;
-///    qp_init_attr.cap.max_send_wr = cq_size;
-    qp_init_attr.cap.max_send_wr = 8;
+    qp_init_attr.cap.max_send_wr = cq_size;
     qp_init_attr.cap.max_recv_wr = 1; /* use only first post recv */
     qp_init_attr.cap.max_send_sge = 1;
     qp_init_attr.cap.max_recv_sge = 1;

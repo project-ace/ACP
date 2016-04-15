@@ -40,9 +40,9 @@
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
 
-#ifdef SETAFFINITY
+//#ifdef SETAFFINITY
 #include <sched.h> /* for set affnity */
-#endif
+//#endif
 
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
@@ -2655,11 +2655,13 @@ static void *comm_thread_func(void *dm){
     
     uint64_t iter = 0, pre_iter = 0;
     uint64_t clk = 0, pre_clk = 0;
-    
+    int comm_work;
+
 #ifdef SETAFFINITY
     cpu_set_t mask;
     int cpuid;
     int cpumax;
+
     
     fprintf(stdout, "%d: getcpu %d\n", acp_rank(), sched_getcpu());
     
@@ -2692,8 +2694,15 @@ static void *comm_thread_func(void *dm){
     myrank = acp_rank();
     /* get # of rank */
     nprocs = acp_procs();
-
+    comm_work = 0;
+    
     while (1) {
+        if ( 0 == comm_work ) {
+            sched_yield();
+        } 
+        else {
+            comm_work = 0;
+        }
         /* iter ++; */
         /* CHECK IB COMPLETION QUEUE section */
         rc = ibv_poll_cq(cq, 1, &wc);
@@ -2704,6 +2713,7 @@ static void *comm_thread_func(void *dm){
         }
         /* get cqes */
         if (rc > 0) {
+            comm_work ++;
             /* set index by cmdq head */
             index = head;
             if (wc.status == IBV_WC_SUCCESS) {
@@ -2926,6 +2936,7 @@ static void *comm_thread_func(void *dm){
 #endif
                 /* check if command is complete or not. */
                 if ( cmdq[idx].stat != COMPLETED ) {
+                    comm_work ++;
                     /* check command type */
                     /* command type is FIN */
                     if (cmdq[idx].type == FIN) {
@@ -3279,7 +3290,7 @@ static void *comm_thread_func(void *dm){
             
             idx = index % MAX_RCMDB_SIZE;
             if ( rcmdbuf[idx].valid_head == true && rcmdbuf[idx].valid_tail == true ) {
-                
+                comm_work ++;
                 if ( rcmdbuf[idx].stat == CMD_UNISSUED ) {
 #ifdef DEBUG_L2
                     fprintf(stdout, "%d: rcmdq section: CMD_UNISSUED\n", myrank);
@@ -3729,6 +3740,7 @@ static void *comm_thread_func(void *dm){
         for (i = 0; i < nprocs; i++) {
             /* check rrm reset flag table */
             if (true == rrm_reset_flag_tb[i]) {
+                comm_work ++;
                 /* free remote rkey table */
                 for (j = 0; j < MAX_RM_SIZE; j++) {
                     rrmtb_idx = i % rkey_cache_size;

@@ -34,13 +34,7 @@
 /* H.Honda Jan.12 2016 end   */
 /* H.Honda Dec.31 2015 begin */
 #ifdef MPIACP
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <netdb.h>
-#include <arpa/inet.h>
 #include <poll.h>
 #include "mpi.h"
 #endif /* MPIACP */
@@ -55,6 +49,7 @@
 /* define sizes */
 #define MAX_RM_SIZE     255U
 #define MAX_CQ_SIZE     4096U
+#define MAX_WR_SIZE     4U
 #define MAX_CMDQ_ENTRY  4096U
 #define MAX_RCMDB_SIZE  4096U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU
@@ -97,23 +92,33 @@
 #define FIN     255U 
 
 /* define STATUSs */
-#define COMPLETED                 0U
-#define UNISSUED                  1U
-#define ISSUED                    2U
-#define FIRST_ISSUED              3U   
-#define FINISHED                  4U
-#define WAIT_RRM                  5U
-#define WAIT_TAIL                 6U
-#define WAIT_HEAD                 7U
-#define WAIT_PUT_CMD              8U
-#define WAIT_PUT_DST              9U
-#define CMD_UNISSUED             10U
-#define CMD_ISSUED               11U
-#define CMD_FIRST_ISSUED         12U
-#define CMD_WAIT_RRM             13U
-#define CMD_WAIT_PUT_DST         14U
-#define CMD_WAIT_FIRST_PUT_DST   15U
-#define CMD_WRITEBACK_FIN        16U
+#define COMPLETED                             0U
+#define UNISSUED                              1U
+#define ISSUED                                2U
+#define FIRST_ISSUED                          3U
+#define PRE_PUTRRMFLAG                        4U
+#define FINISHED                              5U
+#define WAIT_RRM                              6U
+#define GETED_RRM                             7U
+#define WAIT_TAIL                             8U
+#define WAIT_HEAD                             9U
+#define WAIT_PUT_CMD                         10U
+#define WAIT_PUT_DST                         11U
+#define PRE_GET_HEAD                         12U
+#define PRE_PUT_CMD                          13U
+#define CMD_UNISSUED                         14U
+#define CMD_ISSUED                           15U
+#define CMD_FIRST_ISSUED                     16U
+#define CMD_WAIT_RRM                         17U
+#define CMD_WAIT_PUT_DST                     18U
+#define CMD_WAIT_FIRST_PUT_DST               19U
+#define CMD_GETED_RRM                        20U
+#define CMD_WRITEBACK_FIN                    21U
+#define CMD_PRE_WRITEBACK_FIN                22U
+#define CMD_PRE_PUTRRMGETEDFLAG_ISSUED       23U
+#define CMD_PRE_PUTRRMGETEDFLAG_PUT_DST      24U
+
+
 
 /* resouce info for starter memory */
 typedef struct resource_info{
@@ -147,25 +152,25 @@ typedef struct starter_memroy_info{
 
 typedef struct copy_command_format{
     size_t size; /* copy size */
-}CCMD;
+} CCMD;
 
 typedef struct cas4_command_format{
     uint32_t data1; /* data1(4) */
     uint32_t data2; /* data2(4) */
-}CAS4CMD;
+} CAS4CMD;
 
 typedef struct cas8_command_format{
     uint64_t data1; /* data1(8) */
     uint64_t data2; /* data2(8) */
-}CAS8CMD;
+} CAS8CMD;
 
 typedef struct atomic4_command_format{
     uint32_t data; /* data(4) */
-}ATOMIC4CMD;
+} ATOMIC4CMD;
 
 typedef struct atomic8_command_format{
     uint64_t data; /* data(8) */
-}ATOMIC8CMD;
+} ATOMIC8CMD;
 
 typedef union command_format_exstra{
     CCMD copy_cmd; /* copy command format */
@@ -173,7 +178,7 @@ typedef union command_format_exstra{
     CAS8CMD cas8_cmd; /* cas8 command format */
     ATOMIC4CMD atomic4_cmd; /* atomic4 command format */
     ATOMIC8CMD atomic8_cmd; /* atomic4 command format */
-}CMDE;
+} CMDE;
 
 typedef struct command_format{
     uint64_t valid_head; /* validation of CMD for RCMDBUF */
@@ -191,7 +196,7 @@ typedef struct command_format{
     uint64_t replydata; /* reply data for atomic buffer */
     CMDE cmde; /* Command format exstra for GMA */
     uint64_t valid_tail; /* validation of CMD for RCMDBUF */
-}CMD;
+} CMD;
 
 /* socket file descripter */
 static int sock_accept;
@@ -423,6 +428,7 @@ int acp_query_rank(acp_ga_t ga){
     
     rank = (int)((ga >> (COLOR_BITS + GMTAG_BITS + OFFSET_BITS)) & RANK_MASK);
     rank--;
+    
 #ifdef DEBUG_L3
     fprintf(stdout, "%d: ga %lx rank %d\n", acp_rank(), ga, rank);
     fflush(stdout);
@@ -736,6 +742,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color){
                 break;
             }
         }
+        
         /* initialization rrm flag table */
         memset((char *)rrm_get_flag_tb, 0, sizeof(char) * nprocs);
         memset((char *)rrm_ack_flag_tb, 0, sizeof(char) * nprocs);
@@ -1610,7 +1617,7 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     /* check my rank */
     myrank = acp_rank();
     /* check myrank is equal to dst rank or not */
-    if(myrank != acp_query_rank(dst)) {
+    if (myrank != acp_query_rank(dst)) {
         return ACP_HANDLE_NULL;
     }
 
@@ -1835,10 +1842,6 @@ static inline int getlrm(uint64_t wr_id, int torank){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", rank);
-        exit(rc);
-    }
     
 #ifdef DEBUG
     fprintf(stdout, "%d: get lrm ibv_post_send return code = %d\n", rank, rc);
@@ -1912,10 +1915,13 @@ static inline int writebackstat(uint64_t idx){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
+#if 0
+    if (0 == rc) {
         fprintf(stderr, "failed to post SR\n");
         exit(rc);
     }
+#endif
+
 #ifdef DEBUG
     fprintf(stdout, 
             "%d: writeback cmdq  ibv_post_send return code = %d\n", 
@@ -1970,10 +1976,7 @@ static inline int gethead(acp_handle_t idx, int torank){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
+    
 #ifdef DEBUG
     fprintf(stdout, "%d: get head ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
@@ -2029,10 +2032,7 @@ static inline int gettail(acp_handle_t idx, int torank){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
+    
 #ifdef DEBUG
     fprintf(stdout, "%d: get tail ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
@@ -2091,10 +2091,6 @@ static inline int putrrmgetedflag(uint64_t wr_id, int torank){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
     
 #ifdef DEBUG
     fprintf(stdout, "%d: put rrm get flag ibv_post_send return code = %d\n", acp_rank(), rc);
@@ -2151,10 +2147,6 @@ static inline int putrrmackflag(uint64_t wr_id, int torank){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", myrank);
-        exit(rc);
-    }
     
 #ifdef DEBUG
     fprintf(stdout, "%d: put rrm ack flag ibv_post_send return code = %d\n", myrank, rc);
@@ -2229,10 +2221,7 @@ static inline int putreplydata(acp_handle_t idx, int dstrank, int dstgmtag, uint
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[dstrank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
+
 #ifdef DEBUG
     fprintf(stdout, "%d: put replydata ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
@@ -2292,10 +2281,7 @@ static inline int putcmd(acp_handle_t idx, int torank, uint64_t rcmdbid){
     
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
+ 
 #ifdef DEBUG
     fprintf(stdout, "%d: putcmd ibv_post_send return code = %d\n", acp_rank(), rc);
     fflush(stdout);
@@ -2394,6 +2380,7 @@ static inline int icopy(uint64_t wr_id ,
     if (size == 0){
         sr.num_sge = 0;
     }
+    
 #ifdef DEBUG
     fprintf(stdout, "%d: icopy wr_id  %lx wr_id %lx\n", acp_rank(), sr.wr_id, wr_id);
     fflush(stdout);
@@ -2435,17 +2422,13 @@ static inline int icopy(uint64_t wr_id ,
 
     /* post send by ibv_post_send */
     rc = ibv_post_send(qp[torank], &sr, &bad_wr);
-    
-    if (rc) {
-        fprintf(stderr, "%d: failed to post SR\n", acp_rank());
-        exit(rc);
-    }
+        
 #ifdef DEBUG
     fprintf(stdout, "%d: icopy ibv_post_send return code = %d\n", acp_rank(), rc);
     fprintf(stdout, "%d: internal icopy fin\n", acp_rank());
     fflush(stdout);
 #endif
-
+    
     return rc;
 }
 
@@ -2593,6 +2576,7 @@ static inline void rcmdbuf_update_head(){
             break;
         }
     }
+    
 #ifdef DEBUG
     fprintf(stdout, "%d: internal rcmdbuf_update_head fin\n", acp_rank()); 
     fflush(stdout);
@@ -2647,6 +2631,7 @@ static inline void setrrm(int torank){
 static void *comm_thread_func(void *dm){
   
     int rc; /* return code for cq */
+    int ret; /* return code for ibv_post_send */
     int i, j; /* general index */
     
     struct ibv_wc wc; /* work completion for poll_cq */
@@ -2675,7 +2660,7 @@ static void *comm_thread_func(void *dm){
     cpu_set_t mask;
     int cpuid;
     int cpumax;
-
+    
     fprintf(stdout, "%d: getcpu %d\n", acp_rank(), sched_getcpu());
     
     rc = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
@@ -2683,6 +2668,7 @@ static void *comm_thread_func(void *dm){
         perror("failed schecd_getaffinity");
         exit(1);
     }
+    
 #ifdef SETAFFINITY_LAST
     cpumax = CPU_COUNT(&mask);
     fprintf(stdout, "%d: getcpu %d maxcpu %d \n", acp_rank(), sched_getcpu(), cpumax);
@@ -2692,7 +2678,7 @@ static void *comm_thread_func(void *dm){
     CPU_ZERO(&mask);
     cpuid = 0;
 #endif
-
+    
     CPU_SET(cpuid, &mask);
     rc = sched_setaffinity(0, sizeof(cpu_set_t), &mask);
     if (0 != rc) {
@@ -2739,7 +2725,7 @@ static void *comm_thread_func(void *dm){
                         idx = index % MAX_CMDQ_ENTRY;
                         if (cmdq[idx].wr_id == wc.wr_id) {
                             switch (cmdq[idx].stat) {
-                            case ISSUED: /* issueing gma command */
+                            case ISSUED: /* issued gma command */
 #ifdef DEBUG
                                 fprintf(stdout, "%d: ISSUED\n", myrank);
                                 fflush(stdout);
@@ -2749,136 +2735,47 @@ static void *comm_thread_func(void *dm){
                                 comp_cqe_flag = true;
                                 break;
                                 
-                            case WAIT_RRM:/* waiting for get rkey table */
-#ifdef DEBUG
-                                fprintf(stdout, "%d: WAIT RRM\n", myrank);
-                                fflush(stdout);
-#endif
-                                /* set ga of src and dst and size from cmdq */
-                                src = cmdq[idx].gasrc;
-                                dst = cmdq[idx].gadst;
-                                size = cmdq[idx].cmde.copy_cmd.size;
-                                
-                                /* set offset, tag, size of src and dst */
-                                srcrank = acp_query_rank(src);
-                                srcoffset = query_offset(src);
-                                srctag = query_gmtag(src);
-                                dstrank = acp_query_rank(dst);		
-                                dstoffset = query_offset(dst);
-                                dsttag = query_gmtag(dst);
-                                
-                                /* set target rank */
-                                if (myrank == dstrank) {
-                                    torank = srcrank;
-                                }
-                                else if (myrank == srcrank) {
-                                    torank = dstrank;
-                                }
-                                
-                                /* set remote rkey mem table */
-                                setrrm(torank);
-                                recv_rrm_flag = true;
-
-                                /* issued copy */
-                                icopy(cmdq[idx].wr_id, dstrank, dsttag, 
-                                      dstoffset, srcrank, srctag, srcoffset, size);
-                                
-                                
-                                if (rrm_hav_flag_tb[torank] == true) {
-                                    cmdq[idx].stat = ISSUED;
-                                }
-                                else{
-                                    cmdq[idx].stat = FIRST_ISSUED;
-                                }
-                                comp_cqe_flag = true;
-                                break;
-                                
-                            case FIRST_ISSUED:
+                            case FIRST_ISSUED: /* first issued gma command */
 #ifdef DEBUG
                                 fprintf(stdout, "%d: FIRST_ISSUED\n", myrank);
                                 fflush(stdout);
 #endif
-                                
-                                /* get global address src and dst */
-                                src = cmdq[idx].gasrc;
-                                dst = cmdq[idx].gadst;
-                                
-                                /* get rank of src and dst */
-                                srcrank = acp_query_rank(src);
-                                dstrank = acp_query_rank(dst);
-                                
-                                /* set target rank */
-                                if (myrank == dstrank) {
-                                    torank = srcrank;
-                                }
-                                else if (myrank == srcrank) {
-                                    torank = dstrank;
-                                }
-
-                                /* put geted rrm flag */
-                                putrrmgetedflag(cmdq[idx].wr_id, torank);
                                 rrm_hav_flag_tb[torank] = true;
-                                
-                                cmdq[idx].stat = ISSUED;
+                                cmdq[idx].stat = PRE_PUTRRMFLAG;
                                 comp_cqe_flag = true;
                                 break;
+
+                            case WAIT_RRM: /* geted rkey table */
+#ifdef DEBUG
+                                fprintf(stdout, "%d: WAIT RRM\n", myrank);
+                                fflush(stdout);
+#endif
+                                cmdq[idx].stat = GETED_RRM;
+                                comp_cqe_flag = true;
+                                break;
+
                                 
-                            case WAIT_TAIL:
+                            case WAIT_TAIL: /* geted tail of rcmdbuf */
 #ifdef DEBUG
                                 fprintf(stdout, "%d: WAIT_TAIL\n", myrank);
                                 fprintf(stdout, "%d: tail_buf %lx, rcmdbuf_tail %lx\n",
                                         myrank, cmdq[idx].tail_buf, *rcmdbuf_tail);
                                 fflush(stdout);
 #endif
-                                /* set ga of src from cmdq */
-                                src = cmdq[idx].gasrc;
-                                /* ger rank of src ga*/
-                                srcrank = acp_query_rank(src);
-#ifdef DEBUG
-                                if (myrank == srcrank) {
-                                    fprintf(stderr, "%d: rr opration tail wait error\n", myrank);
-                                }
-#endif
-                                /* issued get head */
-                                gethead(idx, srcrank);
-                                cmdq[idx].stat = WAIT_HEAD;
+                                cmdq[idx].stat = PRE_GET_HEAD;
                                 comp_cqe_flag = true;
                                 break;
-                                
-                            case WAIT_HEAD:
+                              
+                            case WAIT_HEAD: /* geted head of rcmdbuf */
 #ifdef DEBUG		  
                                 fprintf(stdout, "%d: WAIT_HEAD\n", myrank);
                                 fflush(stdout);
 #endif
-                                /* set src ga from cmdq */
-                                src = cmdq[idx].gasrc;
-                                /* set srcrank */
-                                srcrank = acp_query_rank(src);
-                                
-                                /* check enable putflag  */
-#ifdef DEBUG		  
-                                fprintf(stdout, "%d srcrank %d tail_buf %lx head_buf %lx\n",
-                                        myrank, srcrank, cmdq[idx].tail_buf, cmdq[idx].head_buf);
-                                fflush(stdout);
-#endif
-                                
-                                if (cmdq[idx].tail_buf - cmdq[idx].head_buf > MAX_RCMDB_SIZE - 1) {
-#ifdef DEBUG
-                                    fprintf(stdout, 
-                                            "%d not exec putcmd acp handle %lx idx %lx tail_buf %lx head_buf %lx\n", 
-                                            acp_rank(), index, idx, cmdq[idx].tail_buf, cmdq[idx].head_buf);
-                                    fflush(stdout);
-#endif
-                                    gethead(idx, srcrank);
-                                    comp_cqe_flag = true;
-                                    break;
-                                }
-                                cmdq[idx].stat = WAIT_PUT_CMD;
-                                putcmd(idx, srcrank, cmdq[idx].tail_buf);
+                                cmdq[idx].stat = PRE_PUT_CMD;
                                 comp_cqe_flag = true;
                                 break;
-                                
-                            case WAIT_PUT_CMD:
+
+                            case WAIT_PUT_CMD: /* completed put command into rcmdbuf */
 #ifdef DEBUG
                                 fprintf(stdout, "%d: WAIT_PUT_CMD\n", myrank);
                                 fflush(stdout);
@@ -2914,107 +2811,39 @@ static void *comm_thread_func(void *dm){
 #ifdef DEBUG
                         fprintf(stdout, 
                                 "%d: qp section: rcmdbuf wr_id %lx mask %llx st index %lx rcmdbuf[%lu] %lu\n", 
-                                myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB, index, idx, rcmdbuf[idx]
-                                .stat);
+                                myrank, wc.wr_id, wc.wr_id & MASK_WRID_RCMDB, index, idx, rcmdbuf[idx].stat);
                         fflush(stdout);
 #endif 
-                        if (rcmdbuf[idx].wr_id == wc.wr_id) {
+                        if ( rcmdbuf[idx].wr_id == wc.wr_id ) {
                             switch (rcmdbuf[idx].stat) {
-                            case CMD_ISSUED: /* COPY only */
+                            case CMD_ISSUED: /* Complete copy in RCMDBUF: COPY only */
 #ifdef DEBUG
                                 fprintf(stdout, "%d: CMD_ISSUED\n", myrank);
                                 fflush(stdout);
 #endif
-                                writebackstat(idx);
-                                rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
+                                rcmdbuf[idx].stat = CMD_PRE_WRITEBACK_FIN;
                                 comp_cqe_flag = true;
+                                
                                 break;
                                 
-                            case CMD_WAIT_RRM: /* COPY and atomic */
+                            case CMD_WAIT_RRM: /* Geted RRM: COPY and atomic */
 #ifdef DEBUG	
                                 fprintf(stdout, "%d: CMD_WAIT_RRM\n", myrank);
                                 fflush(stdout);
 #endif
+                                rcmdbuf[idx].stat = CMD_GETED_RRM;
                                 
-                                
-                                /* get ga of dst from rcmd buffer  */
-                                dst = rcmdbuf[idx].gadst;
-                                
-                                /* get rank and tag, offset of dst */
-                                dstrank = acp_query_rank(dst);
-                                
-                                /* set remote rkey memory table of dst rank */
-                                setrrm(dstrank);
-                                recv_rrm_flag = true;
-                                
-                                dsttag = query_gmtag(dst);
-                                dstoffset = query_offset(dst);
-                                
-                                
-                                /* COPY */
-                                if (rcmdbuf[idx].type == COPY) {
-                                    /* set src ga from rcmd buffer */
-                                    src = rcmdbuf[idx].gasrc;
-                                    /* get rank, tag, offset of src */
-                                    srcrank = acp_query_rank(src);
-                                    srctag = query_gmtag(src);
-                                    srcoffset = query_offset(src);
-                                    
-                                    /* issued internal copy  */
-                                    icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
-                                          srcrank, srctag, srcoffset, size);
-                                    /* check if acess first time or not  */
-                                    if(rrm_hav_flag_tb[dstrank] == true){ 
-                                        rcmdbuf[idx].stat = CMD_ISSUED;
-                                    }
-                                    else{
-                                        rcmdbuf[idx].stat = CMD_FIRST_ISSUED;
-                                    }
-                                }
-                                /* ATOMIC */
-                                else {
-                                    if ((rcmdbuf[idx].type & MASK_ATOMIC) == MASK_ATOMIC) {
-                                        /* check if acess first time or not  */
-                                        if(rrm_hav_flag_tb[dstrank] == true){ 
-                                            rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
-                                        }
-                                        else{
-                                            rcmdbuf[idx].stat = CMD_WAIT_FIRST_PUT_DST;
-                                        }
-                                        if ((rcmdbuf[idx].type & MASK_ATOMIC8 ) == MASK_ATOMIC8 ) {
-                                            putreplydata(idx, dstrank, dsttag, dstoffset, true);
-                                        }
-                                        else {
-                                            putreplydata(idx, dstrank, dsttag, dstoffset, false);
-                                        }
-#ifdef DEBUG
-                                        fprintf(stdout,"%d: qp section: rcmdbuf[%lx] %lu\n", 
-                                                myrank, idx, rcmdbuf[idx].stat);
-                                        fflush(stdout);
-#endif
-                                    }
-                                }
                                 comp_cqe_flag = true;
                                 break;
                                 
                             case CMD_FIRST_ISSUED:
-#ifdef DEBUG	
+#ifdef DEBUG
                                 fprintf(stdout, "%d: CMD_FIRST_ISSUED\n", myrank);
                                 fflush(stdout);
 #endif
-                                
-                                /* get ga of dst from rcmd buffer */
-                                dst = rcmdbuf[idx].gadst;                                
-                                /* get rank of dst ga */
-                                dstrank = acp_query_rank(dst);
-                                                                
-                                /* issued put rrm get flag */
-                                putrrmgetedflag(rcmdbuf[idx].wr_id, dstrank);
-                                
-                                /* set status of rcmd buffer */
-                                rcmdbuf[idx].stat = CMD_ISSUED;
-                                comp_cqe_flag = true;
 
+                                rcmdbuf[idx].stat = CMD_PRE_PUTRRMGETEDFLAG_ISSUED;
+                                comp_cqe_flag = true;
                                 break;
 
                             case CMD_WAIT_FIRST_PUT_DST:
@@ -3022,18 +2851,9 @@ static void *comm_thread_func(void *dm){
                                 fprintf(stdout, "%d: CMD_WAIT_FIRST_PUT_DST\n", myrank);
                                 fflush(stdout);
 #endif
-                                /* get ga of dst from rcmd buffer */
-                                dst = rcmdbuf[idx].gadst;                                
-                                /* get rank of dst ga */
-                                dstrank = acp_query_rank(dst);
-                                                                
-                                /* issued put rrm get flag */
-                                putrrmgetedflag(rcmdbuf[idx].wr_id, dstrank);
-                                
-                                /* set status of rcmd buffer */
-                                rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
+                                rcmdbuf[idx].stat = CMD_PRE_PUTRRMGETEDFLAG_PUT_DST;
                                 comp_cqe_flag = true;
-
+                                
                                 break;
                                 
                             case CMD_WAIT_PUT_DST: /* only atomic */
@@ -3041,8 +2861,7 @@ static void *comm_thread_func(void *dm){
                                 fprintf(stdout, "%d: CMD_WAIT_PUT_DST\n", myrank);
                                 fflush(stdout);
 #endif
-                                rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
-                                writebackstat(idx);
+                                rcmdbuf[idx].stat = CMD_PRE_WRITEBACK_FIN;
                                 comp_cqe_flag = true;
                                 
                                 break;
@@ -3064,8 +2883,8 @@ static void *comm_thread_func(void *dm){
                             }
                         }
                         /* update index for next rcmdbuf queue */
-                        index++;
-                        count++;
+                        index ++;
+                        count ++;
 #ifdef DEBUG_L2
                         fprintf(stdout, "%d: qp section: update rcmdbuf index %lx\n",
                                 myrank, index);
@@ -3095,9 +2914,9 @@ static void *comm_thread_func(void *dm){
         }
         /* CHECK COMMAND QUEUE section */
         /* cmdq is not empty */
-        if (tail > head) {
+        if ( tail > head ) {
             index = head;
-            while (index < tail) {
+            while ( index < tail ) {
                 idx = index % MAX_CMDQ_ENTRY;
 #ifdef DEBUG_L2
                 fprintf(stdout, 
@@ -3106,7 +2925,7 @@ static void *comm_thread_func(void *dm){
                 fflush(stdout);
 #endif
                 /* check if command is complete or not. */
-                if (cmdq[idx].stat != COMPLETED) {
+                if ( cmdq[idx].stat != COMPLETED ) {
                     /* check command type */
                     /* command type is FIN */
                     if (cmdq[idx].type == FIN) {
@@ -3117,16 +2936,16 @@ static void *comm_thread_func(void *dm){
                         return 0;
                     }
                     /* command type is COPY and ATOMIC */
-                    else if (cmdq[idx].stat == UNISSUED) {
+                    else if ( cmdq[idx].stat == UNISSUED ) {
 #ifdef DEBUG
                         fprintf(stdout, "%d: GMA issued\n", myrank);
                         fflush(stdout);
 #endif
                         /* order handling */
-                        if (cmdq[idx].ohdl == ACP_HANDLE_ALL || cmdq[idx].ohdl == ACP_HANDLE_CONT){
+                        if ( cmdq[idx].ohdl == ACP_HANDLE_ALL || cmdq[idx].ohdl == ACP_HANDLE_CONT ) {
                             cmdq[idx].ohdl = cmdq[idx].ishdl - 1;
                         }
-                        if (cmdq[idx].ohdl >= head) {
+                        if ( cmdq[idx].ohdl >= head ) {
 #ifdef DEBUG
                             fprintf(stdout, 
                                     "%d: index %ld ohndl %ld head %ld\n", 
@@ -3139,12 +2958,10 @@ static void *comm_thread_func(void *dm){
                         /* set ga and size from cmdq */
                         src = cmdq[idx].gasrc;
                         dst = cmdq[idx].gadst;
-                        
                         /* get rank and tag of src ga */
                         srcrank = acp_query_rank(src);
                         srctag = query_gmtag(src);
                         srcoffset = query_offset(src);
-                        
                         /* get rank and tag of dst ga */
                         dstrank = acp_query_rank(dst);
                         dsttag = query_gmtag(dst);
@@ -3181,24 +2998,11 @@ static void *comm_thread_func(void *dm){
                                 /* check tag */
                                 /* if tag point stater memory */
                                 if (totag == TAG_SM) {
-                                    cmdq[idx].stat = ISSUED;
-                                    
-                                    //pre_clk = get_clock();
-                                    icopy(cmdq[idx].wr_id, dstrank, dsttag, dstoffset, 
-                                          srcrank, srctag, srcoffset, size);
-                                    /*clk = get_clock();
-                                    fprintf(stdout, 
-                                            "icopy=%lld\n", 
-                                            clk - pre_clk);
-                                    */
-                                    /*
-                                      clk = get_clock();
-                                      fprintf(stdout, 
-                                      "iter=%d iter_diff=%d clk_diff=%lld\n", 
-                                      iter, iter - pre_iter, clk - pre_clk);
-                                      pre_clk = clk;
-                                      pre_iter = iter;
-                                    */                                    
+                                    ret = icopy(cmdq[idx].wr_id, dstrank, dsttag, dstoffset, 
+                                                srcrank, srctag, srcoffset, size);
+                                    if ( ret == 0 ) {
+                                        cmdq[idx].stat = ISSUED;
+                                    } 
                                 }
                                 else {/* if tag point globl memory */
                                     /* if have a remote rm table of target rank */
@@ -3214,14 +3018,16 @@ static void *comm_thread_func(void *dm){
                                         if (rrmtb[rrmtb_idx][totag].valid == true) {
                                             if (rrmtb[rrmtb_idx][totag].rank == torank) {
 #ifdef DEBUG
-                                            fprintf(stdout, 
-                                                    "%d: CMD COPY have a entry rank %d torank %d, rrmtb_idx %d, totag %d\n",
-                                                    myrank, myrank, torank, rrmtb_idx, totag);
-                                            fflush(stdout);
+                                                fprintf(stdout, 
+                                                        "%d: CMD COPY have a entry rank %d torank %d, rrmtb_idx %d, totag %d\n",
+                                                        myrank, myrank, torank, rrmtb_idx, totag);
+                                                fflush(stdout);
 #endif
-                                            cmdq[idx].stat = ISSUED;
-                                            icopy(cmdq[idx].wr_id, dstrank, dsttag, dstoffset, 
-                                                  srcrank, srctag, srcoffset, size);
+                                                ret = icopy(cmdq[idx].wr_id, dstrank, dsttag, dstoffset, 
+                                                      srcrank, srctag, srcoffset, size);
+                                                if ( 0 == ret ) {
+                                                    cmdq[idx].stat = ISSUED;
+                                                }
                                             }
                                             else{/* tag entry have wrong data */
 #ifdef DEBUG
@@ -3231,9 +3037,11 @@ static void *comm_thread_func(void *dm){
                                                 fflush(stdout);
 #endif
                                                 if (recv_rrm_flag == true){
-                                                    recv_rrm_flag = false;
-                                                    cmdq[idx].stat = WAIT_RRM;
-                                                    getlrm(cmdq[idx].wr_id, torank);
+                                                    ret = getlrm(cmdq[idx].wr_id, torank);
+                                                    if ( 0 == ret ) {
+                                                        recv_rrm_flag = false;
+                                                        cmdq[idx].stat = WAIT_RRM;
+                                                    }
                                                 }
                                                 else{
                                                     index++;
@@ -3249,9 +3057,11 @@ static void *comm_thread_func(void *dm){
                                             fflush(stdout);
 #endif
                                             if (recv_rrm_flag == true){
-                                                recv_rrm_flag = false;
-                                                cmdq[idx].stat = WAIT_RRM;
-                                                getlrm(cmdq[idx].wr_id, torank);
+                                                ret = getlrm(cmdq[idx].wr_id, torank);
+                                                if ( 0 == ret ) {
+                                                    recv_rrm_flag = false;
+                                                    cmdq[idx].stat = WAIT_RRM;
+                                                }
                                             }
                                             else{
                                                 index++;
@@ -3267,9 +3077,11 @@ static void *comm_thread_func(void *dm){
                                         fflush(stdout);
 #endif
                                         if (recv_rrm_flag == true){
-                                            recv_rrm_flag = false;
-                                            cmdq[idx].stat = WAIT_RRM;
-                                            getlrm(cmdq[idx].wr_id, torank);
+                                            ret = getlrm(cmdq[idx].wr_id, torank);
+                                            if ( 0 == ret ) {
+                                                recv_rrm_flag = false;
+                                                cmdq[idx].stat = WAIT_RRM;
+                                            }
                                         }
                                         else{
                                             index++;
@@ -3277,16 +3089,19 @@ static void *comm_thread_func(void *dm){
                                         }
                                     }
                                 }
+                            
                             }
                             /* remote to remote copy */
                             else if (myrank != srcrank && myrank !=dstrank) {
-                                cmdq[idx].stat = WAIT_TAIL;
-                                gettail(idx, srcrank);
 #ifdef DEBUG
                                 fprintf(stdout, "%d: hdl %lx gettail srcrank %d dstrank %d \n",
-                                        myrank, cmdq[idx].wr_id, srcrank, dstrank);
+                                       myrank, cmdq[idx].wr_id, srcrank, dstrank);
                                 fflush(stdout);
 #endif
+                                ret = gettail(idx, srcrank);
+                                if ( 0 == ret ) {
+                                    cmdq[idx].stat = WAIT_TAIL;
+                                }
                             }
                         }
                         else { /* type is atomic */
@@ -3314,18 +3129,141 @@ static void *comm_thread_func(void *dm){
                             }
                             /* remote to remote atomic */
                             else {
-                                cmdq[idx].stat = WAIT_TAIL;  
-                                gettail(idx, srcrank);
+                                ret = gettail(idx, srcrank);
+                                if ( 0 == ret ) {
+                                    cmdq[idx].stat = WAIT_TAIL;  
+                                }
                             }
                         }
                         /* command issue, break */
                         break;
                     }
+                    else if ( cmdq[idx].stat == GETED_RRM ) {
+                        /* set ga of src and dst and size from cmdq */
+                        src = cmdq[idx].gasrc;
+                        dst = cmdq[idx].gadst;
+                        size = cmdq[idx].cmde.copy_cmd.size;
+                        
+                        /* set offset, tag, size of src and dst */
+                        srcrank = acp_query_rank(src);
+                        srcoffset = query_offset(src);
+                        srctag = query_gmtag(src);
+                        dstrank = acp_query_rank(dst);		
+                        dstoffset = query_offset(dst);
+                        dsttag = query_gmtag(dst);
+                        
+                        /* set target rank */
+                        if (myrank == dstrank) {
+                            torank = srcrank;
+                        }
+                        else if (myrank == srcrank) {
+                            torank = dstrank;
+                        }
+                        
+                        /* set remote rkey mem table */
+                        setrrm(torank);
+                        recv_rrm_flag = true;
+                        
+                        /* issued copy */
+                        ret = icopy(cmdq[idx].wr_id, dstrank, dsttag, 
+                                    dstoffset, srcrank, srctag, srcoffset, size);
+                        
+                        if ( 0 == ret ) {
+                            if (rrm_hav_flag_tb[torank] == true) {
+                                cmdq[idx].stat = ISSUED;
+                            }
+                            else {
+                                cmdq[idx].stat = FIRST_ISSUED;
+                            }
+                        }
+                        else {
+                            cmdq[idx].stat = GETED_RRM;
+                        }
+                    }
+                    else if ( cmdq[idx].stat == PRE_PUTRRMFLAG ) {
+                        /* get global address src and dst */
+                        src = cmdq[idx].gasrc;
+                        dst = cmdq[idx].gadst;
+                                
+                        /* get rank of src and dst */
+                        srcrank = acp_query_rank(src);
+                        dstrank = acp_query_rank(dst);
+                        
+                        /* set target rank */
+                        if (myrank == dstrank) {
+                            torank = srcrank;
+                        }
+                        else if (myrank == srcrank) {
+                            torank = dstrank;
+                        }
+                        
+                        /* put geted rrm flag */
+                        ret = putrrmgetedflag(cmdq[idx].wr_id, torank);
+                        if ( 0 == ret ) {
+                            cmdq[idx].stat = ISSUED;
+                        }
+                        else {
+                            cmdq[idx].stat = PRE_PUTRRMFLAG;
+                        }
+                    }
+                    else if ( cmdq[idx].stat == PRE_GET_HEAD ) {
+                        /* set ga of src from cmdq */
+                        src = cmdq[idx].gasrc;
+                        /* ger rank of src ga*/
+                        srcrank = acp_query_rank(src);
+#ifdef DEBUG
+                        if (myrank == srcrank) {
+                            fprintf(stderr, "%d: rr opration tail wait error\n", myrank);
+                        }
+#endif
+                        /* issued get head */
+                        ret = gethead(idx, srcrank);
+                        
+                        if ( 0 == ret ) {
+                            cmdq[idx].stat = WAIT_HEAD;
+                        }
+                        else { 
+                            cmdq[idx].stat = PRE_GET_HEAD;
+                        }
+                    }
+                    else if ( cmdq[idx].stat == PRE_PUT_CMD) {
+                        /* set src ga from cmdq */
+                        src = cmdq[idx].gasrc;
+                        /* set srcrank */
+                        srcrank = acp_query_rank(src);
+                        
+                        /* check enable putflag  */
+#ifdef DEBUG		  
+                        fprintf(stdout, "%d srcrank %d tail_buf %lx head_buf %lx\n",
+                                myrank, srcrank, cmdq[idx].tail_buf, cmdq[idx].head_buf);
+                        fflush(stdout);
+#endif
+                                
+                        if (cmdq[idx].tail_buf - cmdq[idx].head_buf > MAX_RCMDB_SIZE - 1) {
+#ifdef DEBUG
+                            fprintf(stdout, 
+                                    "%d not exec putcmd acp handle %lx idx %lx tail_buf %lx head_buf %lx\n", 
+                                    acp_rank(), index, idx, cmdq[idx].tail_buf, cmdq[idx].head_buf);
+                            fflush(stdout);
+#endif
+                            ret = gethead(idx, srcrank);
+                            cmdq[idx].stat = WAIT_HEAD;
+                            break;
+                        }
+                        
+                        ret = putcmd(idx, srcrank, cmdq[idx].tail_buf);
+                        if ( 0 == ret ) {
+                            cmdq[idx].stat = WAIT_PUT_CMD;
+                        }
+                        else {
+                            cmdq[idx].stat = PRE_PUT_CMD;
+                        }
+                    }
                     else {
                         check_cmdq_complete(index);
                     }
                 }
-                index++;
+                index ++;
 #ifdef DEBUG_L2
                 fprintf(stdout, 
                         "%d: cmdq section update index %lx\n", 
@@ -3337,10 +3275,12 @@ static void *comm_thread_func(void *dm){
         
         /* CHECK recv COMMAND QUEUE section */
         index = *rcmdbuf_head;
-        while (index <  *rcmdbuf_tail) {
+        while ( index <  *rcmdbuf_tail ) {
+            
             idx = index % MAX_RCMDB_SIZE;
-            if (rcmdbuf[idx].valid_head == true && rcmdbuf[idx].valid_tail == true) {
-                if (rcmdbuf[idx].stat == CMD_UNISSUED) {
+            if ( rcmdbuf[idx].valid_head == true && rcmdbuf[idx].valid_tail == true ) {
+                
+                if ( rcmdbuf[idx].stat == CMD_UNISSUED ) {
 #ifdef DEBUG_L2
                     fprintf(stdout, "%d: rcmdq section: CMD_UNISSUED\n", myrank);
                     fflush(stdout);
@@ -3377,8 +3317,13 @@ static void *comm_thread_func(void *dm){
                                     myrank, dstaddr, srcaddr);
                             fflush(stdout);
 #endif
-                            rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
-                            writebackstat(idx);                    
+                            ret = writebackstat(idx);
+                            if ( 0 == ret ) {
+                                rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
+                            }
+                            else {
+                                rcmdbuf[idx].stat = CMD_UNISSUED;
+                            } 
                             break;
                         }
                         else { /* remote put */
@@ -3389,9 +3334,11 @@ static void *comm_thread_func(void *dm){
                                         myrank, dstrank, dsttag);
                                 fflush(stdout);
 #endif
-                                rcmdbuf[idx].stat = CMD_ISSUED;
-                                icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
-                                      srcrank, srctag, srcoffset, size);
+                                ret = icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
+                                            srcrank, srctag, srcoffset, size);
+                                if ( 0 == ret ) {
+                                    rcmdbuf[idx].stat = CMD_ISSUED;
+                                }
                             }
                             else{
                                 rrmtb_idx = dstrank % rkey_cache_size;
@@ -3408,14 +3355,16 @@ static void *comm_thread_func(void *dm){
                                         /* cache hit */
                                         if(rrmtb[rrmtb_idx][dsttag].rank == dstrank ) {
 #ifdef DEBUG
-                                                fprintf(stdout, 
-                                                        "%d: CMDRB COPY have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
-                                                        myrank, myrank, dstrank, rrmtb_idx, dsttag);
-                                                fflush(stdout);
+                                            fprintf(stdout, 
+                                                    "%d: CMDRB COPY have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                                    myrank, myrank, dstrank, rrmtb_idx, dsttag);
+                                            fflush(stdout);
 #endif
+                                            ret = icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
+                                                  srcrank, srctag, srcoffset, size);
+                                            if ( 0 == ret ) {
                                                 rcmdbuf[idx].stat = CMD_ISSUED;
-                                                icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
-                                                      srcrank, srctag, srcoffset, size);
+                                            }
                                         }
                                         /* tag entry is wrong data */
                                         else{
@@ -3426,9 +3375,11 @@ static void *comm_thread_func(void *dm){
                                             fflush(stdout);
 #endif
                                             if (recv_rrm_flag == true) {
-                                                recv_rrm_flag = false;
-                                                rcmdbuf[idx].stat = CMD_WAIT_RRM;
-                                                getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                                ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                                if ( 0 == ret ) {
+                                                    recv_rrm_flag = false;
+                                                    rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                                }
                                             }
                                             else {
                                                 index++;
@@ -3444,9 +3395,11 @@ static void *comm_thread_func(void *dm){
                                         fflush(stdout);
 #endif
                                         if (recv_rrm_flag == true) {
-                                            recv_rrm_flag = false;
-                                            rcmdbuf[idx].stat = CMD_WAIT_RRM;
-                                            getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                            ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                            if ( 0 == ret ) { 
+                                                recv_rrm_flag = false;
+                                                rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                            }
                                         }
                                         else {
                                             index++;
@@ -3462,9 +3415,11 @@ static void *comm_thread_func(void *dm){
                                     fflush(stdout);
 #endif
                                     if (recv_rrm_flag == true) {
-                                        recv_rrm_flag = false;
-                                        rcmdbuf[idx].stat = CMD_WAIT_RRM;
-                                        getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                        ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                        if ( 0 == ret ) {
+                                            recv_rrm_flag = false;
+                                            rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                        }
                                     }
                                     else {
                                         index++;
@@ -3497,7 +3452,6 @@ static void *comm_thread_func(void *dm){
 
                             /* if tag point stater memory */
                             if (dsttag == TAG_SM) {
-                                rcmdbuf[idx].stat =  CMD_WAIT_PUT_DST;
                                 if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
                                     selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
@@ -3506,7 +3460,7 @@ static void *comm_thread_func(void *dm){
                                             myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                     fflush(stdout);
 #endif
-                                    putreplydata(idx, dstrank, dsttag, dstoffset, true);
+                                    ret = putreplydata(idx, dstrank, dsttag, dstoffset, true);
                                 }
                                 else {
                                     selectatomic(srcaddr, &rcmdbuf[idx]);
@@ -3516,7 +3470,10 @@ static void *comm_thread_func(void *dm){
                                             myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                     fflush(stdout);
 #endif
-                                    putreplydata(idx, dstrank, dsttag, dstoffset, false);
+                                    ret = putreplydata(idx, dstrank, dsttag, dstoffset, false);
+                                }
+                                if ( 0 == ret ) {
+                                    rcmdbuf[idx].stat =  CMD_WAIT_PUT_DST;
                                 }
                             }
                             /* if tag point globl memory */
@@ -3536,11 +3493,10 @@ static void *comm_thread_func(void *dm){
                                         if(rrmtb[rrmtb_idx][dsttag].rank == dstrank){
 #ifdef DEBUG
                                             fprintf(stdout, 
-                                                "%d: CMDRB ATOMIC have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
+                                                    "%d: CMDRB ATOMIC have a entry rank %d dstrank %d, rrmtb_idx %d, dsttag %d\n",
                                                     myrank, myrank, dstrank, rrmtb_idx, dsttag);
                                             fflush(stdout);
 #endif
-                                            rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
                                             if ((rcmdbuf[idx].type & MASK_ATOMIC8) == MASK_ATOMIC8) {
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
@@ -3549,7 +3505,7 @@ static void *comm_thread_func(void *dm){
                                                         myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif
-                                                putreplydata(idx, dstrank, dsttag, dstoffset, true);
+                                                ret = putreplydata(idx, dstrank, dsttag, dstoffset, true);
                                             }
                                             else {
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
@@ -3559,7 +3515,10 @@ static void *comm_thread_func(void *dm){
                                                         myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif
-                                                putreplydata(idx, dstrank, dsttag, dstoffset, false);
+                                                ret = putreplydata(idx, dstrank, dsttag, dstoffset, false);
+                                            }
+                                            if ( 0 == ret ) {
+                                                rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
                                             }
                                         }
                                         /* have rm wrong data in rrmtb_idx */
@@ -3572,8 +3531,6 @@ static void *comm_thread_func(void *dm){
 #endif
                                             
                                             if (recv_rrm_flag == true) {
-                                                recv_rrm_flag = false;
-                                                rcmdbuf[idx].stat = CMD_WAIT_RRM;
                                                 selectatomic(srcaddr, &rcmdbuf[idx]);
 #ifdef DEBUG
                                                 fprintf(stdout, 
@@ -3581,7 +3538,11 @@ static void *comm_thread_func(void *dm){
                                                         myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                                 fflush(stdout);
 #endif                                              
-                                                getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                                ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                                if ( 0 == ret ) {
+                                                    recv_rrm_flag = false;
+                                                    rcmdbuf[idx].stat = CMD_WAIT_RRM;
+                                                }
                                             }
                                             else {
                                                 index++;
@@ -3608,7 +3569,7 @@ static void *comm_thread_func(void *dm){
                                                     myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                             fflush(stdout);
 #endif
-                                            getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                            ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
                                         }
                                         else {
                                             index++;
@@ -3635,7 +3596,10 @@ static void *comm_thread_func(void *dm){
                                                 myrank, myrank, srcrank, idx, rcmdbuf[idx].replydata);
                                         fflush(stdout);
 #endif
-                                        getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                        ret = getlrm(rcmdbuf[idx].wr_id, dstrank);
+                                        if ( 0 == ret ) {
+                                            
+                                        }
                                     }
                                     else {
                                         index++;
@@ -3644,6 +3608,117 @@ static void *comm_thread_func(void *dm){
                                 }
                             }
                         }
+                    }
+                }
+                else if ( CMD_GETED_RRM == rcmdbuf[idx].stat ) {
+                    /* get ga of dst from rcmd buffer  */
+                    dst = rcmdbuf[idx].gadst;
+                    /* get rank and tag, offset of dst */
+                    dstrank = acp_query_rank(dst);
+                    
+                    /* set remote rkey memory table of dst rank */
+                    setrrm(dstrank);
+                    recv_rrm_flag = true;
+                    
+                    dsttag = query_gmtag(dst);
+                    dstoffset = query_offset(dst);
+                    
+                    /* case COPY */
+                    if ( rcmdbuf[idx].type == COPY ) {
+                        /* set src ga from rcmd buffer */
+                        src = rcmdbuf[idx].gasrc;
+                        /* get rank, tag, offset of src */
+                        srcrank = acp_query_rank(src);
+                        srctag = query_gmtag(src);
+                        srcoffset = query_offset(src);
+                        
+                        /* issued internal copy  */
+                        ret = icopy(rcmdbuf[idx].wr_id, dstrank, dsttag, dstoffset, 
+                                    srcrank, srctag, srcoffset, size);
+                        if ( 0 == ret ) {
+                            /* check if acess first time or not  */
+                            if ( rrm_hav_flag_tb[dstrank] == true ) { 
+                                rcmdbuf[idx].stat = CMD_ISSUED;
+                            }
+                            else {
+                                rcmdbuf[idx].stat = CMD_FIRST_ISSUED;
+                            }
+                        }
+                        else { 
+                            rcmdbuf[idx].stat = CMD_GETED_RRM ;
+                        }
+                    }
+                    /* case ATOMIC */
+                    else {
+                        if ( ( rcmdbuf[idx].type & MASK_ATOMIC ) == MASK_ATOMIC ) {                            
+                            if ( ( rcmdbuf[idx].type & MASK_ATOMIC8 ) == MASK_ATOMIC8 ) {
+                                ret = putreplydata(idx, dstrank, dsttag, dstoffset, true);
+                            }
+                            else {
+                                ret = putreplydata(idx, dstrank, dsttag, dstoffset, false);
+                            }
+
+                            if ( 0 == ret ) {
+                                /* check if acess first time or not  */
+                                if (rrm_hav_flag_tb[dstrank] == true) { 
+                                    rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
+                                }
+                                else {
+                                    rcmdbuf[idx].stat = CMD_WAIT_FIRST_PUT_DST;
+                                }
+                            }
+                            else {
+                                rcmdbuf[idx].stat = CMD_GETED_RRM;
+                            }
+#ifdef DEBUG
+                            fprintf(stdout,"%d: qp section: rcmdbuf[%lx] %lu\n", 
+                                    myrank, idx, rcmdbuf[idx].stat);
+                            fflush(stdout);
+#endif
+                        }
+                    }
+                }
+                else if ( CMD_PRE_WRITEBACK_FIN == rcmdbuf[idx].stat ) {
+                    ret = writebackstat(idx);
+                    if ( 0 == ret ) {
+                        rcmdbuf[idx].stat = CMD_WRITEBACK_FIN;
+                    }
+                    else {
+                        rcmdbuf[idx].stat = CMD_PRE_WRITEBACK_FIN;
+                    }
+                }
+                else if ( CMD_PRE_PUTRRMGETEDFLAG_ISSUED == rcmdbuf[idx].stat ) {
+                    /* get ga of dst from rcmd buffer */
+                    dst = rcmdbuf[idx].gadst;                                
+                    /* get rank of dst ga */
+                    dstrank = acp_query_rank(dst);
+                    
+                    /* issued put rrm get flag */
+                    ret = putrrmgetedflag(rcmdbuf[idx].wr_id, dstrank);
+                    
+                    /* set status of rcmd buffer */
+                    if ( 0 == ret ) {
+                        rcmdbuf[idx].stat = CMD_ISSUED;
+                    }
+                    else {
+                        rcmdbuf[idx].stat = CMD_PRE_PUTRRMGETEDFLAG_ISSUED;
+                    }
+                }
+                else if ( CMD_PRE_PUTRRMGETEDFLAG_PUT_DST == rcmdbuf[idx].stat ) {
+                    /* get ga of dst from rcmd buffer */
+                    dst = rcmdbuf[idx].gadst;                                
+                    /* get rank of dst ga */
+                    dstrank = acp_query_rank(dst);
+                    
+                    /* issued put rrm get flag */
+                    ret = putrrmgetedflag(rcmdbuf[idx].wr_id, dstrank);
+                    
+                    /* set status of rcmd buffer */
+                    if ( 0 == ret ) {
+                        rcmdbuf[idx].stat = CMD_WAIT_PUT_DST;
+                    }
+                    else {
+                        rcmdbuf[idx].stat = CMD_PRE_PUTRRMGETEDFLAG_PUT_DST;
                     }
                 }
             }
@@ -3670,11 +3745,18 @@ static void *comm_thread_func(void *dm){
                     rrmtb[rrmtb_idx] = NULL;
                 }
                 /* put rrm ack flag */
-                putrrmackflag(ack_id, i);
+                ret = putrrmackflag(ack_id, i);
                 /* set false rrm reset flag table */
-                rrm_reset_flag_tb[i] = 0;
-                rrm_hav_flag_tb[i] = 0;
-                ack_id++;
+                if ( 0 == ret ) { 
+                    rrm_reset_flag_tb[i] = 0;
+                    rrm_hav_flag_tb[i] = 0;
+                    ack_id++;
+                }
+                else {
+                    /* if send queue is full, 
+                       then need to check completion qeueu on IB. */
+                    break;
+                }
             }
         }
     }
@@ -3688,7 +3770,6 @@ int iacp_init(void){
     int sock_s; /* socket server */
     socklen_t addrlen;/* address length */
     struct sockaddr_in myaddr, dstaddr, srcaddr; /* address */
-        
     struct ibv_device **dev_list = NULL; /* IB device list */
     char *dev_name = NULL; /* device name */
     
@@ -3750,7 +3831,7 @@ int iacp_init(void){
     alm8_add = iacp_starter_memory_size_dl & 7;
     alm8_add_func(alm8_add);
     acp_smdlsize_adj = iacp_starter_memory_size_dl + iacp_starter_memory_size_dl_heap + alm8_add;
-    
+             
     /* adjust starter memory for cl */
     alm8_add = iacp_starter_memory_size_cl & 7;
     alm8_add_func(alm8_add);
@@ -3859,6 +3940,7 @@ int iacp_init(void){
             syssize, sysmem + syssize, offset_acp_buf_cl, sizeof(CMD));
     fflush(stderr);
 #endif
+    
     /* remote register memory table */
     if(acp_numprocs > MAX_RKEY_CASH_SIZE){
         rkey_cache_size = MAX_RKEY_CASH_SIZE;
@@ -4105,7 +4187,7 @@ int iacp_init(void){
     qp_init_attr.sq_sig_all = 1; /* if work request COMPLETE, CQE enqueue cq. */
     qp_init_attr.send_cq = cq;
     qp_init_attr.recv_cq = cq;
-    qp_init_attr.cap.max_send_wr = cq_size;
+    qp_init_attr.cap.max_send_wr = MAX_WR_SIZE;
     qp_init_attr.cap.max_recv_wr = 1; /* use only first post recv */
     qp_init_attr.cap.max_send_sge = 1;
     qp_init_attr.cap.max_recv_sge = 1;

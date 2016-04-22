@@ -25,6 +25,8 @@
 #include <infiniband/verbs.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <arpa/inet.h>
 #include <acp.h>
 #include "acpbl.h"
@@ -49,9 +51,9 @@
 /* define sizes */
 #define MAX_RM_SIZE     255U
 #define MAX_CQ_SIZE     4096U
-#define MAX_WR_SIZE     4U
-#define MAX_CMDQ_ENTRY  4096U
-#define MAX_RCMDB_SIZE  4096U
+#define MAX_WR_SIZE     1024U
+#define MAX_CMDQ_ENTRY  1024U
+#define MAX_RCMDB_SIZE  2048U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU
 #define MAX_RKEY_CASH_SIZE 1024
 
@@ -366,6 +368,26 @@ void acp_abort(const char *str){
     fflush(stdout);
 #endif
     abort(); 
+}
+
+double iacp_wtime(){
+    struct timeval t;
+    
+    gettimeofday(&t, NULL);
+    
+    return (double)t.tv_sec + (double)t.tv_usec * 1e-6;
+}
+
+long iacp_memsize(){
+    struct rusage ru;
+    int rc;
+    
+    rc = getrusage(RUSAGE_SELF, &ru);
+    if (rc) {
+        perror("iapc_memsize: error getrusage");
+        return -1;
+    }
+    return ru.ru_maxrss;
 }
 
 int acp_sync(void){
@@ -903,11 +925,9 @@ acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t orde
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
+        
     /* check my rank */
     myrank = acp_rank();
     tail4c = tail % MAX_CMDQ_ENTRY;
@@ -956,12 +976,9 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newv
     fprintf(stdout, "%d: internal acp_cas4\n", acp_rank());
     fflush(stdout);
 #endif
-    
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
 
     /* check my rank */
     myrank = acp_rank();
@@ -1018,10 +1035,8 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1077,11 +1092,9 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
+        
     /* check my rank */
     myrank = acp_rank();
     /* check myrank is equal to dst rank or not */
@@ -1137,11 +1150,9 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
+        
     /* check my rank */
     myrank = acp_rank();
     /* check myrank is equal to dst rank or not */
@@ -1196,10 +1207,8 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1255,11 +1264,9 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
+        
     /* check my rank */
     myrank = acp_rank();
     /* check myrank is equal to dst rank or not */
@@ -1314,10 +1321,8 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1372,11 +1377,9 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     fprintf(stdout, "%d: internal acp_xor8\n", acp_rank());
     fflush(stdout);
 #endif
-    
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1431,11 +1434,9 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
     fprintf(stdout, "%d: internal acp_or4\n", acp_rank());
     fflush(stdout);
 #endif
-    
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1490,11 +1491,9 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
     fprintf(stdout, "%d: internal acp_or8\n", acp_rank());
     fflush(stdout);
 #endif
-  
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1550,10 +1549,8 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     fflush(stdout);
 #endif
 
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
     
     /* check my rank */
     myrank = acp_rank();
@@ -1609,11 +1606,9 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     fflush(stdout);
 #endif
     
-    /* if queue is full, return ACP_HANDLE_NULL */
-    if (tail - head == MAX_CMDQ_ENTRY - 1) {
-        return ACP_HANDLE_NULL;
-    }
-    
+    /* if queue is full, wait issuing */
+    while ( tail - head == MAX_CMDQ_ENTRY - 1 );
+
     /* check my rank */
     myrank = acp_rank();
     /* check myrank is equal to dst rank or not */

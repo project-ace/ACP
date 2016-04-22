@@ -49,9 +49,9 @@
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define sizes */
-#define MAX_RM_SIZE     255U
+#define MAX_RM_SIZE      255U
 #define MAX_CQ_SIZE     4096U
-#define MAX_WR_SIZE     1024U
+#define MAX_WR_SIZE        1U
 #define MAX_CMDQ_ENTRY  1024U
 #define MAX_RCMDB_SIZE  2048U
 #define MAX_ACK_COUNT   0x3fffffffffffffffLLU

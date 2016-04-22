@@ -3254,7 +3254,10 @@ int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last)
 
 acp_list_it_t acp_increment_list_it(acp_list_it_t it)
 {
-    acp_ga_t buf = acp_malloc(24, acp_rank());
+    acp_ga_t buf;
+    if (it.elem == it.list.ga)
+        return it;
+    buf = acp_malloc(24, acp_rank());
     if (buf == ACP_GA_NULL) return it;
     void* ptr = acp_query_address(buf);
     volatile acp_ga_t* elem_next = (volatile acp_ga_t*)ptr;
@@ -3270,7 +3273,8 @@ acp_list_it_t acp_increment_list_it(acp_list_it_t it)
     
     acp_free(buf);
     
-    if (tmp_next != it.list.ga) it.elem = tmp_next;
+    it.elem = tmp_next;
+
     return it;
 }
 

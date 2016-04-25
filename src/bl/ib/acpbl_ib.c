@@ -27,6 +27,7 @@
 #include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sched.h> /* for sched_yield and setaffnity */
 #include <arpa/inet.h>
 #include <acp.h>
 #include "acpbl.h"
@@ -42,15 +43,11 @@
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
 
-//#ifdef SETAFFINITY
-#include <sched.h> /* for set affnity */
-//#endif
-
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define sizes */
 #define MAX_RM_SIZE      255U
-#define MAX_CQ_SIZE     4096U
+#define MAX_CQ_SIZE     2048U
 #define MAX_WR_SIZE        1U
 #define MAX_CMDQ_ENTRY  1024U
 #define MAX_RCMDB_SIZE  2048U
@@ -119,7 +116,6 @@
 #define CMD_PRE_WRITEBACK_FIN                22U
 #define CMD_PRE_PUTRRMGETEDFLAG_ISSUED       23U
 #define CMD_PRE_PUTRRMGETEDFLAG_PUT_DST      24U
-
 
 
 /* resouce info for starter memory */
@@ -2651,7 +2647,8 @@ static void *comm_thread_func(void *dm){
     uint64_t iter = 0, pre_iter = 0;
     uint64_t clk = 0, pre_clk = 0;
     int comm_work;
-
+    int no_event_count;
+    
 #ifdef SETAFFINITY
     cpu_set_t mask;
     int cpuid;
@@ -2690,10 +2687,17 @@ static void *comm_thread_func(void *dm){
     /* get # of rank */
     nprocs = acp_procs();
     comm_work = 0;
+    no_event_count = 0;
     
     while (1) {
         if ( 0 == comm_work ) {
-            sched_yield();
+            if ( 10 == no_event_count ){
+                no_event_count = 0;
+                sched_yield();
+            }
+            else {
+                no_event_count ++;
+            }
         } 
         else {
             comm_work = 0;

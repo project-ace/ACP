@@ -117,6 +117,10 @@
 #define CMD_PRE_PUTRRMGETEDFLAG_ISSUED       23U
 #define CMD_PRE_PUTRRMGETEDFLAG_PUT_DST      24U
 
+/* acp_sync() */
+#define ST_SYNC_INIT 0
+#define ST_SYNC_IDLE 1
+#define ST_SYNC_BUSY 2
 
 /* resouce info for starter memory */
 typedef struct resource_info{
@@ -195,6 +199,18 @@ typedef struct command_format{
     CMDE cmde; /* Command format exstra for GMA */
     uint64_t valid_tail; /* validation of CMD for RCMDBUF */
 } CMD;
+
+/* acp_sync() */
+enum sync_role {PARENT, NORMAL, REMAIN};
+
+/* acp_sync() */
+volatile static uint64_t *sync_bodyla;
+static acp_atkey_t sync_bodykey;
+static acp_ga_t sync_bodyga;
+static acp_ga_t *sync_stepgatbl;
+volatile static int sync_nsteps, sync_peer;
+volatile static enum sync_role sync_myrole;
+volatile static int sync_status = ST_SYNC_INIT;
 
 /* socket file descripter */
 static int sock_accept;
@@ -386,14 +402,14 @@ long iacp_memsize(){
     return ru.ru_maxrss;
 }
 
-int acp_sync(void){
+int iacp_internal_sync(void){
     
     int i; /* general index */
     char dummy1, dummy2; /* dummy buffer */
     int nprocs; /* my rank ID */
     
 #ifdef DEBUG
-    fprintf(stdout, "%d: internal acp_sync\n", acp_rank());
+    fprintf(stdout, "%d: internal iacp_internal_sync\n", acp_rank());
     fflush(stdout);
 #endif
     
@@ -401,29 +417,269 @@ int acp_sync(void){
     nprocs = acp_procs();
     
     /* if nprocs <= 0, error */
-    if (nprocs <= 0) {
+    if ( nprocs <= 0 ) {
         return -1;
     }
-    if (nprocs >= 2) { /* if nprocs >= 2, */
-        for (i = 0; i < nprocs; i++) {
-            if (write(sock_connect, &dummy1, sizeof(char)) < 0){
-                perror("acp_sync error: failed to write\n");
+    if ( nprocs >= 2 ) { /* if nprocs >= 2, */
+        for ( i = 0; i < nprocs; i++ ) {
+            if ( write( sock_connect, &dummy1, sizeof( char ) ) < 0 ) {
+                perror( "iacp_internal_sync error: failed to write\n" );
                 return -1;
             }
-            if (recv(sock_accept, &dummy2, sizeof(char), 0) < 0){
-                perror("acp_sync error: failed to recv\n");
+            if ( recv( sock_accept, &dummy2, sizeof( char ), 0 ) < 0 ) {
+                perror( "iacp_internal_sync error: failed to recv\n" );
                 return -1;
             }
         }
     }
     
 #ifdef DEBUG
-    fprintf(stdout, "%d: internal acp_sync fin\n", acp_rank());
-    fflush(stdout);
+    fprintf( stdout, "%d: internal iacp_internal_sync fin\n", acp_rank() );
+    fflush( stdout );
 #endif
     
     return 0;
 }
+
+int iacp_init_rcdbsync()
+{
+    int i, myrank, procs, size, numstepga, thr, rem, offset, target;
+    acp_ga_t stga;
+    acp_ga_t *stla;
+    acp_handle_t h;
+
+    myrank = acp_rank();
+    procs = acp_procs();
+
+    if ( sync_status != ST_SYNC_INIT ) {
+        fprintf( stderr, "%d: iacp_init_rcdbsync : Error. init sync called more than once\n", myrank );
+        return -1;
+    }
+
+    i = 1; 
+    sync_nsteps = 0;
+    while ( i < procs ) {
+        i <<= 1;
+        sync_nsteps++;
+    }
+
+    if ( i != procs ) // there are remaining processes
+        sync_nsteps--;
+    thr = 1 << sync_nsteps; // threashold of remaining processes
+    rem = procs - thr; // number of remaining processes
+
+    if ( myrank < rem ) {
+        sync_myrole = PARENT;
+        size = sync_nsteps + 2;
+        numstepga = sync_nsteps + 1;
+        sync_peer = myrank + thr;
+    }
+    else if ( myrank >= thr ) {
+        sync_myrole = REMAIN;
+        size = 2;
+        numstepga = 1;
+        sync_peer = myrank - thr;
+    }
+    else {
+        sync_myrole = NORMAL;
+        size = sync_nsteps + 1;
+        numstepga = sync_nsteps;
+    }
+    
+    /* call temporal function to setup memory region for rcdbsync */
+    sync_bodyla = ( uint64_t * ) malloc( size * sizeof( uint64_t ) );
+    if ( sync_bodyla == NULL ) {
+        fprintf( stderr, "%d: iacp_init_rcdbsync : Error. Malloc sync_bodyla failed \n", myrank );
+        return -1;
+    }
+    sync_bodykey = acp_register_memory( ( void * ) sync_bodyla, size * sizeof( uint64_t) , 0 );
+    if ( sync_bodykey == ACP_ATKEY_NULL ) {
+        fprintf( stderr, "%d: iacp_init_rcdbsync : Error. Register failed \n", myrank );
+        goto Error1;
+    }
+    sync_bodyga = acp_query_ga( sync_bodykey, ( void * ) sync_bodyla );
+    if ( sync_bodyga == ACP_GA_NULL ) {
+        fprintf( stderr, "%d: iacp_init_rcdbsync : Error. Query_GA failed\n", myrank );
+        goto Error2;
+    }
+    sync_stepgatbl = ( acp_ga_t * )malloc( numstepga * sizeof( acp_ga_t ) );
+    if ( sync_stepgatbl == NULL ) {
+        fprintf( stderr, "%d: iacp_init_rcdbsync : Error. Malloc sync_stepgatbl failed\n", myrank );
+        goto Error2;
+    }
+    
+    for ( i = 0; i < size; i++ ) {
+        sync_bodyla[i] = 0LL;
+    }
+    
+    /* Exchange GAs: */
+    stga = acp_query_starter_ga( myrank );
+    stla = ( acp_ga_t * )acp_query_address( stga );
+    stla[0] = sync_bodyga;
+    
+#ifdef DEBUG
+    fprintf( stderr, "%d: sync info bodyla %p bodyga %lx bodykey %lx numstepga %d thr %d rem %d nsteps %d myrole %d\n", 
+             myrank, sync_bodyla, sync_bodyga, sync_bodykey, numstepga, thr, rem, sync_nsteps, sync_myrole );
+#endif
+    
+    iacp_internal_sync();
+    
+    if ( ( sync_myrole == PARENT ) || ( sync_myrole == NORMAL ) ) {
+        offset = 1;
+        for ( i = 0; i < sync_nsteps; i++ ) {
+            target = myrank ^ offset;
+            do {
+                h = acp_copy( stga + ( i + 1 ) * sizeof( acp_ga_t ),
+                              acp_query_starter_ga( target ), sizeof( acp_ga_t ), ACP_HANDLE_NULL );
+            } while ( h == ACP_HANDLE_NULL );
+            offset <<= 1;
+        }
+        acp_complete( ACP_HANDLE_ALL );
+        for ( i = 0; i < sync_nsteps; i++ ) {
+            sync_stepgatbl[i] = stla[i+1] + ( i + 1 ) * sizeof( uint64_t );
+        }
+        
+        if ( sync_myrole == PARENT ) {
+            target = myrank + thr;
+            do {
+                h = acp_copy( stga + sizeof( acp_ga_t ), 
+                              acp_query_starter_ga( target ), sizeof( acp_ga_t ), ACP_HANDLE_NULL );
+            } while ( h == ACP_HANDLE_NULL );
+            acp_complete( ACP_HANDLE_ALL );
+            sync_stepgatbl[sync_nsteps] = stla[1] + sizeof( uint64_t );
+        }
+    } else {
+        target = myrank - thr;
+        do {
+            h = acp_copy( stga+sizeof( acp_ga_t ), 
+                         acp_query_starter_ga( target ), sizeof( acp_ga_t ), ACP_HANDLE_NULL );
+        } while ( h == ACP_HANDLE_NULL );
+        acp_complete( ACP_HANDLE_ALL );
+        sync_stepgatbl[0] = stla[1] + ( sync_nsteps + 1 ) * sizeof( uint64_t );
+    }
+    
+    iacp_internal_sync();
+    
+    sync_status = ST_SYNC_IDLE;
+    
+    return 0;
+
+Error3:
+    if ( NULL != sync_stepgatbl ) {
+        free( sync_stepgatbl );
+    }
+    
+Error2:
+    acp_unregister_memory( sync_bodykey );
+
+Error1:
+    if ( NULL != sync_bodyla ) {
+        free( (void *) sync_bodyla );
+    }
+}
+
+int iacp_start_rcdbsync()
+{
+    int myrank;
+    acp_handle_t h;
+
+    myrank = acp_rank();
+
+    if ( sync_status != ST_SYNC_IDLE ) {
+        fprintf( stderr, "%d: iacp_start_rcdbsync : Error. Irregular status %d\n", myrank, sync_status );
+        return -1;
+    }
+    
+    sync_status = ST_SYNC_BUSY;
+
+    sync_bodyla[0]++;
+    
+    if ( ( sync_myrole == NORMAL ) || ( sync_myrole == REMAIN ) ) {
+        do {
+            h = acp_copy( sync_stepgatbl[0], sync_bodyga, sizeof( uint64_t ), ACP_HANDLE_NULL );
+        } while ( h == ACP_HANDLE_NULL );
+    }
+    
+    return 0;
+}
+
+int iacp_wait_rcdbsync()
+{
+    int i, myrank;
+    uint64_t curr_idx;
+    acp_handle_t h;
+    
+    myrank = acp_rank();
+    
+    curr_idx = sync_bodyla[0];
+    
+    if ( sync_status != ST_SYNC_BUSY ) {
+        fprintf( stderr, "%d: iacp_wait_rcdbsync : Error. Irregular status %d\n", myrank, sync_status );
+        return -1;
+    }
+
+    switch ( sync_myrole ) {
+    case PARENT:
+        while ( sync_bodyla[sync_nsteps+1] < curr_idx );
+        
+        for ( i = 0; i < sync_nsteps; i++ ) {
+            do {
+                h = acp_copy( sync_stepgatbl[i], sync_bodyga, sizeof( uint64_t ), ACP_HANDLE_NULL );
+            } while ( h == ACP_HANDLE_NULL );
+            
+            while ( sync_bodyla[i+1] < curr_idx );
+        }
+        
+        do {
+            h = acp_copy( sync_stepgatbl[sync_nsteps], sync_bodyga, sizeof(uint64_t), ACP_HANDLE_NULL );
+        } while ( h == ACP_HANDLE_NULL );
+        break;
+    case NORMAL:
+        while ( sync_bodyla[1] < curr_idx );
+        for ( i = 1; i < sync_nsteps; i++ ) {
+            do {
+                h = acp_copy( sync_stepgatbl[i], sync_bodyga, sizeof(uint64_t), ACP_HANDLE_NULL );
+            } while ( h == ACP_HANDLE_NULL );
+            while ( sync_bodyla[i+1] < curr_idx );
+        }
+        break;
+    case REMAIN:
+        while ( sync_bodyla[1] < curr_idx );
+        break;
+    default:
+        fprintf( stderr, "%d: iacp_wait_rcdbsync : Error. Wrong role %d\n", sync_myrole );
+    }
+    acp_complete( ACP_HANDLE_ALL );
+    
+    sync_status = ST_SYNC_IDLE;
+    
+    return 0;
+}
+
+int iacp_free_rcdbsync()
+{
+    int myrank = acp_rank();
+    
+    if ( sync_status != ST_SYNC_IDLE ) {
+        fprintf( stderr, "%d: iacp_free_rcdbsync : Error. Irregular status %d\n", myrank, sync_status );
+        return -1;
+    }
+    
+    acp_unregister_memory( sync_bodykey );
+    
+    if ( NULL != sync_bodyla ) {
+        free( (void *) sync_bodyla );
+    }
+    if ( NULL != sync_stepgatbl ){
+        free( sync_stepgatbl );
+    }
+}
+
+int acp_sync( void )
+{
+    iacp_start_rcdbsync();
+    iacp_wait_rcdbsync();
+}        
 
 int acp_colors(void){
     
@@ -1705,7 +1961,7 @@ void acp_complete(volatile acp_handle_t handle){
     while (head <= handle);
            
 #ifdef DEBUG
-    fprintf(stdout, "%d:internal acp_complete fin\n", acp_rank()); 
+    fprintf(stdout, "%d: internal acp_complete fin\n", acp_rank()); 
     fflush(stdout);
 #endif
     
@@ -4461,12 +4717,15 @@ int iacp_init(void){
     }
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
     
+    iacp_internal_sync();
+    iacp_init_rcdbsync();
+    
     /* exec internel init function dl and cl */
 #ifndef ACPBLONLY
     if (iacp_init_dl()) return -1;
     if (iacp_init_cl()) return -1;
 #endif
-
+        
     return rc;
     
 exit:
@@ -4696,15 +4955,17 @@ int acp_finalize(){
     fprintf(stdout, "%d: internal acp_finalize\n", acp_rank());
     fflush(stdout);
 #endif
+    
 #ifndef ACPBLONLY
     iacp_finalize_cl();
     iacp_finalize_dl();
 #endif
+
     /* Insert FIN command into cmdq */
     while (tail - head == MAX_CMDQ_ENTRY - 1) ;
-    
+    iacp_free_rcdbsync();
     /* wait all process execute acp_finalize */
-    acp_sync();
+    iacp_internal_sync();
     /* check my rank */
     myrank = acp_rank();
     /* make a FIN command, and enqueue command Queue. */

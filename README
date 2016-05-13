@@ -14,6 +14,9 @@ computing systems, where the number of processes is expected to be more than a m
 
 See http://ace-project.kyushu-u.ac.jp/index.html for more details.
 
+Current version supports mechanisms for connecting Multiple MPI applications.
+See README.MultiMPI for more details.
+
 
 1. Installation
 ---------------
@@ -31,6 +34,7 @@ separate "make install" as a user with write permissions to the
 install tree.  
 
 See INSTALL for more details.
+
 
 
 2. Compiling user ACP Applications

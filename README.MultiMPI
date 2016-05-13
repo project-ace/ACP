@@ -8,8 +8,8 @@ Multiple MPI ACP Library
 
 0. Overview
 -----------
-Multiple MPI ACP library is used for connecting multiple MPI communication groups.
-This is similar to MPI-Spawn mechanisms except spawning dynamical processes.
+Current ACP library supports mechanisms for connecting Multiple MPI applications (Multi-MPI ACP).
+This is similar to MPI-Spawn except spawning dynamical processes.
 
 
 1. Installation
@@ -20,7 +20,7 @@ This is similar to MPI-Spawn mechanisms except spawning dynamical processes.
   Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are supported.
 
  B. ACP
-  Sources of Multi-MPI ACP library is included inside of the ACP library.
+  Sources of Multi-MPI ACP is included inside of the ACP library.
   To install this library, add "--with-mpi" option to the configure command ACP.
 
   shell$ ./configure --with-mpi --prefix=/where/to/install

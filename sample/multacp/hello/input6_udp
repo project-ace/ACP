@@ -1,0 +1,17 @@
+# Number of runtime environments
+3
+
+# Runtime environments
+acprun
+mpirun
+mpirun
+
+# Number of processes
+1
+2
+3
+
+# Commands
+./hello_acp_UDP
+./hello_mpi_UDP
+./hello_mpi_UDP

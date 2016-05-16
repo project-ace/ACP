@@ -34,8 +34,8 @@ STR_NODEFILEBASE = "Nodefile"
 STR_COMM_ACPRUN  = "acprun"
 
 
-DEBUG_MODE       = True  ## or Frue
-DEBUG_LEVEL      = 100   ## change to >200
+DEBUG_MODE       = False ## or True
+DEBUG_LEVEL      = 1000  ## change to >200
 ####
 EXECUTE_COMMAND  = True  ## False
 ####
@@ -62,6 +62,7 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "--acp-node",            "NODES",      "EQVAL"  ],
            #
            [ "-net",                  "ENVNET",     "BLKVAL" ],
+           [ "-ndev",                 "ENVNET",     "BLKVAL" ],
            [ "-envnet",               "ENVNET",     "BLKVAL" ],
            [ "--acp-net",             "ENVNET",     "EQVAL"  ],
            [ "--acp-envnet",          "ENVNET",     "EQVAL"  ],
@@ -70,6 +71,9 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-help",                 "HELP",       "NONE"   ],
            [ "--acp-help",            "HELP",       "NONE"   ],
            #
+           [ "-debug",                "DEBUG",      "NONE"   ],
+           [ "--acp-debug",           "DEBUG",      "NONE"   ],
+            #
            [ "-v",                    "VERSION",    "NONE"   ],
            [ "-version",              "VERSION",    "NONE"   ],
            [ "--acp-version",         "VERSION",    "NONE"   ],
@@ -121,6 +125,8 @@ class MAcprun:
         self.lst_lhost       = [ "localhost" ]
         self.lst_rhost       = [ "localhost" ]
         self.flg_localmode   = True
+        self.flg_debug_mode  = DEBUG_MODE
+        self.flg_debug_level = DEBUG_LEVEL
         self.set_envnetwork( envnetwork )
         self.lst_for_gen_lst_lport = { }
         if (( self.ver_python < 2 ) or (( self.ver_python == 2 ) and ( self.subver_python < 6 ))):
@@ -148,7 +154,7 @@ class MAcprun:
         print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
         print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
         print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
-        print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -net/-ndev/-envnet ENVNETWORK       or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
         print( "    : --acp-version" )
         print( "    : --acp-help" )
         print( "Memo: 1. Other --acp-* options are errors." )
@@ -254,6 +260,8 @@ class MAcprun:
                 elif flgopt == "VERSION":
                     print( "%s : version %s." % (self.myname, VERSION) )
                     sys.exit( "" )
+                elif flgopt == "DEBUG":
+                    self.flg_debug_mode = True
                 elif flgopt == "ERROR":
                     raise ErrorInvalidOption( "Argument: invalid" )
                 else:
@@ -264,8 +272,8 @@ class MAcprun:
         except ErrorInvalidOptionArgument:
             print("Error: invalid option argument: %s" % args)
             sys.exit( "" )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print("opt: ", "NPROCS= ", self.nprocs_total)
                 print("opt: ", "SMEMSZ= ", self.starter_memsize)
@@ -285,6 +293,7 @@ class MAcprun:
         if ( len( self.nodefile ) <= 0 ):
             for i in range( self.nprocs_total ):
                 self.lst_nodename.append( "localhost" )
+                self.flg_localmode = True
         else:
             try:
                 if self.nodes:
@@ -309,8 +318,8 @@ class MAcprun:
                 self.lst_nodeip.append( "127.0.0.1" )
             else:
                 self.lst_nodeip.append( socket.gethostbyname( nodename ) )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "lst_nodeip:", self.lst_nodeip )
 
@@ -324,8 +333,8 @@ class MAcprun:
             self.lst_lhost.append(   self.lst_nodename[ ipmod ] )
             self.lst_lhostip.append( self.lst_nodeip[   ipmod ] )
             ip += 1
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "lst_lhost:",   self.lst_lhost )
                 print( "lst_lhostip:", self.lst_lhostip )
@@ -383,8 +392,8 @@ class MAcprun:
                 self.lst_rhostip[ node ] = self.lst_lhostip[ node // 2 ]
             else:
                 sys.exit( "%s: python version error.: %s", (self.myname, sys.version) )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "lst_rpost:",   self.lst_rport )
                 print( "lst_rhost:",   self.lst_rhost )
@@ -402,8 +411,8 @@ class MAcprun:
         self.lst_rport.append(   self.lst_lport  [ 0 ] )
         self.lst_rhost.append(   self.lst_lhost  [ 0 ] )
         self.lst_rhostip.append( self.lst_lhostip[ 0 ] )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "lst_rpost:",   self.lst_rport )
                 print( "lst_rhost:",   self.lst_rhost )
@@ -432,8 +441,8 @@ class MAcprun:
             if (not pat.match( lines[ i ] )):
                 str = re.sub( "[ ]*#.*$", "", lines[ i ] )
                 self.lines_input.append( str )
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "inputfile: ", self.lines_input )
 
@@ -479,8 +488,8 @@ class MAcprun:
             self.commands.append( self.lines_input[ il ] )
             il += 1
         #
-        if DEBUG_MODE:
-            if DEBUG_LEVEL > 200:
+        if self.flg_debug_mode:
+            if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
                 print( "input: ", "num_runtime  = ", self.num_runtime )
                 print( "input: ", "runtimes     = ", self.runtimes )
@@ -542,12 +551,24 @@ class MAcprun:
             basename_comm_opts = os.path.basename( self.runtimes[ i ] )
             basename_comm = basename_comm_opts.split()[ 0 ]
             if ( basename_comm == STR_COMM_ACPRUN ):
-                self.comms_runtime.append(
+                if ( self.flg_localmode ):
+                    self.comms_runtime.append(
+                                "%s -multrun -np %d -portfile %s -offsetrank %d %s" % \
+                                ( self.runtimes[ i ], self.nprocs[ i ], \
+                                  self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+                else:
+                    self.comms_runtime.append(
                                 "%s -multrun -machinefile %s -np %d -portfile %s -offsetrank %d %s" % \
                                 ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
                                   self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
             else:
-                self.comms_runtime.append(
+                if ( self.flg_localmode ):
+                    self.comms_runtime.append(
+                                "%s -np %d %s --acp-multrun %s %d" % \
+                                ( self.runtimes[ i ], self.nprocs[ i ], \
+                                  self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
+                else:
+                    self.comms_runtime.append(
                                 "%s -machinefile %s -np %d %s --acp-multrun %s %d" % \
                                 ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
                                   self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
@@ -558,42 +579,6 @@ class MAcprun:
     def exec_runtime_commands( self ):
         for i in range( self.num_runtime ):
             os.system( self.comms_runtime[ i ] )
-
-    #########################################################
-    #########################################################
-    #########################################################
-    def gen_ssh_commands( self ):
-        self.comms_ssh = []
-        lcomm = ""
-        for ip in range( len(self.comm_args) ):
-            lcomm = lcomm + " " + self.comm_args[ ip ]
-        for ip in range( self.nprocs_total ):
-            comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
-                   ( self.cwd, STR_ENVMYRANK, ip,                           \
-                     STR_ENVNPROCS, self.nprocs_total,                  \
-                     STR_ENVTASKID, self.lst_taskid[ ip ],        \
-                     STR_ENVLPORT,  self.lst_lport [ ip ],        \
-                     STR_ENVRPORT,  self.lst_rport [ ip ],        \
-                     STR_ENVRHOST,  self.lst_rhostip[ ip ],       \
-                     STR_ENVSMSIZE, self.starter_memsize,   lcomm )
-            if (not self.flg_localmode):
-                #comm = "ssh " + self.[ ip ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ip ) + " 2>&1"
-                #comm = REMOTESHELL + " " + self.[ ip ] + " \"" + comm + "\""
-                comm = REMOTESHELL + " " + self.lst_lhostip[ ip ] + " \"" + comm + "\""
-            if ip == (self.nprocs_total-1):
-                comm = comm + "\n"
-            else:
-                comm = comm + " &"
-            self.comms_ssh.append( comm )
-        #
-        #if DEBUG_MODE:
-        #    for i in range( len( self.comms_ssh ) ):
-        #        print( "%s" % self.comms_ssh[ i ] )
-#
-    #########################################################
-    def exec_ssh_commands( self ):
-        for ip in range( self.nprocs_total ):
-            os.system( self.comms_ssh[ ip ] )
 
 ###############################################################################
 ###############################################################################
@@ -612,14 +597,13 @@ ma.resolv_nodenames()
 ma.mult_nodenames()
 ma.get_array_lport()
 ma.get_array_rport_rhostip()
-ma.gen_ssh_commands()
 #
 ma.gen_intermediate_files()
-if DEBUG_MODE:
+if ma.flg_debug_mode:
     ma.print_intermediate_files()
 #
 ma.gen_runtime_commands()
-if DEBUG_MODE:
+if ma.flg_debug_mode:
     print( ma.myname + ": " + "Executed commands:" )
     for i in range( len( ma.comms_runtime ) ):
         print( ma.myname + ": " +  ma.comms_runtime[ i ] )

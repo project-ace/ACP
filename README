@@ -71,15 +71,13 @@ ACP library supports acprun program to launch ACP appliations. For example:
 
 This launches two hello_world_acp applications on localhost.
 The option "-np 2" is same as a long option "--acp-nprocs=2".
-Please note that "-np nprocs" has to be 'first' option of acprun command.
-There are no such limitations for the long option.
 
-You can specify a --acp-nodefile=nodefile option to indicate hostnames
+You can specify a "-machinefile nodefile", "-nodefile nodefile" or "--acp-nodefile=nodefile" option to indicate hostnames
  on which hello_world_acp command will be launched.
 
 If you want launch two processes on pc01 and pc02, use following command:
 
-  shell$ acprun -np 2 --acp-nodefile=nodefile hello_world_acp   
+  shell$ acprun -np 2 -machinefile nodefile hello_world_acp   
 
 with the following nodefile:
 ---------------------------------------------------------------------------
@@ -90,15 +88,25 @@ pc02
 ---------------------------------------------------------------------------
 
 To specify network device, for example infiniband (or udp, tofu),
-use --acp-envent=ib (or udp, tofu) option as follows:
+use "-ndev ib" or "--acp-envent=ib" (or udp, tofu) option as follows:
 
-  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-envent=ib hello_world_acp   
+  shell$ acprun -np 2 -machinefile nodefile -ndev ib hello_world_acp   
 
 If you want control starter memory size of ACP basic layar library,
-use --acp-startermemsize=size (byte unit) option as follows:
+use "-smemsize size" or "--acp-startermemsize=size" (byte unit) option as follows:
 
-  shell$ acprun -np 2 --acp-nodefile=nodefile --acp-envent=ib --acp-startermemsize=4096 hello_world_acp   
+  shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 hello_world_acp   
 
+Instead of ssh command, if your system supports pjrsh command,  (Fujitsu CX400 system supports pjrsh instead of ssh)
+use "-ssh pjrsh" option as follows:
+
+  shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 -ssh pjrsh hello_world_acp   
+
+Other options:
+For understanding or debugging the inside of acprun command execution,
+use -debug option as follows:
+
+  shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 -ssh pjrsh -debug hello_world_acp   
 
 Notice:
   1.  Other "--acp-*" options are parsed as errors in regard to invalid option,

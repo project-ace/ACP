@@ -8,7 +8,7 @@ Multiple MPI ACP Library
 
 0. Overview
 -----------
-Current ACP library supports mechanisms for connecting Multiple MPI applications (Multi-MPI ACP).
+Current ACP library supports mechanism for connecting Multiple MPI applications (Multi-MPI ACP).
 This is similar to MPI-Spawn except spawning dynamical processes.
 
 
@@ -17,10 +17,10 @@ This is similar to MPI-Spawn except spawning dynamical processes.
  A. MPI
   Install MPI correctly.
   Check PATH and LD_LIBRARY_PATH shell environment variables.
-  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are supported.
+  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are tested.
 
  B. ACP
-  Sources of Multi-MPI ACP is included inside of the ACP library.
+  Sources of Multi-MPI ACP are inside of the ACP library.
   To install this library, add "--with-mpi" option to the configure command ACP.
 
   shell$ ./configure --with-mpi --prefix=/where/to/install
@@ -83,8 +83,8 @@ For example:
   ---------------------------------------------------------------------------
 
 This launches one hello_world_acp application (APP0) consists with one process by acprun,
-and two hello_world_macp applications (APP1 and APP2) with two and three processes on localhost by mpirun.
-These three applications with six processes are connected by ACP library as following figure.
+and two hello_world_macp applications (APP1 and APP2) with two and three processes by mpirun on the localhost.
+These three applications with six processes are connected by ACP library as shown in following figure.
 
  proc ID     0       1       2       3       4       5    
          +-------+---------------+-----------------------+
@@ -135,7 +135,7 @@ use "-net ib" (or udp, tofu) option as follows:
 
 ---------------------------------------------------------------------------
 Notice:
-  1.  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are supported.
+  1.  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are tested.
   2.  Tofu network device may not supported in this version.
 ===========================================================================
 

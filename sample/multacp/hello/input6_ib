@@ -3,8 +3,8 @@
 
 # Runtime environments
 acprun
-mpirun --mca btl openib,self  
-mpirun --mca btl openib,self  
+mpirun --mca btl openib,self  # These options are supported by Open MPI
+mpirun --mca btl openib,self  #
 
 # Number of processes
 1

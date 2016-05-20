@@ -1,9 +1,9 @@
 /*
  * Advanced Communication Primitives Library Header
  * 
- * Copyright (c) 2014-2015 FUJITSU LIMITED
- * Copyright (c) 2014-2015 Kyushu University
- * Copyright (c) 2014-2015 Institute of Systems, Information Technologies
+ * Copyright (c) 2014-2016 FUJITSU LIMITED
+ * Copyright (c) 2014-2016 Kyushu University
+ * Copyright (c) 2014-2016 Institute of Systems, Information Technologies
  *                         and Nanotechnologies 2014
  *
  * This software is released under the BSD License, see LICENSE.
@@ -475,14 +475,15 @@ extern int acp_colors(void);
 /* @} */ /* Global memory management */
 
 /* Global memory access */
-/** \defgroup GMA ACP Basic Layer Global Memory Access
+/**
+ * @defgroup GMA ACP Basic Layer Global Memory Access
  * @ingroup acpbl
  *
  * Functions for Global memory access
  *
  * ..........
  * @{
- * */
+ */
 
 /** Represents all of the handles of GMAs that have been invoked so far. */
 #define ACP_HANDLE_ALL  0xffffffffffffffffLLU
@@ -999,7 +1000,8 @@ extern int acp_inquire(acp_handle_t handle);
 
 /* @} */ /* Global memory access */
 
-/** \defgroup acpml ACP Middle Layer
+/**
+ * @defgroup acpml ACP Middle Layer
  *
  * ACP middle layer is a set of operations for primitive communication 
  * patterns used by applications.
@@ -1010,7 +1012,8 @@ extern int acp_inquire(acp_handle_t handle);
 /*****************************************************************************/
 /***** Communication Library                                             *****/
 /*****************************************************************************/
-/** \defgroup acpcl ACP Middle Layer Communication Library
+/**
+ * @defgroup acpcl ACP Middle Layer Communication Library
  * @ingroup acpml
  *
  * This library provides \a Channel interface and \a collective communication
@@ -1140,7 +1143,8 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
 /*****************************************************************************/
 /***** Data Library                                                      *****/
 /*****************************************************************************/
-/** \defgroup acpdl ACP Middle Layer Data Library
+/**
+ * @defgroup acpdl ACP Middle Layer Data Library
  * @ingroup acpml
  *
  * This library provides various data handling functions:
@@ -1160,9 +1164,102 @@ typedef int64_t acp_wsd_t;
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief ワークスペース生成
+ *
+ * ワークスペースを生成する。
+ * 全プロセスで集団的に呼び出す必要がある。
+ *
+ * @param size ワークスペースのサイズ
+ * @retval ACP_WSD_NULL 失敗
+ * @retval acp_wsd_t ワークスペース記述子
+ *
+ * @EN
+ * @brief Workspace creation
+ *
+ * Creates a workspace
+ *
+ * @param size Size of the workspace
+ * @retval ACP_WSD_NULL Fial
+ * @retval acp_wsd_t Workspace descriptor
+ * @ENDL
+ */
 extern acp_wsd_t acp_create_ws(size_t size);
+
+/**
+ * @JP
+ * @brief ワークスペース破棄
+ *
+ * ワークスペースを破棄する。
+ * 全プロセスで集団的に呼び出す必要がある。
+ *
+ * @param WSD ワークスペース記述子
+ *
+ * @EN
+ * @brief Workspace destruction
+ *
+ * Destroies a workspace.
+ *
+ * @param WSD Workspace descriptor
+ * @ENDL
+ */
 extern void acp_destroy_ws(acp_wsd_t WSD);
+
+/**
+ * @JP
+ * @brief ワークスペース読み出し
+ *
+ * ワークスペースの指定位置からデータを読み出す。
+ *
+ * @param WSD ワークスペース記述子
+ * @param ga 読み出しデータ格納グローバルアドレス
+ * @param size 読み出しデータサイズ
+ * @param offset 読み出し開始位置
+ * @retval 0 Success
+ * @retval 1 Fail
+ *
+ * @EN
+ * @brief Reading workspace 
+ *
+ * Read data in a workspace from the specified position.
+ *
+ * @param WSD Workspace descriptor
+ * @param ga The global address of the storage location for the data
+ * @param size Size of the data to read
+ * @param offset The start point of the data
+ * @retval 0 Success
+ * @retval 1 Fail
+ * @ENDL
+ */
 extern int acp_read_ws(acp_wsd_t WSD, acp_ga_t ga, size_t size, size_t offset);
+
+/**
+ * @JP
+ * @brief ワークスペース書き込み
+ *
+ * ワークスペースの指定位置にデータを書き込む。
+ *
+ * @param WSD ワークスペース記述子
+ * @param ga 書き込みデータ格納グローバルアドレス
+ * @param size 書き込みデータサイズ
+ * @param offset 書き込み開始位置
+ * @retval 0 Success
+ * @retval 1 Fail
+ *
+ * @EN
+ * @brief Writing workspace 
+ *
+ * Write data in a workspace at the specified position.
+ *
+ * @param WSD Workspace descriptor
+ * @param ga The global address of the storage location for the data
+ * @param size Size of the data to write
+ * @param offset The start point of the data
+ * @retval 0 Success
+ * @retval 1 Fail
+ * @ENDL
+ */
 extern int acp_write_ws(acp_wsd_t WSD, const acp_ga_t ga, size_t size, size_t offset);
 
 #ifdef __cplusplus
@@ -1175,8 +1272,47 @@ extern int acp_write_ws(acp_wsd_t WSD, const acp_ga_t ga, size_t size, size_t of
 extern "C" {
 #endif
 
-extern acp_ga_t acp_malloc(size_t, int);
-extern void acp_free(acp_ga_t);
+/**
+ * @JP
+ * @brief グローバルメモリ割り当て
+ *
+ * 任意のプロセスからグローバルメモリを取得する。
+ *
+ * @param size わり当てるメモリのサイズ
+ * @param rank メモリをわり当てるプロセス
+ * @retval ACP_GA_NULL 失敗
+ * @retval acp_ga_t あり当てられたメモリの先頭アドレス
+ *
+ * @EN
+ * @brief Global memory allocation
+ *
+ * Allocate a global memory on any process.
+ *
+ * @param size Size of the memory to allocate
+ * @param rank Rank number.
+ * @retval ACP_GA_NULL Fail
+ * @retval acp_ga_t Global address of the allocated memory
+ * @ENDL
+ */
+extern acp_ga_t acp_malloc(size_t size, int rank);
+
+/**
+ * @JP
+ * @brief グローバルメモリ解放
+ *
+ * 取得したグローバルメモリを解放する。
+ *
+ * @param ga 先頭グローバルアドレス
+ *
+ * @EN
+ * @brief Deallocate the global memory
+ *
+ * Deallocate the global memory allocation pointed to by ga
+ *
+ * @param ga The address of the global memory to deallocate
+ * @ENDL
+ */
+extern void acp_free(acp_ga_t ga);
 
 #ifdef __cplusplus
 }
@@ -1241,7 +1377,8 @@ typedef struct {
 } acp_pair_t;
 
 /* Vector */
-/** \defgroup vector ACP Middle Layer Dara Library Vector
+/**
+ * @defgroup vector ACP Middle Layer Dara Library Vector
  * @ingroup acpdl
  * 
  * ACP Middle Layer Dara Library Vector
@@ -1262,10 +1399,104 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief ベクタ代入
+ *
+ * ベクタ間でデータをコピーする。以前のデータは破棄される。
+ *
+ * @param vector1 コピー先ベクトル型データの参照
+ * @param vector2 コピー元ベクトル型データの参照
+ *
+ * @EN
+ * @brief Vector assignment
+ *
+ * Copy vector data between two vectors.
+ *
+ * @param vector1 A reference of destination vector data.
+ * @param vector2 A reference of source vector data.
+ * @ENDL
+ */
 extern void acp_assign_vector(acp_vector_t vector1, acp_vector_t vector2);
+
+/**
+ * @JP
+ * @brief ベクタ範囲代入
+ *
+ * ベクタにstartからend直前までのデータをコピーする。
+ * startとendは同じベクタを指している必要がある。
+ * 以前のデータは破棄される。
+ *
+ * @param vector コピー先ベクトル型データの参照
+ * @param start コピーするデータの先頭を指すイテレータ
+ * @param end コピーするデータの末尾の直後を指すイテレータ
+ *
+ * @EN
+ * @brief Vector assignment with range
+ *
+ * Copy vector data from the point of "start" to "end".
+ * 
+ * @param vector A reference of destination vector data.
+ * @param start A vector type data iterator for pointing the starting address
+ * @param end A vector type data iterator for pointing the end address
+ * @ENDL
+ */
 extern void acp_assign_range_vector(acp_vector_t vector, acp_vector_it_t start, acp_vector_it_t end);
+
+/**
+ * @JP
+ * @brief ベクタ直接参照
+ *
+ * ベクタデータ上の任意の位置のグローバルアドレスを返す。
+ *
+ * @param vector ベクトル型データの参照
+ * @param index ベクトル型データ先頭からの相対位置
+ *
+ * @EN
+ * @brief Query for a global address of any point on a vector type data
+ *
+ * @param vector A reference of vector data
+ * @param index The relative point from the head of vector data
+ * @ENDL
+ */
 extern acp_ga_t acp_at_vector(acp_vector_t vector, int index);
+
+/**
+ * @JP
+ * @brief ベクタ先頭イテレータ
+ *
+ * ベクタの先頭データを指すイテレータを返す。
+ *
+ * @param vector ベクトル型データの参照
+ * @retval acp_vector_it_t ベクタの先頭データを指すイテレータ
+ *
+ * @EN
+ * @brief Query for the iterator of the head of vector data
+ *
+ * @param vector A reference of vector data.
+ * @retval acp_vector_it_t An iterator of the head of vector data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_begin_vector(acp_vector_t vector);
+
+/**
+ * @JP
+ * @brief ベクタ容量
+ *
+ * ベクタが領域拡張せずに保持できるサイズを返す。
+ *
+ * @param vector ベクトル型データの参照
+ * @retval size_t ベクタが領域拡張せずに保持できるサイズ
+ *
+ * @EN
+ * @brief Capacity of vector
+ *
+ * Query for the capacity of the vector type data
+ *
+ * @param vector A reference of vector type data
+ * @retval size_t The size of vector type data
+ * @ENDL
+ */
 extern size_t acp_capacity_vector(acp_vector_t vector);
 
 /**
@@ -1328,15 +1559,200 @@ extern acp_vector_t acp_create_vector(size_t size, int rank);
  */
 extern void acp_destroy_vector(acp_vector_t vector);
 
+/**
+ * @JP
+ * @brief ベクタ空チェック
+ *
+ * ベクタが空かどうかを返す。
+ *
+ * @param vector ベクトル型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for vector empty
+ *
+ * @param vector A reference of vector data.
+ * @retval 1 Empty
+ * @retval 0 There is a vector data
+ * @ENDL
+ */
 extern int acp_empty_vector(acp_vector_t vector);
+
+/**
+ * @JP
+ * @brief ベクタ末尾イテレータ
+ *
+ * ベクタの最終データの直後を指すイテレータを返す。
+ *
+ * @param vector ベクトル型データの参照
+ * @retval acp_vector_it_t ベクタの最終データの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Query for the iterator of just behind of the end of vector data
+ *
+ * @param vector A reference of vector data.
+ * @retval acp_vector_it_t An iterator of just behind of the end of vector data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_end_vector(acp_vector_t vector);
+
+/**
+ * @JP
+ * @brief ベクタ削除
+ *
+ * ベクタからデータを削除する。
+ *
+ * @param it 削除するデータの先頭を指すイテレータ
+ * @param size 削除するデータのサイズ
+ * @retval acp_vector_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the vector data
+ *
+ * @param it An iterator of vector data to erase
+ * @param size The size of data to erase
+ * @retval acp_vector_it_t An iterator of just behind of the deleted vector data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_erase_vector(acp_vector_it_t it, size_t size);
+
+/**
+ * @JP
+ * @brief ベクタ範囲削除
+ *
+ * ベクタからstartからend直前までのデータを削除する。
+ *
+ * @param start 削除するデータの先頭を指すイテレータ
+ * @param end 削除するデータの末尾の直後を指すサイズ
+ * @retval acp_vector_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the vector data from "start" to "end"
+ *
+ * @param start The iterator of vector data to erase
+ * @param end The iterator of just behind of the deleting vector data
+ * @retval acp_vector_it_t The iterator of just behind of the deleted vector data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_erase_range_vector(acp_vector_it_t start, acp_vector_it_t end);
+
+/**
+ * @JP
+ * @brief ベクタ挿入
+ *
+ * 指定した位置にデータを挿入する。
+ *
+ * @param it データを挿入する位置を指すイテレータ
+ * @param ga 挿入するデータを格納しているグルーバルアドレス
+ * @param size 挿入するデータのサイズ
+ * @retval acp_vector_it_t 挿入したデータの先頭を指すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the vector data
+ *
+ * @param it An iterator of the point for inserting data
+ * @param ga The global address of the data to insert
+ * @param size The size of the data to insert
+ * @retval acp_vector_it_t An iterator of head address of the inserted data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_insert_vector(acp_vector_it_t it, const acp_ga_t ga, size_t size);
+
+/**
+ * @JP
+ * @brief ベクタ範囲挿入
+ *
+ * 他のベクタの指定範囲を、指定した位置にデータを挿入する。
+ *
+ * @param it データを挿入する位置を指すイテレータ
+ * @param start 挿入するデータを先頭を指すイテレータ
+ * @param end 挿入するデータの末尾の直後を指すイテレータ
+ * @retval acp_vector_it_t 挿入したデータの先頭を指すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the vector data from "start" to "end"
+ *
+ * @param it An iterator of the point for inserting data
+ * @param start The iterator of head address of the data to insert
+ * @param end The iterator of just behind address of the data to insert
+ * @retval acp_vector_it_t An iterator of head address of the inserted data
+ * @ENDL
+ */
 extern acp_vector_it_t acp_insert_range_vector(acp_vector_it_t it, acp_vector_it_t start, acp_vector_it_t end);
+
+/**
+ * @JP
+ * @brief ベクタ末尾削除
+ *
+ * ベクタの末尾から、指定サイズのデータを削除する。
+ *
+ * @param vector データを削除するベクタ
+ * @param size 削除するデータのサイズ
+ *
+ * @EN
+ * @brief Data deletion at the end of the vector data 
+ *
+ * @param vector The vector data to erase
+ * @param size The size of data to erase
+ * @ENDL
+ */
 extern void acp_pop_back_vector(acp_vector_t vector, size_t size);
+
+/**
+ * @JP
+ * @brief ベクタ末尾追加
+ *
+ * ベクタの末尾に、指定サイズのデータを追加する。
+ *
+ * @param vector データを追加するベクタデータの査証
+ * @param ga 追加するデータを格納しているグローバルアドレス
+ * @param size 追加するデータのサイズ
+ *
+ * @EN
+ * @brief Data addition at the end of the vector data 
+ *
+ * @param vector A reference of the vector to which data is added
+ * @param ga The global address of the data to insert
+ * @param size The size of the data to insert
+ * @ENDL
+ */
 extern void acp_push_back_vector(acp_vector_t vector, const acp_ga_t ga, size_t size);
+
+/**
+ * @JP
+ * @brief ベクタ領域確保
+ *
+ * ベクタの領域を指定した要素数確保する。
+ *
+ * @param vector 領域を確保するベクタデータの参照
+ * @param size 要素数
+ *
+ * @EN
+ * @brief Reservation of a region in the vector type data
+ *
+ * @param vector A reference of the vector to reserve a region
+ * @param size The number of element
+ * @ENDL
+ */
 extern void acp_reserve_vector(acp_vector_t vector, size_t size);
+
+/**
+ * @JP
+ * @brief ベクタサイズ
+ *
+ * ベクタに格納しているデータのサイズを返す。
+ *
+ * @param vector ベクタデータの参照
+ * @retval size_t ベクタに格納しているデータのサイズ
+ *
+ * @EN
+ * @brief Query of the data size in the vector
+ *
+ * @param vector A referenc of the vector data
+ * @retval size_t The data size in the vector
+ * @ENDL
+ */
 extern size_t acp_size_vector(acp_vector_t vector);
 
 /**
@@ -1360,8 +1776,62 @@ extern size_t acp_size_vector(acp_vector_t vector);
  */
 extern void acp_swap_vector(acp_vector_t vector1, acp_vector_t vector2);
 
+/**
+ * @JP
+ * @brief ベクタイテレータ前進
+ *
+ * ベクタイテレータを前進する。
+ *
+ * @param it ベクタデータのイテレータ
+ * @param n イテレータを進める数、負の値も指定可能
+ * @retval acp_vector_it_t 前進したベクタイテレータ
+ *
+ * @EN
+ * @brief Advancement of an iterator for vector type data
+ *
+ * @param it The iterator of vector type data
+ * @param n The number for advancing
+ * @retval acp_vector_it_t The advanced iterator of vector type data 
+ * @ENDL
+ */
 extern acp_vector_it_t acp_advance_vector_it(acp_vector_it_t it, int n);
+
+/**
+ * @JP
+ * @brief ベクタイテレータ間接参照
+ *
+ * ベクタイテレータの参照先グローバルアドレスを返す。
+ *
+ * @param it ベクタデータのイテレータ
+ * @retval acp_ga_t ベクタイテレータの参照先グローバルアドレス
+ *
+ * @EN
+ * @brief Query of the global address of a reference of vector tyep iterator
+ *
+ * @param it The iterator of vector type data
+ * @retval acp_ga_t The global address of a reference of vector type iterator 
+ * @ENDL
+ */
 extern acp_ga_t acp_dereference_vector_it(acp_vector_it_t it);
+
+/**
+ * @JP
+ * @brief ベクタイテレータ距離
+ *
+ * ２つのベクタイテレータ first, last 間の距離を返す。
+ *
+ * @param first 先頭位置のベクタイテレータ
+ * @param last 最終位置のベクタイテレータ
+ * @retval int ２つのベクタイテレータ first, last 間の距離
+ *
+ * @EN
+ * @brief Query of the distance of two iterators of vector type data between "first" and "last"
+ *
+ * @param first The iterator for head
+ * @param last The iterator for end
+ * @retval int The distance between "first" and "last"
+ * @ENDL
+ */
 extern int acp_distance_vector_it(acp_vector_it_t first, acp_vector_it_t last);
 
 #ifdef __cplusplus
@@ -1370,7 +1840,8 @@ extern int acp_distance_vector_it(acp_vector_it_t first, acp_vector_it_t last);
 /*@}*/ /* Vector */
 
 /* Deque */
-/** \defgroup deque ACP Middle Layer Dara Library Deque
+/**
+ * @defgroup deque ACP Middle Layer Dara Library Deque
  * @ingroup acpdl
  * 
  * ACP Middle Layer Data Library Deque
@@ -1391,29 +1862,479 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief デック代入
+ *
+ * デック間でデータをコピーする。以前のデータは破棄される。
+ *
+ * @param deque1 コピー先デック型データの参照
+ * @param deque2 コピー元デック型データの参照
+ *
+ * @EN
+ * @brief Deque assignment
+ *
+ * Copy Deque data between two vectors.
+ *
+ * @param deque1 A reference of destination deque data.
+ * @param deque2 A reference of source deque data.
+ * @ENDL
+ */
 extern void acp_assign_deque(acp_deque_t deque1, acp_deque_t deque2);
+
+/**
+ * @JP
+ * @brief デック範囲代入
+ *
+ * デックにstartからend直前までのデータをコピーする。
+ * startとendは同じデックを指している必要がある。
+ * 以前のデータは破棄される。
+ *
+ * @param deque コピー先デック型データの参照
+ * @param start コピーするデータの先頭を指すイテレータ
+ * @param end コピーするデータの末尾の直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deque assignment with range
+ *
+ * Copy deque data from the point of "start" to "end".
+ * 
+ * @param deque A reference of destination deque data.
+ * @param start A deque type data iterator for pointing the starting address
+ * @param end A deque type data iterator for pointing the end address
+ * @ENDL
+ */
 extern void acp_assign_range_deque(acp_deque_t deque, acp_deque_it_t start, acp_deque_it_t end);
+
+/**
+ * @JP
+ * @brief デック直接参照
+ *
+ * デックデータ上の任意の位置のグローバルアドレスを返す。
+ *
+ * @param deque デック型データの参照
+ * @param index デック型データ先頭からの相対位置
+ * @retval ACP_GA_NULL 失敗
+ * @retval ACP_GA_NULL以外 
+ *
+ * @EN
+ * @brief Query for a global address of any point on a deque type data
+ *
+ * @param deque A reference of deque data
+ * @param index The relative point from the head of deque data
+ * @retval ACP_GA_NULL Fail
+ * @retval otherwise A global address of deque data.
+ * @ENDL
+ */
 extern acp_ga_t acp_at_deque(acp_deque_t deque, int index);
+
+/**
+ * @JP
+ * @brief デック先頭イテレータ
+ *
+ * デックの先頭データを指すイテレータを返す。
+ *
+ * @param deque デック型データの参照
+ * @retval acp_deque_it_t デックの先頭データを指すイテレータ
+ *
+ * @EN
+ * @brief Query for the iterator of the head of deque data
+ *
+ * @param deque A reference of deque data.
+ * @retval acp_deque_it_t An iterator of the head of deque data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_begin_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック容量
+ *
+ * デックが領域拡張せずに保持できるサイズを返す。
+ *
+ * @param deque デック型データの参照
+ * @retval size_t デックが領域拡張せずに保持できるサイズ
+ *
+ * @EN
+ * @brief Capacity of deque
+ *
+ * Query for the capacity of the deque type data
+ *
+ * @param deque A reference of deque type data
+ * @retval size_t The size of deque type data
+ * @ENDL
+ */
 extern size_t acp_capacity_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック消去
+ *
+ * ベクトルのサイズを０にする。
+ *
+ * @param deque ベクトル型データの参照
+ *
+ * @EN
+ * @brief Deque elimination
+ *
+ * Set the size of the deque to be zero.
+ *
+ * @param deque A reference of deque data.
+ * @ENDL
+ */
 extern void acp_clear_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック生成
+ *
+ * 任意のプロセスでベクトル型データを生成する。
+ *
+ * @param size 要素サイズ
+ * @param rank ランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したデック型データの参照
+ *
+ * @EN
+ * @brief Deque creation
+ *
+ * Creates a deque type data on any process.
+ *
+ * @param size Size of element.
+ * @param rank Rank number.
+ * @retval "member ga == ACP_GA_NULL" Fail
+ * @retval otherwise A reference of created deque data.
+ * @ENDL
+ */
 extern acp_deque_t acp_create_deque(size_t size, int rank);
+
+/**
+ * @JP
+ * @brief デック破棄
+ *
+ * デック型データを破棄する。
+ *
+ * @param deque ベクトル型データの参照
+ *
+ * @EN
+ * @brief Deque destruction
+ *
+ * Destroies a deque type data.
+ *
+ * @param deque A reference of deque data.
+ * @ENDL
+ */
 extern void acp_destroy_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック空チェック
+ *
+ * デックが空かどうかを返す。
+ *
+ * @param deque デック型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for deque empty
+ *
+ * @param deque A reference of deque data.
+ * @retval 1 Empty
+ * @retval 0 There is a deque data
+ * @ENDL
+ */
 extern int acp_empty_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック末尾イテレータ
+ *
+ * デックの最終データの直後を指すイテレータを返す。
+ *
+ * @param deque デック型データの参照
+ * @retval acp_deque_it_t デックの最終データの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Query for the iterator of just behind of the end of deque data
+ *
+ * @param deque A reference of deque data.
+ * @retval acp_deque_it_t An iterator of just behind of the end of deque data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_end_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック削除
+ *
+ * デックからデータを削除する。
+ *
+ * @param it 削除するデータの先頭を指すイテレータ
+ * @param size 削除するデータのサイズ
+ * @retval acp_deque_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the deque data
+ *
+ * @param it An iterator of deque data to erase
+ * @param size The size of data to erase
+ * @retval acp_deque_it_t An iterator of just behind of the deleted deque data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_erase_deque(acp_deque_it_t it, size_t size);
+
+/**
+ * @JP
+ * @brief デック範囲削除
+ *
+ * デックからstartからend直前までのデータを削除する。
+ *
+ * @param start 削除するデータの先頭を指すイテレータ
+ * @param end 削除するデータの末尾の直後を指すサイズ
+ * @retval acp_deque_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the deque data from "start" to "end"
+ *
+ * @param start The iterator of deque data to erase
+ * @param end The iterator of just behind of the deleting deque data
+ * @retval acp_deque_it_t The iterator of just behind of the deleted deque data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_erase_range_deque(acp_deque_it_t start, acp_deque_it_t end);
+
+/**
+ * @JP
+ * @brief デック挿入
+ *
+ * 指定した位置にデータを挿入する。
+ *
+ * @param it データを挿入する位置を指すイテレータ
+ * @param ga 挿入するデータを格納しているグルーバルアドレス
+ * @param size 挿入するデータのサイズ
+ * @retval acp_deque_it_t 挿入したデータの先頭を指すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the deque data
+ *
+ * @param it An iterator of the point for inserting data
+ * @param ga The global address of the data to insert
+ * @param size The size of the data to insert
+ * @retval acp_deque_it_t An iterator of head address of the inserted data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_insert_deque(acp_deque_it_t it, const acp_ga_t ga, size_t size);
+
+/**
+ * @JP
+ * @brief デック範囲挿入
+ *
+ * 他のデックの指定範囲を、指定した位置にデータを挿入する。
+ *
+ * @param it データを挿入する位置を指すイテレータ
+ * @param start 挿入するデータを先頭を指すイテレータ
+ * @param end 挿入するデータの末尾の直後を指すイテレータ
+ * @retval acp_deque_it_t 挿入したデータの先頭を指すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the deque data from "start" to "end"
+ *
+ * @param it An iterator of the point for inserting data
+ * @param start The iterator of head address of the data to insert
+ * @param end The iterator of just behind address of the data to insert
+ * @retval acp_deque_it_t An iterator of head address of the inserted data
+ * @ENDL
+ */
 extern acp_deque_it_t acp_insert_range_deque(acp_deque_it_t it, acp_deque_it_t start, acp_deque_it_t end);
+
+/**
+ * @JP
+ * @brief デック末尾削除
+ *
+ * デックの末尾から、指定サイズのデータを削除する。
+ *
+ * @param deque データを削除するデックの参照
+ * @param size 削除するデータのサイズ
+ *
+ * @EN
+ * @brief Data deletion at the end of the deque data 
+ *
+ * @param deque A reference of the deque data to erase
+ * @param size The size of data to erase
+ * @ENDL
+ */
 extern void acp_pop_back_deque(acp_deque_t deque, size_t size);
+
+/**
+ * @JP
+ * @brief デック先頭削除
+ *
+ * デックの先頭から、指定サイズのデータを削除する。
+ *
+ * @param deque データを削除するデックの参照
+ * @param size 削除するデータのサイズ
+ *
+ * @EN
+ * @brief Data deletion at the head of the deque data 
+ *
+ * @param deque A reference of the deque data to erase
+ * @param size The size of data to erase
+ * @ENDL
+ */
 extern void acp_pop_front_deque(acp_deque_t deque, size_t size);
+
+/**
+ * @JP
+ * @brief デック末尾追加
+ *
+ * デックの末尾に、指定サイズのデータを追加する。
+ *
+ * @param deque データを追加するデックデータの査証
+ * @param ga 追加するデータを格納しているグローバルアドレス
+ * @param size 追加するデータのサイズ
+ *
+ * @EN
+ * @brief Data addition at the end of the deque data 
+ *
+ * @param deque A reference of the deque to which data is added
+ * @param ga The global address of the data to insert
+ * @param size The size of the data to insert
+ * @ENDL
+ */
 extern void acp_push_back_deque(acp_deque_t deque, const acp_ga_t ga, size_t size);
+
+/**
+ * @JP
+ * @brief デック先頭追加
+ *
+ * デックの先頭に、指定サイズのデータを追加する。
+ *
+ * @param deque データを追加するデックデータの査証
+ * @param ga 追加するデータを格納しているグローバルアドレス
+ * @param size 追加するデータのサイズ
+ *
+ * @EN
+ * @brief Data addition at the end of the deque data 
+ *
+ * @param deque A reference of the deque to which data is added
+ * @param ga The global address of the data to insert
+ * @param size The size of the data to insert
+ * @ENDL
+ */
 extern void acp_push_front_deque(acp_deque_t deque, const acp_ga_t ga, size_t size);
+
+/**
+ * @JP
+ * @brief デック領域確保
+ *
+ * デックの領域を指定した要素数確保する。
+ *
+ * @param deque 領域を確保するデックデータの参照
+ * @param size 要素数
+ *
+ * @EN
+ * @brief Reservation of a region in the deque type data
+ *
+ * @param deque A reference of the deque to reserve a region
+ * @param size The number of element
+ * @ENDL
+ */
 extern void acp_reserve_deque(acp_deque_t deque, size_t size);
+
+/**
+ * @JP
+ * @brief デックサイズ
+ *
+ * デックに格納しているデータのサイズを返す。
+ *
+ * @param deque デックデータの参照
+ * @retval size_t デックに格納しているデータのサイズ
+ *
+ * @EN
+ * @brief Query of the data size in the deque
+ *
+ * @param deque A referenc of the deque data
+ * @retval size_t The data size in the deque
+ * @ENDL
+ */
 extern size_t acp_size_deque(acp_deque_t deque);
+
+/**
+ * @JP
+ * @brief デック交換
+ *
+ * ２つのデック型データの内容を交換する。
+ *
+ * @param v1 交換するデック型データの一方の参照
+ * @param v2 交換するデック型データのもう一方の参照
+ * 
+ * @EN
+ * @brief Deque swap
+ *
+ * @param v1 A reference of deque data to be swapped.
+ * @param v2 Another reference of deque data to be swapped.
+ *
+ * @ENDL
+ */
 extern void acp_swap_deque(acp_deque_t deque1, acp_deque_t deque2);
+
+/**
+ * @JP
+ * @brief デックイテレータ前進
+ *
+ * デックイテレータを前進する。
+ *
+ * @param it デックデータのイテレータ
+ * @param n イテレータを進める数、負の値も指定可能
+ * @retval acp_deque_it_t 前進したデックイテレータ
+ *
+ * @EN
+ * @brief Advancement of an iterator for deque type data
+ *
+ * @param it The iterator of deque type data
+ * @param n The number for advancing
+ * @retval acp_deque_it_t The advanced iterator of deque type data 
+ * @ENDL
+ */
 extern acp_deque_it_t acp_advance_deque_it(acp_deque_it_t it, int n);
+
+/**
+ * @JP
+ * @brief デックイテレータ間接参照
+ *
+ * デックイテレータの参照先グローバルアドレスを返す。
+ *
+ * @param it デックデータのイテレータ
+ * @retval acp_ga_t デックイテレータの参照先グローバルアドレス
+ *
+ * @EN
+ * @brief Query of the global address of a reference of deque tyep iterator
+ *
+ * @param it The iterator of deque type data
+ * @retval acp_ga_t The global address of a reference of deque type iterator 
+ * @ENDL
+ */
 extern acp_pair_t acp_dereference_deque_it(acp_deque_it_t it, size_t size);
+
+/**
+ * @JP
+ * @brief デックイテレータ距離
+ *
+ * ２つのデックイテレータ first, last 間の距離を返す。
+ *
+ * @param first 先頭位置のデックイテレータ
+ * @param last 最終位置のデックイテレータ
+ * @retval int ２つのデックイテレータ first, last 間の距離
+ *
+ * @EN
+ * @brief Query of the distance of two iterators of deque type data between "first" and "last"
+ *
+ * @param first The iterator for head
+ * @param last The iterator for end
+ * @retval int The distance between "first" and "last"
+ * @ENDL
+ */
 extern int acp_distance_deque_it(acp_deque_it_t first, acp_deque_it_t last);
 
 #ifdef __cplusplus
@@ -1422,7 +2343,8 @@ extern int acp_distance_deque_it(acp_deque_it_t first, acp_deque_it_t last);
 /*@}*/ /* Deque */
 
 /* List */
-/** \defgroup list ACP Middle Layer Dara Library List
+/**
+ * @defgroup list ACP Middle Layer Dara Library List
  * @ingroup acpdl
  * 
  * ACP Middle Layer Dara Library List
@@ -1443,7 +2365,48 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief リスト代入
+ *
+ * リスト間でデータをコピーする。以前のデータは破棄される。
+ *
+ * @param list1 コピー先リスト型データの参照
+ * @param list2 コピー元リスト型データの参照
+ *
+ * @EN
+ * @brief List type data assignment
+ *
+ * Copy list type data between two lists.
+ *
+ * @param list1 A reference of destination list data.
+ * @param list2 A reference of source list data.
+ * @ENDL
+ */
 extern void acp_assign_list(acp_list_t list1, acp_list_t list2);
+
+/**
+ * @JP
+ * @brief リスト範囲代入
+ *
+ * リストにstartからend直前までのデータをコピーする。
+ * startとendは同じデックを指している必要がある。
+ * 以前のデータは破棄される。
+ *
+ * @param list コピー先リスト型データの参照
+ * @param start コピーするデータの先頭を指すイテレータ
+ * @param end コピーするデータの末尾の直後を指すイテレータ
+ *
+ * @EN
+ * @brief List assignment with range
+ *
+ * Copy list data from the point of "start" to "end".
+ * 
+ * @param list A reference of destination list data.
+ * @param start A list type data iterator for pointing the starting address
+ * @param end A list type data iterator for pointing the end address
+ * @ENDL
+ */
 extern void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list_it_t end);
 
 /**
@@ -1468,6 +2431,22 @@ extern void acp_assign_range_list(acp_list_t list, acp_list_it_t start, acp_list
  */
 extern acp_list_it_t acp_begin_list(acp_list_t list);
 
+/**
+ * @JP
+ * @brief リスト消去
+ *
+ * リストのサイズを０にする。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief List elimination
+ *
+ * Set the size of the list to be zero.
+ *
+ * @param list A reference of list data.
+ * @ENDL
+ */
 extern void acp_clear_list(acp_list_t list);
 
 /**
@@ -1510,6 +2489,24 @@ extern acp_list_t acp_create_list(int rank);
  */
 extern void acp_destroy_list(acp_list_t list);
 
+/**
+ * @JP
+ * @brief リスト空チェック
+ *
+ * リストが空かどうかを返す。
+ *
+ * @param list ベクトル型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for list empty
+ *
+ * @param list A reference of list data.
+ * @retval 1 Empty
+ * @retval 0 There is a list data
+ * @ENDL
+ */
 extern int acp_empty_list(acp_list_t list);
 
 /**
@@ -1553,6 +2550,24 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
  */
 extern acp_list_it_t acp_erase_list(acp_list_it_t it);
 
+/**
+ * @JP
+ * @brief リスト範囲削除
+ *
+ * リストからstartからend直前までのデータを削除する。
+ *
+ * @param start 削除するデータの先頭を指すイテレータ
+ * @param end 削除するデータの末尾の直後を指すサイズ
+ * @retval acp_list_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the list data from "start" to "end"
+ *
+ * @param start The iterator of list data to erase
+ * @param end The iterator of just behind of the deleting list data
+ * @retval acp_list_it_t The iterator of just behind of the deleted list data
+ * @ENDL
+ */
 extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end);
 
 /**
@@ -1583,9 +2598,80 @@ extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end
  */
 extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem, int rank);
 
+/**
+ * @JP
+ * @brief リスト範囲挿入
+ *
+ * 他のリストの指定範囲を、指定した位置にデータを挿入する。
+ *
+ * @param it データを挿入する位置を指すイテレータ
+ * @param start 挿入するデータを先頭を指すイテレータ
+ * @param end 挿入するデータの末尾の直後を指すイテレータ
+ * @retval acp_list_it_t 挿入したデータの先頭を指すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the list data from "start" to "end"
+ *
+ * @param it An iterator of the point for inserting data
+ * @param start The iterator of head address of the data to insert
+ * @param end The iterator of just behind address of the data to insert
+ * @retval acp_list_it_t An iterator of head address of the inserted data
+ * @ENDL
+ */
 extern acp_list_it_t acp_insert_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
+
+/**
+ * @JP
+ * @brief リスト併合
+ *
+ * ソート済みリスト同士を併合する。
+ *
+ * @param list1 併合先リスト型データの参照
+ * @param list2 併合元リスト型データの参照
+ * @param comp A function which return (1) negative number when elem1 < elem2, (2) 0 when elem1 = elem2, (3) positive number when elem1 > elem2
+ *
+ * @EN
+ * @brief List type data merge
+ *
+ * Merge two sorted list type data.
+ *
+ * @param list1 A reference of destination list data.
+ * @param list2 A reference of source list data.
+ * @param comp A function which return (1) negative number when elem1 < elem2, (2) 0 when elem1 = elem2, (3) positive number when elem1 > elem2
+ * @ENDL
+ */
 extern void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_element_t elem1, const acp_element_t elem2));
+
+/**
+ * @JP
+ * @brief リスト末尾削除
+ *
+ * リストの末尾から、要素を削除する。
+ *
+ * @param list データを削除するリスト型データの参照
+ *
+ * @EN
+ * @brief Data deletion at the end of the list data 
+ *
+ * @param list A reference of the list type data to erase
+ * @ENDL
+ */
 extern void acp_pop_back_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リスト先頭削除
+ *
+ * リストの先頭から、要素を削除する。
+ *
+ * @param list データを削除するリスト型データの参照
+ *
+ * @EN
+ * @brief Data deletion at the head of the list data 
+ *
+ * @param list A reference of the list type data to erase
+ * @ENDL
+ */
 extern void acp_pop_front_list(acp_list_t list);
 
 /**
@@ -1595,32 +2681,174 @@ extern void acp_pop_front_list(acp_list_t list);
  * 指定したプロセスに要素をコピーし、リスト型データの末尾に挿入する。
  *
  * @param list リスト型データの参照
- * @param ga 挿入するデータのグローバルアドレス
- * @param size 挿入するデータのサイズ
+ * @param elem 追加する要素の参照
  * @param rank 要素を複製するプロセス
  *
  * @EN
- * @brief Erase a list element
+ * @brief Inserts a list element at the tail of the list
  *
  * Inserts a data with specified size into the tail of the list.
  *
  * @param list A reference of list type data.
- * @param ga The global address of the data to be added.
- * @param size The size of the data to be added.
+ * @param elem A reference of element to added
  * @param rank Rank of the process in which the element is copied.
  * @ENDL
  */
 extern void acp_push_back_list(acp_list_t list, const acp_element_t elem, int rank);
 
+/**
+ * @JP
+ * @brief リスト先頭要素追加
+ *
+ * 指定したプロセスに要素をコピーし、リスト型データの先頭に挿入する。
+ *
+ * @param list リスト型データの参照
+ * @param elem 追加する要素の参照
+ * @param rank 要素を複製するプロセス
+ *
+ * @EN
+ * @brief Insert a list element at the head of the list
+ *
+ * Inserts a data with specified size into the head of the list.
+ *
+ * @param list A reference of list type data.
+ * @param elem A reference of element to add
+ * @param rank Rank of the process in which the element is copied.
+ * @ENDL
+ */
 extern void acp_push_front_list(acp_list_t list, const acp_element_t elem, int rank);
+
+/**
+ * @JP
+ * @brief リスト除去
+ *
+ * 一致する要素をすべて削除する。
+ *
+ * @param list リスト型データの参照
+ * @param elem 比較する要素の参照
+ *
+ * @EN
+ * @brief Erase a list
+ *
+ * Remove matching elements in the list.
+ *
+ * @param list A reference of list type data.
+ * @param elem A reference of element to compare
+ * @ENDL
+ */
 extern void acp_remove_list(acp_list_t list, const acp_element_t elem);
+
+/**
+ * @JP
+ * @brief リスト反転
+ *
+ * リストの要素を逆順に接続しなおす。
+ *
+ * @param list リスト型データの参照
+ *
+ * @EN
+ * @brief Reconnect elements of a list in reverse sequence
+ *
+ * @param list A reference of the list type data
+ * @ENDL
+ */
 extern void acp_reverse_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リストサイズ
+ *
+ * リストに格納しているデータのサイズを返す。
+ *
+ * @param list リストデータの参照
+ * @retval size_t リストに格納しているデータのサイズ
+ *
+ * @EN
+ * @brief Query of the data size in the list
+ *
+ * @param list A referenc of the list data
+ * @retval size_t The data size in the list
+ * @ENDL
+ */
 extern size_t acp_size_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リストソート
+ *
+ * リスト型データをソートする。
+ *
+ * @param list リスト型データの参照
+ * @param comp A function which return (1) negative number when it1 < it2, (2) 0 when it1 = it2, (3) positive number when it1 > it2
+ *
+ * @EN
+ * @brief Sorting List type data
+ *
+ * @param list A reference of list data.
+ * @param comp A function which return (1) negative number when it1 < it2, (2) 0 when it1 = it2, (3) positive number when it1 > it2
+ * @ENDL
+ */
 extern void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1, const acp_element_t elem2));
+
+/**
+ * @JP
+ * @brief リスト接合
+ *
+ * リスト型データから要素を抜き出し、別のリストの任意の位置に挿入する。
+ *
+ * @param it1 要素を挿入する位置のリスト型データのイテレータ
+ * @param it2 抜き出す要素を指すリスト型データのイテレータ
+ *
+ * @EN
+ * @brief 
+ *
+ * @param it1 An iterator of list data.
+ * @param comp A function which return (1) negative number when it1 < it2, (2) 0 when it1 = it2, (3) positive number when it1 > it2
+ * @ENDL
+ */
 extern void acp_splice_list(acp_list_it_t it1, acp_list_it_t it2);
 extern void acp_splice_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
+
+/**
+ * @JP
+ * @brief リスト交換
+ *
+ * ２つのベクトル型データの内容を交換する。
+ *
+ * @param v1 交換するベクトル型データの一方の参照
+ * @param v2 交換するベクトル型データのもう一方の参照
+ * 
+ * @EN
+ * @brief List swap
+ *
+ * 
+ *
+ * @param v1 A reference of list data to be swapped.
+ * @param v2 Another reference of list data to be swapped.
+ *
+ * @ENDL
+ */
 extern void acp_swap_list(acp_list_t list1, acp_list_t list2);
 extern void acp_unique_list(acp_list_t list);
+
+/**
+ * @JP
+ * @brief リストイテレータ前進
+ *
+ * リストイテレータを前進する。
+ *
+ * @param it リストデータのイテレータ
+ * @param n イテレータを進める数、負の値も指定可能
+ * @retval acp_list_it_t 前進したリストイテレータ
+ *
+ * @EN
+ * @brief Advancement of an iterator for list type data
+ *
+ * @param it The iterator of list type data
+ * @param n The number for advancing
+ * @retval acp_list_it_t The advanced iterator of list type data 
+ * @ENDL
+ */
 extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
 
 /**
@@ -1645,7 +2873,42 @@ extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
  */
 extern acp_list_it_t acp_decrement_list_it(acp_list_it_t it);
 
+/**
+ * @JP
+ * @brief リストイテレータ間接参照
+ *
+ * リストイテレータの参照先グローバルアドレスを返す。
+ *
+ * @param it リストデータのイテレータ
+ * @retval acp_ga_t リストイテレータの参照先グローバルアドレス
+ *
+ * @EN
+ * @brief Query of the global address of a reference of list tyep iterator
+ *
+ * @param it The iterator of list type data
+ * @retval acp_ga_t The global address of a reference of list type iterator 
+ * @ENDL
+ */
 extern acp_element_t acp_dereference_list_it(acp_list_it_t it);
+
+/**
+ * @JP
+ * @brief リストイテレータ距離
+ *
+ * ２つのリストイテレータ first, last 間の距離を返す。
+ *
+ * @param first 先頭位置のリストイテレータ
+ * @param last 最終位置のリストイテレータ
+ * @retval int ２つのリストイテレータ first, last 間の距離
+ *
+ * @EN
+ * @brief Query of the distance of two iterators of list type data between "first" and "last"
+ *
+ * @param first The iterator for head
+ * @param last The iterator for end
+ * @retval int The distance between "first" and "last"
+ * @ENDL
+ */
 extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
 
 /**
@@ -1675,7 +2938,8 @@ extern acp_list_it_t acp_increment_list_it(acp_list_it_t it);
 /*@}*/ /* List */
 
 /* Set */
-/** \defgroup set ACP Middle Layer Dara Library Set
+/**
+ * @defgroup set ACP Middle Layer Dara Library Set
  * @ingroup acpdl
  * 
  * ACP Middle Layer Data Library Set
@@ -1734,7 +2998,8 @@ extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
 /*@}*/ /* Set */
 
 /* Map */
-/** \defgroup map ACP Middle Layer Dara Library Map
+/**
+ * @defgroup map ACP Middle Layer Dara Library Map
  * @ingroup acpdl
  * 
  * ACP Middle Layer Data Library Map
@@ -1786,6 +3051,7 @@ extern int acp_bucket_size_map(acp_map_t map, int index);
  *
  * @param map A reference of map data.
  * @ENDL
+
  */
 extern void acp_clear_map(acp_map_t map);
 

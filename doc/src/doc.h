@@ -194,25 +194,35 @@
 
    @subsubsection vector Vector
 
-   The vector interface provides the data structure and algorithms of 
-   dynamic array. The type of for referencing vectors is __acp_vector_t__, 
-   and the type of the iterator of vectors is __acp_vector_it_t__. 
-   Vectors can be created via the constructor function, __acp_create_vector__.
-   As an argument, 
-   each of these functions accepts the rank to place the instance of the vector.
+   The vector interface provides functions to manipulate dynamic array. 
+   Each element of a vector can be manipulated by an iterator. An iterator is 
+   valid only at the process that retrieved it. Iterators will be invalid after 
+   modification of the vector by: __acp_assign_vector__, __acp_assign_range_vector__, 
+   __acp_clear_vector__, __acp_destroy_vector__, __acp_erase_vector__, 
+   __acp_erase_range_vector__, __acp_insert_vector__, __acp_insert_range_vector__
+   and __acp_swap_vector__.
+
+   @subsubsection deque Deque
+
+   The deque interface provides functions for establishing the data 
+   structure and functions of doule-ended queues.Each element of a deque can
+   be manipulated by an iterator. An iterator is valid only at the process that 
+   retrieved it. Iterators will be invalid after modification of the deque by: 
+   __acp_assign_deque__, __acp_assign_range_deque__, __acp_clear_deque__, 
+   __acp_destroy_deque__, __acp_erase_deque__, __acp_erase_range_deque__, 
+   __acp_insert_deque__, __acp_insert_range_deque__ and __acp_swap_deque__. 
 
    @subsubsection list List
 
-   The list interface provides the data structure and algorithms of 
-   bidirectional linked list. The type for referencing lists is __acp_list_t__, 
-   and the type for the iterator of lists is __acp_list_it_t__. Lists are 
-   created via the constructor function, __acp_create_list__. This function 
-   prepares an empty list. As an argument, it accepts the rank to place the 
-   control structure of the list. Elements can be added to a list via 
-   functions, such as __acp_push_back_list__ and __acp_insert_list__. 
-   Each of these functions also accepts the rank to allocate the instance 
-   of the element, as an argument. Therefore, the control structure and 
-   the elements of a list can be placed on different processes.
+   The list interface provides functions for establishing the data structure and 
+   algorithms of bidirectional linked list. Each element of a list can be manipulated by 
+   an iterator. An iterator is valid only at the process that retrieved it. Iterators will 
+   be invalid after modification of the list by: __acp_assign_list__, 
+   __acp assign_range_list__, __acp_clear_list__, __acp_destroy_list__, 
+   __acp_erase_list__, __acp_erase_range_list__, __acp_insert_list__, 
+   __acp_insert_range_list__, __acp_merge_list__, __acp_remove_list__, 
+   __acp_reverse_list__, __acp_splice_list__, __acp_swap_list__ 
+   and __acp_unique_list__.
 
    @subsubsection map Map
 

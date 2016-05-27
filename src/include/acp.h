@@ -1970,9 +1970,9 @@ extern size_t acp_capacity_deque(acp_deque_t deque);
  * @JP
  * @brief デック消去
  *
- * ベクトルのサイズを０にする。
+ * デックを０にする。
  *
- * @param deque ベクトル型データの参照
+ * @param deque デック型データの参照
  *
  * @EN
  * @brief Deque elimination
@@ -1988,7 +1988,7 @@ extern void acp_clear_deque(acp_deque_t deque);
  * @JP
  * @brief デック生成
  *
- * 任意のプロセスでベクトル型データを生成する。
+ * 任意のプロセスでデック型データを生成する。
  *
  * @param size 要素サイズ
  * @param rank ランク番号
@@ -2014,7 +2014,7 @@ extern acp_deque_t acp_create_deque(size_t size, int rank);
  *
  * デック型データを破棄する。
  *
- * @param deque ベクトル型データの参照
+ * @param deque デック型データの参照
  *
  * @EN
  * @brief Deque destruction
@@ -2390,7 +2390,7 @@ extern void acp_assign_list(acp_list_t list1, acp_list_t list2);
  * @brief リスト範囲代入
  *
  * リストにstartからend直前までのデータをコピーする。
- * startとendは同じデックを指している必要がある。
+ * startとendは同じリストを指している必要がある。
  * 以前のデータは破棄される。
  *
  * @param list コピー先リスト型データの参照
@@ -2495,7 +2495,7 @@ extern void acp_destroy_list(acp_list_t list);
  *
  * リストが空かどうかを返す。
  *
- * @param list ベクトル型データの参照
+ * @param list リスト型データの参照
  * @retval 1 空
  * @retval 0 データが存在する
  *
@@ -2516,6 +2516,8 @@ extern int acp_empty_list(acp_list_t list);
  * リスト型データの後端要素を指すイテレータを取得する。
  *
  * @param list リスト型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 要素の直後の要素を指すリスト型イテレータ
  *
  * @EN
  * @brief Query for the tail iterator of a list
@@ -2523,7 +2525,8 @@ extern int acp_empty_list(acp_list_t list);
  * 
  *
  * @param list A reference of list type data.
- * @retval it The tail iterator of the list.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the behind of the last element 
  * @ENDL
  */
 extern acp_list_it_t acp_end_list(acp_list_t list);
@@ -2602,7 +2605,9 @@ extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem,
  * @JP
  * @brief リスト範囲挿入
  *
- * 他のリストの指定範囲を、指定した位置にデータを挿入する。
+ * リストにstartからend直前までの要素をコピーする。
+ * startとendは同じリストを指している必要がある。
+ * 以前の要素は破棄される。新しい要素は代入元と同じランクに作られる。
  *
  * @param it データを挿入する位置を指すイテレータ
  * @param start 挿入するデータを先頭を指すイテレータ
@@ -2611,6 +2616,8 @@ extern acp_list_it_t acp_insert_list(acp_list_it_t it, const acp_element_t elem,
  *
  * @EN
  * @brief Insertion of the list data from "start" to "end"
+ *
+ * Copy deque data from the point of "start" to "end".
  *
  * @param it An iterator of the point for inserting data
  * @param start The iterator of head address of the data to insert
@@ -2800,35 +2807,74 @@ extern void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1
  * @param it2 抜き出す要素を指すリスト型データのイテレータ
  *
  * @EN
- * @brief 
+ * @brief Splice list type data
  *
- * @param it1 An iterator of list data.
- * @param comp A function which return (1) negative number when it1 < it2, (2) 0 when it1 = it2, (3) positive number when it1 > it2
+ * @param it1 An iterator of list data where an element is inserting.
+ * @param it2 An iterator of list data whose element is extracted.
  * @ENDL
  */
 extern void acp_splice_list(acp_list_it_t it1, acp_list_it_t it2);
+
+/**
+ * @JP
+ * @brief リスト範囲接合
+ *
+ * リストにstartからend直前までのデータを挿入する。
+ * startとendは同じリストを指している必要がある。
+ * 以前のデータは破棄される。
+ *
+ * @param it リストを挿入する位置のイテレータ
+ * @param start 抜き出す要素の先頭を指すイテレータ
+ * @param end 抜きさす要素の末尾の直後を指すイテレータ
+ *
+ * @EN
+ * @brief Spilice list with range
+ *
+ * Move list data from the point of "start" to "end" to another list.
+ * 
+ * @param it A reference of destination list data.
+ * @param start A list type data iterator for pointing the starting address
+ * @param end A list type data iterator for pointing the end address
+ * @ENDL
+ */
 extern void acp_splice_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t end);
 
 /**
  * @JP
  * @brief リスト交換
  *
- * ２つのベクトル型データの内容を交換する。
+ * ２つのリスト型データの内容を交換する。
  *
- * @param v1 交換するベクトル型データの一方の参照
- * @param v2 交換するベクトル型データのもう一方の参照
+ * @param list1 交換するリスト型データの一方の参照
+ * @param list2 交換するリスト型データのもう一方の参照
  * 
  * @EN
- * @brief List swap
+ * @brief Swap list type data
  *
  * 
  *
- * @param v1 A reference of list data to be swapped.
- * @param v2 Another reference of list data to be swapped.
+ * @param list1 A reference of list data to be swapped.
+ * @param list2 Another reference of list data to be swapped.
  *
  * @ENDL
  */
 extern void acp_swap_list(acp_list_t list1, acp_list_t list2);
+
+/**
+ * @JP
+ * @brief リスト重複除去
+ *
+ * リスト内で重複した要素を削除する。
+ *
+ * @param list リスト型データの参照
+ * 
+ * @EN
+ * @brief Unique list type data
+ *
+ * @param list A reference of list data.
+ *
+ * @ENDL
+ */
 extern void acp_unique_list(acp_list_t list);
 
 /**
@@ -2968,28 +3014,395 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief セット代入
+ *
+ * セット間でデータをコピーする。以前のデータは破棄される。
+ *
+ * @param set1 コピー先セット型データの参照
+ * @param set2 コピー元セット型データの参照
+ *
+ * @EN
+ * @brief Set type data assignment
+ *
+ * Copy set type data between two sets.
+ *
+ * @param set1 A reference of destination set data.
+ * @param set2 A reference of source set data.
+ * @ENDL
+ */
 extern void acp_assign_set(acp_set_t set1, acp_set_t set2);
+
+/**
+ * @JP
+ * @brief セット範囲代入
+ *
+ * セットにstartからend直前までの複数のキーをコピーする。
+ * startとendは同じセットを指している必要がある。
+ * 以前のキーは破棄される。
+ *
+ * @param set コピー先セット型データの参照
+ * @param start コピーする複数のキーの先頭を指すイテレータ
+ * @param end コピーする複数のキーの末尾の直後を指すイテレータ
+ *
+ * @EN
+ * @brief Set assignment with range
+ *
+ * Copy set data from the point of "start" to "end".
+ * 
+ * @param set A reference of destination set data.
+ * @param start A set type data iterator for pointing the starting address
+ * @param end A set type data iterator for pointing the end address
+ * @ENDL
+ */
 extern void acp_assign_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+
+/**
+ * @JP
+ * @brief セット先頭イテレータ取得
+ *
+ * セット型データの先頭要素を指すイテレータを取得する。
+ *
+ * @param set セット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the head iterator of a set
+ *
+ * 
+ *
+ * @param set A reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the set.
+ * @ENDL
+ */
 extern acp_set_it_t acp_begin_set(acp_set_t set);
-extern int acp_bucket_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+
+extern int acp_bucket_set(acp_set_t set, const acp_ga_t key);
 extern int acp_bucket_count_set(acp_set_t set);
 extern int acp_bucket_size_set(acp_set_t set, int index);
+
+/**
+ * @JP
+ * @brief セット消去
+ *
+ * セットのサイズを０にする。
+ *
+ * @param set セット型データの参照
+ *
+ * @EN
+ * @brief Set elimination
+ *
+ * Set the size of the set to be zero.
+ *
+ * @param set A reference of set data.
+ * @ENDL
+ */
 extern void acp_clear_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット生成
+ *
+ * 任意のプロセスでセット型データを生成する。
+ *
+ * @param num_rank バケットを配置するプロセス数
+ * @param ranks バケットを配置するプロセスのランク番号配列
+ * @param num_slots 1プロセスあたりのバケットスロット数
+ * @param rank セットの制御情報を配置するランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したセット型データの参照
+ *
+ * @EN
+ * @brief Set creation
+ *
+ * Creates a set type data on any process.
+ *
+ * @param num_rank A process number for assigning buckets
+ * @param ranks An array of rank number for assigning buckets
+ * @param num_slots A number of bucket slot for one process
+ * @param rank The rank number where has the control information of a set
+ * @retval "member ga == ACP_GA_NULL" Fail
+ * @retval otherwise A reference of created set data.
+ * @ENDL
+ */
 extern acp_set_t acp_create_set(int num_ranks, const int* ranks, int num_slots, int rank);
+
+/**
+ * @JP
+ * @brief セット破棄
+ *
+ * セット型データを破棄する。
+ *
+ * @param set セット型データの参照
+ *
+ * @EN
+ * @brief Set destruction
+ *
+ * Destroies a set type data.
+ *
+ * @param set A reference of set data.
+ * @ENDL
+ */
 extern void acp_destroy_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット空チェック
+ *
+ * セットが空かどうかを返す。
+ *
+ * @param set セット型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for set empty
+ *
+ * @param set A reference of set data.
+ * @retval 1 Empty
+ * @retval 0 There is a set data
+ * @ENDL
+ */
 extern int acp_empty_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット後端イテレータ取得
+ *
+ * セット型データの後端要素を指すイテレータを取得する。
+ *
+ * @param set セット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 要素の直後の要素を指すセット型イテレータ
+ *
+ * @EN
+ * @brief Query for the tail iterator of a set
+ *
+ * 
+ *
+ * @param set A reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the behind of the last element 
+ * @ENDL
+ */
 extern acp_set_it_t acp_end_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット要素削除
+ *
+ * 指定した位置の要素をセット型データから削除する。
+ *
+ * @param it 削除する要素を指すセット型イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 削除した要素の直後の要素を指すセット型イテレータ
+ *
+ * @EN
+ * @brief Erase a set element
+ *
+ * @param it An iterator of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the element which is immediately after the erased o
+ne.
+ * @ENDL
+ */
 extern acp_set_it_t acp_erase_set(acp_set_it_t it);
+
+/**
+ * @JP
+ * @brief セット範囲削除
+ *
+ * セットからstartからend直前までのデータを削除する。
+ *
+ * @param start 削除するデータの先頭を指すイテレータ
+ * @param end 削除するデータの末尾の直後を指すサイズ
+ * @retval acp_set_it_t 削除されたデータの直後を指すイテレータ
+ *
+ * @EN
+ * @brief Deletion of the set data from "start" to "end"
+ *
+ * @param start The iterator of set data to erase
+ * @param end The iterator of just behind of the deleting set data
+ * @retval acp_set_it_t The iterator of just behind of the deleted set data
+ * @ENDL
+ */
 extern acp_set_it_t acp_erase_range_set(acp_set_it_t start, acp_set_it_t end);
+
 extern acp_set_ib_t acp_find_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+
+/**
+ * @JP
+ * @brief セット挿入
+ *
+ * セットに新しいキーを挿入する。
+ * 既にキーが存在する場合は挿入されないが、戻り値は成功になる。
+ *
+ * @param set セット型データへの参照
+ * @param key 挿入するキー
+ * @retval "member success == 1" 成功
+ * @retval "member success == 0" 失敗
+ * @retval "member it" 挿入したキーを差すイテレータ
+ *
+ * @EN
+ * @brief Insert a set element
+ *
+ * @param set A reference of set type data
+ * @param key An inserting key
+ * @retval "member success == 1" Success
+ * @retval "member success == 0" Fail
+ * @retval "member it" An iterator for the iserted key
+ * @ENDL
+ */
 extern acp_set_ib_t acp_insert_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+
+/**
+ * @JP
+ * @brief セット範囲挿入
+ *
+ * 他のセットから複数のキーを挿入する。
+ * 既にキーが存在する場合は挿入されないが、戻り値は成功になる。
+ *
+ * @param set セット型データへの参照
+ * @param start 挿入する複数のキーを先頭を指すイテレータ
+ * @param end 挿入する複数のキーの末尾の直後を指すイテレータ
+ * @retval "member success == 1" 成功
+ * @retval "member success == 0" 失敗
+ * @retval "member it" 挿入したキーを差すイテレータ
+ *
+ * @EN
+ * @brief Insertion of the set data from "start" to "end"
+ *
+ * Copy deque data from the point of "start" to "end".
+ *
+ * @param set An iterator of the point for inserting data
+ * @param start The iterator of head address of the data to insert
+ * @param end The iterator of just behind address of the data to insert
+ * @retval "member success == 1" Success
+ * @retval "member success == 0" Fail
+ * @retval "member it" An iterator for the iserted key
+ * @ENDL
+ */
 extern acp_set_ib_t acp_insert_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+
+/**
+ * @JP
+ * @brief セットサイズ
+ *
+ * セットに格納しているデータのサイズを返す。
+ *
+ * @param set セットデータの参照
+ * @retval size_t セットに格納しているデータのサイズ
+ *
+ * @EN
+ * @brief Query of the data size in the set
+ *
+ * @param set A referenc of the set data
+ * @retval size_t The data size in the set
+ * @ENDL
+ */
 extern size_t acp_size_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット交換
+ *
+ * ２つのセット型データの内容を交換する。
+ *
+ * @param set1 交換するセット型データの一方の参照
+ * @param set2 交換するセット型データのもう一方の参照
+ * 
+ * @EN
+ * @brief Swap set type data
+ *
+ * @param set1 A reference of set data to be swapped.
+ * @param set2 Another reference of set data to be swapped.
+ *
+ * @ENDL
+ */
 extern void acp_swap_set(acp_set_t set1, acp_set_t set2);
 
+/**
+ * @JP
+ * @brief セットイテレータ前進
+ *
+ * セットイテレータを前進する。
+ *
+ * @param it セットデータのイテレータ
+ * @param n イテレータを進める数、負の値も指定可能
+ * @retval acp_set_it_t 前進したセットイテレータ
+ *
+ * @EN
+ * @brief Advancement of an iterator for set type data
+ *
+ * @param it The iterator of set type data
+ * @param n The number for advancing
+ * @retval acp_set_it_t The advanced iterator of set type data 
+ * @ENDL
+ */
 extern acp_set_it_t acp_advance_set_it(acp_set_it_t it, int n);
+
+/**
+ * @JP
+ * @brief セット先頭イテレータ減算
+ *
+ * セット型イテレータを一つ減少させる。
+ *
+ * @param it セット型データのイテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 デクリメントしたイテレータ
+ *
+ * @EN
+ * @brief Decrement an iterater of a set data
+ *
+ * Decrements an iterater of a set data.
+ *
+ * @param it An iterater reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The previous iterator of the specified one.
+ * @ENDL
+ */
 extern acp_set_it_t acp_decrement_set_it(acp_set_it_t it);
+
+/**
+ * @JP
+ * @brief セットイテレータ間接参照
+ *
+ * セットイテレータの参照先グローバルアドレスを返す。
+ *
+ * @param it セットデータのイテレータ
+ * @retval acp_ga_t セットイテレータの参照先グローバルアドレス
+ *
+ * @EN
+ * @brief Query of the global address of a reference of set tyep iterator
+ *
+ * @param it The iterator of set type data
+ * @retval acp_ga_t The global address of a reference of set type iterator 
+ * @ENDL
+ */
 extern acp_element_t acp_dereference_set_it(acp_set_it_t it);
+
+/**
+ * @JP
+ * @brief セット先頭イテレータ加算
+ *
+ * セット型イテレータを一つ増加させる。
+ *
+ * @param set セット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 インクリメントしたイテレータ
+ *
+ * @EN
+ * @brief Increment an iterater of a set data
+ *
+ *
+ * @param set A reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The next iterator of the specified one.
+ * @ENDL
+ */
 extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
 
 #ifdef __cplusplus

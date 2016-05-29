@@ -109,7 +109,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libacpml_dl_la_LIBADD =
-am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo
+am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_ws.lo
 libacpml_dl_la_OBJECTS = $(am_libacpml_dl_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -323,6 +323,7 @@ libacpml_dl_la_SOURCES = \
 			 acpdl.h \
 		 	 acpdl_malloc.c \
 			 acpdl_malloc.h \
+			 acpdl_ws.c \
 			 acpbl.h
 
 all: all-am
@@ -381,6 +382,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_malloc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_ws.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

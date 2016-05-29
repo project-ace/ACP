@@ -11,5 +11,6 @@ libacpml_dl_la_SOURCES = \
 			 acpdl.h \
 		 	 acpdl_malloc.c \
 			 acpdl_malloc.h \
+			 acpdl_ws.c \
 			 acpbl.h
 

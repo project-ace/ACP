@@ -277,21 +277,32 @@ void acp_clear_vector(acp_vector_t vector)
 
 acp_vector_t acp_create_vector(size_t size, int rank)
 {
+    int myrank = acp_rank() ;
+    int nprocs = acp_procs() ;
     acp_vector_t vector;
     vector.ga = ACP_GA_NULL;
     
+    fprintf( stdout, "create_vector: 0 : %4d,%4d\n", nprocs, myrank ) ;
+
     acp_ga_t buf = acp_malloc(24, acp_rank());
+    fprintf( stdout, "create_vector: 0.1 : %4d,%4d\n", nprocs, myrank ) ;
     if (buf == ACP_GA_NULL) return vector;
     void* ptr = acp_query_address(buf);
+    fprintf( stdout, "create_vector: 0.2 : %4d,%4d\n", nprocs, myrank ) ;
     volatile acp_ga_t* buf_ga   = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_size = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_max  = (volatile uint64_t*)(ptr + 16);
     
+    fprintf( stdout, "create_vector: 1 : %4d,%4d\n", nprocs, myrank ) ;
+    
     vector.ga = acp_malloc(24, rank);
+    fprintf( stdout, "create_vector: 1.1 : %4d,%4d\n", nprocs, myrank ) ;
     if (vector.ga == ACP_GA_NULL) {
         acp_free(buf);
         return vector;
     }
+
+    fprintf( stdout, "create_vector: 2 : %4d,%4d\n", nprocs, myrank ) ;
     
     acp_ga_t ga = ACP_GA_NULL;
     uint64_t max = size + (((size + 7) ^ 7) & 7);
@@ -305,6 +316,8 @@ acp_vector_t acp_create_vector(size_t size, int rank)
             return vector;
         }
     }
+
+    fprintf( stdout, "create_vector: 3 : %4d,%4d\n", nprocs, myrank ) ;
     
     *buf_ga   = ga;
     *buf_size = size;
@@ -312,6 +325,8 @@ acp_vector_t acp_create_vector(size_t size, int rank)
     
     acp_copy(vector.ga, buf, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
+
+    fprintf( stdout, "create_vector: 4 : %4d,%4d\n", nprocs, myrank ) ;
     
     acp_free(buf);
     return vector;

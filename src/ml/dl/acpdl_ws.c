@@ -5,26 +5,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
-
-
 #include "acp.h"
-
-typedef struct {
-    size_t      size_ws ;
-    size_t      size_default ;
-    size_t      size_remainder ;
-    size_t      ngas ;
-    acp_atkey_t key_data ;
-    acp_ga_t    ga_data ;
-    acp_atkey_t *keys ;
-    acp_ga_t    *gas ;
-    int         *procs ;
-    int         *sizes ;
-    void        *data ;
-} acp_wsditem ;
-
-typedef acp_wsditem *acp_wsd_t ;
-
 
 ///#define DEBUG
 

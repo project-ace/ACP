@@ -1156,9 +1156,24 @@ extern int acp_waitall_ch(acp_request_t *, int, size_t *);
 
 /* Work space */
 
-typedef int64_t acp_wsd_t;
+typedef struct {
+    size_t      size_ws ;
+    size_t      size_default ;
+    size_t      size_remainder ;
+    size_t      ngas ;
+    acp_atkey_t key_data ;
+    acp_ga_t    ga_data ;
+    acp_atkey_t *keys ;
+    acp_ga_t    *gas ;
+    int         *procs ;
+    int         *sizes ;
+    void        *data ;
+} acp_wsditem ;
 
-#define ACP_WSD_NULL -1
+typedef acp_wsditem *acp_wsd_t ;
+///typedef int64_t acp_wsd_t;
+
+#define ACP_WSD_NULL (acp_wsd_t)(-1)
 
 #ifdef __cplusplus
 extern "C" {
@@ -1186,6 +1201,29 @@ extern "C" {
  * @ENDL
  */
 extern acp_wsd_t acp_create_ws(size_t size);
+
+/**
+ * @JP
+ * @brief ワークスペースリセット
+ *
+ * ワークスペース開始ランク番号をリセットする．
+ * 全プロセスで集団的に呼び出す必要がある。
+ *
+ * @param size ワークスペースのスタートランク番号
+ * @param size_default 各プロセスでのデフォルトアロケートサイズ
+ * @retval いつも 0
+ *
+ * @EN
+ * @brief Workspace creation
+ *
+ * Creates a workspace
+ *
+ * @param proc_start Start rank for workspace
+ * @param size_default Default allocated size on each process
+ * @retval always 0
+ * @ENDL
+ */
+extern int acp_setparams_ws( size_t proc_start, size_t size_default );
 
 /**
  * @JP

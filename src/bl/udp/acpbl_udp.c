@@ -334,8 +334,8 @@ static int iacp_init(void)
     
     /* Initialize Middle Layer */
     
-    if (iacp_init_dl()) return -1;
-    if (iacp_init_cl()) return -1;
+///    if (iacp_init_dl()) return -1;
+///    if (iacp_init_cl()) return -1;
     /* if (iacp_init_vd()) return -1; */
     
     return 0;
@@ -351,7 +351,7 @@ int acp_init(int* argc, char*** argv)
     uint32_t taskid ;
     uint16_t lport, rport ;
     char     rhost[ BUFSIZ ] ;
-    ///fprintf( stderr, "zero: np, me: %d, %d\n", nprocs_runtime, myrank_runtime ) ;
+    ///fprintf( stderr, "zero: *argc: %d\n", *argc ) ;
 ///
 #ifdef MPIACP
     if ( (*argc >= 4) &&
@@ -535,8 +535,8 @@ int acp_finalize(void)
     int r;
     
     /* iacp_finalize_vd(); */
-    iacp_finalize_cl();
-    iacp_finalize_dl();
+///    iacp_finalize_cl();
+///    iacp_finalize_dl();
     
     acp_complete(ACP_HANDLE_ALL);
     acp_sync();
@@ -564,8 +564,8 @@ int acp_reset(int rank)
 void acp_abort(const char* str)
 {
     /* iacp_abort_vd(); */
-    iacp_abort_cl();
-    iacp_abort_dl();
+///    iacp_abort_cl();
+///    iacp_abort_dl();
     
     iacp_abort();
     

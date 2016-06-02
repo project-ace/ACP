@@ -1,4 +1,4 @@
-.TH "doc/src/acp.h" 3 "Fri May 27 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "doc/src/acp.h" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -10,6 +10,9 @@ doc/src/acp.h \- A header file for ACP\&.
 .SS "Data Structures"
 
 .in +1c
+.ti -1c
+.RI "struct \fBacp_wsditem\fP"
+.br
 .ti -1c
 .RI "struct \fBacp_element_t\fP"
 .br
@@ -72,8 +75,9 @@ doc/src/acp.h \- A header file for ACP\&.
 .RI "#define \fBACP_HANDLE_NULL\fP   0x0000000000000000LLU"
 .br
 .ti -1c
-.RI "#define \fBACP_WSD_NULL\fP   \-1"
+.RI "#define \fBACP_WSD_NULL\fP   (\fBacp_wsd_t\fP)(\-1)"
 .br
+.RI "\fItypedef int64_t acp_wsd_t; \fP"
 .ti -1c
 .RI "#define \fBacp_assign\fP(type, \&.\&.\&.)                             acp_assign_##type(__VA_ARGS__)"
 .br
@@ -220,7 +224,7 @@ doc/src/acp.h \- A header file for ACP\&.
 .RI "typedef struct chitem * \fBacp_ch_t\fP"
 .br
 .ti -1c
-.RI "typedef int64_t \fBacp_wsd_t\fP"
+.RI "typedef \fBacp_wsditem\fP * \fBacp_wsd_t\fP"
 .br
 .in -1c
 .SS "Functions"
@@ -373,19 +377,23 @@ doc/src/acp.h \- A header file for ACP\&.
 .RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
 .br
 .ti -1c
-.RI "acp_wsd_t \fBacp_create_ws\fP (size_t size)"
+.RI "\fBacp_wsd_t\fP \fBacp_create_ws\fP (size_t size)"
 .br
 .RI "\fIWorkspace creation\&. \fP"
 .ti -1c
-.RI "void \fBacp_destroy_ws\fP (acp_wsd_t WSD)"
+.RI "int \fBacp_setparams_ws\fP (size_t proc_start, size_t size_default)"
+.br
+.RI "\fIWorkspace creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_ws\fP (\fBacp_wsd_t\fP WSD)"
 .br
 .RI "\fIWorkspace destruction\&. \fP"
 .ti -1c
-.RI "int \fBacp_read_ws\fP (acp_wsd_t WSD, \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+.RI "int \fBacp_read_ws\fP (\fBacp_wsd_t\fP WSD, \fBacp_ga_t\fP ga, size_t size, size_t offset)"
 .br
 .RI "\fIReading workspace\&. \fP"
 .ti -1c
-.RI "int \fBacp_write_ws\fP (acp_wsd_t WSD, const \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+.RI "int \fBacp_write_ws\fP (\fBacp_wsd_t\fP WSD, const \fBacp_ga_t\fP ga, size_t size, size_t offset)"
 .br
 .RI "\fIWriting workspace\&. \fP"
 .ti -1c

@@ -275,9 +275,9 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
-libacpbl_ib_version = 0:0:0
-libacpbl_udp_version = 0:0:0
-libacpml_version = 0:0:0
+libacpbl_ib_version = 0:1:0
+libacpbl_udp_version = 0:1:0
+libacpml_version = 1:0:1
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -308,7 +308,7 @@ CLEANFILES = macprun acpcc acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 EXTRA_DIST = macprun.in acpcc.in
 
 # acp date for man
-ACP_DATE = 'Nov 12, 2015'
+ACP_DATE = 'May 9, 2016'
 man_MANS = acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 all: all-am
 

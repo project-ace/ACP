@@ -11,8 +11,8 @@ LDADD = \
 noinst_PROGRAMS = \
 		  acpbl_udp_test \
 		  acpbl_udp_test2
-noinst_SCRIPTS = \
-		 test.sh
+#noinst_SCRIPTS = \
+#		 test.sh
 
 acpbl_udp_test_SOURCES = acpbl_udp_test.c acp.h
 acpbl_udp_test_DEPENDENCIES = $(LDADD)

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012-2015 ACE Project
+# Copyright (c) 2012-2016 ACE Project
 # $COPYRIGHT$
 #
 
@@ -47,9 +47,6 @@ man/man3/acp_at_deque.3 \
 man/man3/acp_at_vector.3 \
 man/man3/acp_atkey_t.3 \
 man/man3/acp_back.3 \
-man/man3/acp_back_deque.3 \
-man/man3/acp_back_list.3 \
-man/man3/acp_back_vector.3 \
 man/man3/acp_begin.3 \
 man/man3/acp_begin_deque.3 \
 man/man3/acp_begin_list.3 \
@@ -101,7 +98,6 @@ man/man3/acp_dereference_list_it.3 \
 man/man3/acp_dereference_map_it.3 \
 man/man3/acp_dereference_set_it.3 \
 man/man3/acp_dereference_value.3 \
-man/man3/acp_dereference_value_map_it.3 \
 man/man3/acp_dereference_vector_it.3 \
 man/man3/acp_destroy.3 \
 man/man3/acp_destroy_deque.3 \
@@ -114,6 +110,7 @@ man/man3/acp_distance.3 \
 man/man3/acp_distance_deque_it.3 \
 man/man3/acp_distance_list_it.3 \
 man/man3/acp_distance_vector_it.3 \
+man/man3/acp_element_t.3 \
 man/man3/acp_empty.3 \
 man/man3/acp_empty_deque.3 \
 man/man3/acp_empty_list.3 \
@@ -145,9 +142,6 @@ man/man3/acp_find_set.3 \
 man/man3/acp_free.3 \
 man/man3/acp_free_ch.3 \
 man/man3/acp_front.3 \
-man/man3/acp_front_deque.3 \
-man/man3/acp_front_list.3 \
-man/man3/acp_front_vector.3 \
 man/man3/acp_ga_t.3 \
 man/man3/acp_handle_t.3 \
 man/man3/acp_increment.3 \
@@ -181,6 +175,7 @@ man/man3/acp_nbrecv_ch.3 \
 man/man3/acp_nbsend_ch.3 \
 man/man3/acp_or4.3 \
 man/man3/acp_or8.3 \
+man/man3/acp_pair_t.3 \
 man/man3/acp_pop_back.3 \
 man/man3/acp_pop_back_deque.3 \
 man/man3/acp_pop_back_list.3 \
@@ -216,21 +211,19 @@ man/man3/acp_reverse_list.3 \
 man/man3/acp_set_ib_t.3 \
 man/man3/acp_set_it_t.3 \
 man/man3/acp_set_t.3 \
+man/man3/acp_setparams_ws.3 \
 man/man3/acp_size.3 \
 man/man3/acp_size_deque.3 \
 man/man3/acp_size_list.3 \
-man/man3/acp_size_list_it.3 \
 man/man3/acp_size_map.3 \
-man/man3/acp_size_map_it.3 \
 man/man3/acp_size_set.3 \
-man/man3/acp_size_set_it.3 \
 man/man3/acp_size_value.3 \
-man/man3/acp_size_value_map_it.3 \
 man/man3/acp_size_vector.3 \
 man/man3/acp_sort.3 \
 man/man3/acp_sort_list.3 \
 man/man3/acp_splice.3 \
 man/man3/acp_splice_list.3 \
+man/man3/acp_splice_range_list.3 \
 man/man3/acp_swap.3 \
 man/man3/acp_swap4.3 \
 man/man3/acp_swap8.3 \
@@ -249,24 +242,39 @@ man/man3/acp_wait_ch.3 \
 man/man3/acp_waitall_ch.3 \
 man/man3/acp_write_ws.3 \
 man/man3/acp_wsd_t.3 \
+man/man3/acp_wsditem.3 \
 man/man3/acp_xor4.3 \
 man/man3/acp_xor8.3 \
 man/man3/acpbl.3 \
 man/man3/acpcl.3 \
 man/man3/acpdl.3 \
 man/man3/acpml.3 \
+man/man3/data.3 \
 man/man3/deque.3 \
 man/man3/doc.h.3 \
 man/man3/elem.3 \
+man/man3/first.3 \
 man/man3/ga.3 \
+man/man3/ga_data.3 \
+man/man3/gas.3 \
 man/man3/index.3 \
 man/man3/infrastructure.3 \
 man/man3/it.3 \
+man/man3/key_data.3 \
+man/man3/keys.3 \
 man/man3/list.3 \
 man/man3/map.3 \
+man/man3/ngas.3 \
 man/man3/num_ranks.3 \
+man/man3/procs.3 \
 man/man3/rank.3 \
+man/man3/second.3 \
 man/man3/set.3 \
+man/man3/size.3 \
+man/man3/size_default.3 \
+man/man3/size_remainder.3 \
+man/man3/size_ws.3 \
+man/man3/sizes.3 \
 man/man3/slot.3 \
 man/man3/success.3 \
 man/man3/vector.3

@@ -206,11 +206,6 @@ acp_wsd_t acp_create_ws( size_t size_ws )
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
 ////////////////////////////////////////////////
-void acp_destroy_ws ( acp_wsd_t wsd )
-{
-    acp_free_ws ( wsd ) ;
-}
-
 void acp_free_ws ( acp_wsd_t wsd )
 {
     free( wsd->keys  ) ;
@@ -219,6 +214,11 @@ void acp_free_ws ( acp_wsd_t wsd )
     free( wsd->sizes ) ;
     free( wsd->data  ) ;
     free( wsd        ) ;
+}
+
+void acp_destroy_ws ( acp_wsd_t wsd )
+{
+    acp_free_ws ( wsd ) ;
 }
 
 ////////////////////////////////////////////////

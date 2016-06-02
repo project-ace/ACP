@@ -19,7 +19,6 @@
 # $COPYRIGHT$
 #
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -120,7 +119,6 @@ am__v_lt_1 =
 am_acpbl_udp_test2_OBJECTS = acpbl_udp_test2.$(OBJEXT)
 acpbl_udp_test2_OBJECTS = $(am_acpbl_udp_test2_OBJECTS)
 acpbl_udp_test2_LDADD = $(LDADD)
-SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -327,9 +325,8 @@ LDADD = \
 	$(top_builddir)/src/bl/udp/libacpbl_udp.la \
 	$(top_builddir)/src/ml/libacpml.la
 
-noinst_SCRIPTS = \
-		 test.sh
-
+#noinst_SCRIPTS = \
+#		 test.sh
 acpbl_udp_test_SOURCES = acpbl_udp_test.c acp.h
 acpbl_udp_test_DEPENDENCIES = $(LDADD)
 acpbl_udp_test2_SOURCES = acpbl_udp_test2.c acp.h
@@ -505,7 +502,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS)
+all-am: Makefile $(PROGRAMS)
 installdirs:
 install: install-am
 install-exec: install-exec-am

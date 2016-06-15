@@ -1,0 +1,29 @@
+Before using this directory,
+please read README.MultiMPI file in ACP source directory.
+
+Compiling:
+----
+1. Edit Makefile
+
+$ vi Makefile ( or ..... Makefile )
+
+  If you want to use Infiniband, choose IB for DEV variable as follows:
+
+  DEV = IB
+  #DEV = UDP
+
+2. Compile
+
+$ make
+
+Executions:
+----
+localhost:
+
+$ ./run-udp-local.sh
+
+multinodes:
+  UDP:
+    $ qsub ./run-udp.sh        # torque
+  IB:
+    $ qsub ./run-ib.sh         # torque

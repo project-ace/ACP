@@ -1,0 +1,571 @@
+#!@PYTHON@
+#
+# Copyright (c) 2014      Kyushu University 
+# Copyright (c) 2014      Institute of Systems, Information Technologies 
+#                         and Nanotechnologies 2014
+# Copyright (c) 2014      FUJITSU LIMITED
+#
+# This software is released under the BSD License, see LICENSE. 
+#
+# This script is supported by python2.6, 2.7, 3.3, or 3.4.
+#
+
+import copy,os,re,shlex,socket,subprocess,sys
+
+ENVNETWORK       = "@NETDEV@"
+REMOTESHELL      = "ssh"
+
+VERSION          = "@VERSION@"
+STARTER_MEMSIZE  = 10240
+PORTID_START     = 44256
+TASKID           = 100
+LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
+STR_ENVNETWORK   = "ACP_ENVNET"
+STR_ENVMYRANK    = "ACP_MYRANK"
+STR_ENVLPORT     = "ACP_LPORT"
+STR_ENVRPORT     = "ACP_RPORT"
+STR_ENVRHOST     = "ACP_RHOST"
+STR_ENVNPROCS    = "ACP_NUMPROCS"
+STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
+STR_ENVTASKID    = "ACP_TASKID"
+
+FLG_DEBUG        = False # or True
+DEBUGLEVEL       = 1000  # change to >200
+####
+EXECUTE_COMMAND  = True  ## False
+####
+
+OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
+           [ "-np",                   "NPROCS",     "BLKVAL" ],
+           [ "--acp-n",               "NPROCS",     "EQVAL"  ],
+           [ "--acp-np",              "NPROCS",     "EQVAL"  ],
+           [ "--acp-nprocs" ,         "NPROCS",     "EQVAL"  ],
+           #
+           [ "-smemsize",             "STARTERMEM", "BLKVAL" ],
+           [ "-startermemsize",       "STARTERMEM", "BLKVAL" ],
+           [ "--acp-smemsize",        "STARTERMEM", "EQVAL"  ],
+           [ "--acp-startermemsize",  "STARTERMEM", "EQVAL"  ],
+           #
+           [ "-machinefile",          "NODEFILE",   "BLKVAL" ],
+           [ "-nodefile",             "NODEFILE",   "BLKVAL" ],
+           [ "--acp-machinefile",     "NODEFILE",   "EQVAL"  ],
+           [ "--acp-nodefile",        "NODEFILE",   "EQVAL"  ],
+           #
+           [ "-host",                 "NODES",      "BLKVAL" ],
+           [ "-node",                 "NODES",      "BLKVAL" ],
+           [ "--acp-host",            "NODES",      "EQVAL"  ],
+           [ "--acp-node",            "NODES",      "EQVAL"  ],
+           #
+           [ "-net",                  "ENVNET",     "BLKVAL" ],
+           [ "-ndev",                 "ENVNET",     "BLKVAL" ],
+           [ "-envnet",               "ENVNET",     "BLKVAL" ],
+           [ "--acp-net",             "ENVNET",     "EQVAL"  ],
+           [ "--acp-ndev",            "ENVNET",     "EQVAL"  ],
+           [ "--acp-envnet",          "ENVNET",     "EQVAL"  ],
+           #
+           [ "-rsh",                  "RSH",        "BLKVAL" ],
+           [ "-ssh",                  "RSH",        "BLKVAL" ],
+           [ "-remoteshell",          "RSH",        "BLKVAL" ],
+           [ "--acp-rsh",             "RSH",        "EQVAL"  ],
+           [ "--acp-ssh",             "RSH",        "EQVAL"  ],
+           [ "--acp-remoteshell",     "RSH",        "EQVAL"  ],
+           #
+           [ "-mult",                 "MULTRUN",    "NONE"   ],
+           [ "-multrun",              "MULTRUN",    "NONE"   ],
+           [ "--acp-mult",            "MULTRUN",    "NONE"   ],
+           [ "--acp-multrun",         "MULTRUN",    "NONE"   ],
+           #
+           [ "-portfile",             "PORTFILE",   "BLKVAL" ],
+           [ "--acp-portfile",        "PORTFILE",   "EQVAL"  ],
+           #
+           [ "-offsetrank",           "OFFSETRANK", "BLKVAL" ],
+           [ "--acp-offsetrank",      "OFFSETRANK", "EQVAL"  ],
+           #
+           [ "-h",                    "HELP",       "NONE"   ],
+           [ "-help",                 "HELP",       "NONE"   ],
+           [ "--acp-help",            "HELP",       "NONE"   ],
+           #
+           [ "-v",                    "VERSION",    "NONE"   ],
+           [ "-version",              "VERSION",    "NONE"   ],
+           [ "--acp-version",         "VERSION",    "NONE"   ],
+           #
+           [ "-debug",                "DEBUG",      "NONE"   ],
+           [ "--acp-debug",           "DEBUG",      "NONE"   ],
+           #
+           [ "--acp-",                "ERROR",      "NONE"   ] ]
+
+#########################################################
+#########################################################
+#########################################################
+class ErrorInvalidOption( RuntimeError ):
+    def __init__( self, value ):
+        self.value = value
+    def __str__( self ):
+        return repr( self.value )
+
+class ErrorInvalidOptionArgument( RuntimeError ):
+    def __init__( self, value ):
+        self.value = value
+    def __str__( self ):
+        return repr( self.value )
+
+#########################################################
+#########################################################
+#########################################################
+class Acprun:
+    # variables
+    # myname, starter_memsize, nprocs, lst_taskid, nodefile, cwd,
+    # lst_lport, lst_rport, lst_lhostip, lst_rhostip, lst_lhost,
+    # flg_localmode, flg_envnetwork, comm_args, comms_ssh
+
+    #########################################################
+    def __init__( self ):
+        self.myname          = os.path.basename( sys.argv[ 0 ] )
+        self.ver_python      = int( sys.version_info[ 0 ] )
+        self.subver_python   = int( sys.version_info[ 1 ] )
+        self.starter_memsize = STARTER_MEMSIZE
+        self.flg_multrun     = False
+        self.nprocs          = 1
+        self.lst_taskid      = [ TASKID ]
+        self.nodefile        = ""
+        self.portfile        = ""
+        self.offsetrank      = 0
+        self.nodes           = []
+        self.cwd             = os.getcwd()
+        self.lst_lport       = PORTID_START
+        self.lst_rport       = PORTID_START
+        self.lst_lhostip     = [ "127.0.0.1" ]
+        self.lst_rhostip     = [ "127.0.0.1" ]
+        self.lst_lhost       = [ "localhost" ]
+        self.flg_localmode   = True
+        self.flg_envnetwork  = ENVNETWORK
+        self.flg_setenvnetwork = False
+        self.flg_debug       = FLG_DEBUG
+        self.debuglevel      = DEBUGLEVEL
+        self.remoteshell     = REMOTESHELL
+        self.lst_for_gen_lst_lport = { }
+        if (( self.ver_python < 2 ) or (( self.ver_python == 2 ) and ( self.subver_python < 6 ))):
+            sys.exit( "Error: %s requires python (2.6 <= version <= 3.x).\nCurrent version: %s." % (self.myname, sys.version) )
+
+    #########################################################
+    def check_envnetwork( self ):
+        if (not (self.flg_envnetwork in LST_ENVNETWORK)):
+            self.error_not_supported_network( self.flg_envnetwork )
+            sys.exit( "Error" )
+
+    #########################################################
+    def error_not_supported_network( self, envnetwork ):
+        sys.exit( "Network %s: not supported.\n" % envnetwork )
+
+    #########################################################
+    def print_help( self ):
+        print( "%s [opts] command args" % self.myname)
+        print( "Opts: -np NPROCS                          or --acp-nprocs=NPROCS                      (default: 1)" )
+        print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
+        print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
+        print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
+        print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -ssh/-rsh REMOTESHELL               or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
+        print( "    : -multrun                            or --acp-multrun                            (default: False)" )
+        print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
+        print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
+        print( "    : -debug                              or --acp-debug                              (default: debug is False)" )
+        print( "    : -v/-version                         or --acp-version" )
+        print( "    : -h/-help                            or --acp-help" )
+        print( "Memo: 1. Other --acp-* options are errors." )
+        print( "    : 2. All options for %s have to be before inputfile." % self.myname )
+        print( "    : 3. If -multrun option is used, ports and ipaddresses are determined from node and port files." )
+        sys.exit( "" )
+
+    #########################################################
+    def parse_anarg( self, args, pos ):
+        flgopt = "ERROR"
+        flgval = "NONE"
+        optarg = "NONE"
+        optval = args[ pos ]
+        pnext  = pos + 1
+        # 
+        if ( args[ pos ][ 0 ] == "-" ):
+            for i in range( len( OPTDEF ) ):
+                str = args[ pos ].split( "=" )[ 0 ]
+                if ( str == OPTDEF[ i ][ 0 ] ):
+                    flgopt = OPTDEF[ i ][ 1 ]
+                    flgval = OPTDEF[ i ][ 2 ]
+                    if ( flgval == "BLKVAL" ):
+                        if ( len( args ) <= pos + 1 ):
+                            raise ErrorInvalidOptionArgument
+                        optarg = args[ pos + 1 ]
+                        pnext  = pos + 2
+                    else:
+                        optarg = ""
+                        lst_args = args[ pos ].split( "=" )
+                        if len( lst_args ) > 1:
+                            optval = lst_args[ 1 ]
+                        else:
+                            optval = []
+                        pnext  = pos + 1
+                    return [ flgopt, flgval, optarg, optval, pnext ]
+        else:
+            flgopt = "NONE"
+        return [ flgopt, flgval, optarg, optval, pnext ]
+
+    #########################################################
+    def parse_argv( self ):
+        # 
+        args = sys.argv
+        self.comm_args = []
+        self.nodes     = []
+        pos = 1    
+        try:
+            while pos < len(args):
+                flgopt, flgval, optarg, optval, pos = self.parse_anarg( args, pos )
+                if ( flgopt == "NONE" ):
+                    self.comm_args.append( optval )
+                    while pos < len( args ):
+                        self.comm_args.append( args[ pos ] )
+                        pos += 1
+                    break
+                elif flgopt == "NPROCS":
+                    if   flgval == "BLKVAL":
+                        self.nprocs          = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.nprocs          = int( optval )
+                    if self.nprocs          <= 0:
+                        raise ErrorInvalidOptionArgument( "Argument: np <= 0" )
+                elif flgopt == "STARTERMEM":
+                    if   flgval == "BLKVAL":
+                        self.starter_memsize = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.starter_memsize = int( optval )
+                    if self.starter_memsize <= 0:
+                        raise ErrorInvalidOptionArgument( "Argument: startermemsize <= 0" )
+                elif flgopt == "NODEFILE":
+                    self.flg_localmode       = False
+                    if   flgval == "BLKVAL":
+                        self.nodefile        = optarg
+                    elif flgval == "EQVAL":
+                        self.nodefile        = optval
+                    if self.nodefile        == "":
+                        raise ErrorInvalidOptionArgument( "Argument: nodefile name is null" )
+                elif flgopt == "NODES":
+                    self.flg_localmode       = False
+                    if   flgval == "BLKVAL":
+                        nodes                = optarg
+                    elif flgval == "EQVAL":
+                        nodes                = optval
+                    self.nodes               = nodes.split( "," )
+                    if self.nodes           == "":
+                        raise ErrorInvalidOptionArgument( "Argument: host names are null" )
+                elif flgopt == "RSH":
+                    if   flgval == "BLKVAL":
+                        self.remoteshell     = optarg
+                    elif flgval == "EQVAL":
+                        self.remoteshell     = optval
+                    if self.nodes           == "":
+                        raise ErrorInvalidOptionArgument( "Argument: remote shell name is null" )
+                elif flgopt == "ENVNET":
+                    self.flg_setenvnetwork  = True
+                    if   flgval == "BLKVAL":
+                        self.flg_envnetwork  = optarg
+                    elif flgval == "EQVAL":
+                        self.flg_envnetwork  = optval
+                    if self.flg_envnetwork  == "":
+                        raise ErrorInvalidOptionArgument( "Argument: ENVNET value is null" )
+                elif flgopt == "MULTRUN":
+                    self.flg_multrun         = True
+                elif flgopt == "PORTFILE":
+                    if   flgval == "BLKVAL":
+                        self.portfile        = optarg
+                    elif flgval == "EQVAL":
+                        self.portfile        = optval
+                    if self.portfile == "":
+                        raise ErrorInvalidOptionArgument( "Argument: PORTFILE value is null" )
+                elif flgopt == "OFFSETRANK":
+                    if   flgval == "BLKVAL":
+                        self.offsetrank      = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.offsetrank      = int( optval )
+                    if self.flg_envnetwork  == "":
+                        raise ErrorInvalidOptionArgument( "Argument: OFFSETRANK value is invalid" )
+                elif flgopt == "HELP":
+                    self.print_help()
+                    sys.exit( "help:" )
+                elif flgopt == "VERSION":
+                    sys.exit( "%s : version %s." % (self.myname, VERSION) )
+                
+                ##### Hidden option #####
+                elif flgopt == "DEBUG":
+                    self.flg_debug           = True
+                    #if   flgval == "BLKVAL":
+                    #    if ((not (optarg is None)) and optarg.isdigit()):
+                    #        self.debuglevel  = int( optarg )
+                    #elif flgval == "EQVAL":
+                    #    if ((not (optval is None)) and optval.isdigit()):
+                    #        self.debuglevel  = int( optval )
+                    if self.debuglevel <= 0:
+                        sys.exit( "Argument: debuglevel <= 0. Modify DEBUGLEVEL value to 1000 in %s." % self.myname )
+                #########################
+                elif flgopt == "ERROR":
+                    raise ErrorInvalidOption( "Argument: invalid" )
+                else:
+                    raise ErrorInvalidOption( "Argument: invalid" )
+        except ErrorInvalidOption:
+            sys.exit( "Error: invalid option: %s. (%s, %s, %s)" % (args, flgopt, optarg, optval) )
+        except ErrorInvalidOptionArgument:
+            sys.exit( "Error: invalid option argument: %s" % args )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: opt: nprocs         = %s" % (self.myname, self.nprocs) )
+                print( " %s: opt: smem size      = %s" % (self.myname, self.starter_memsize) )
+                print( " %s: opt: nodefile       = %s" % (self.myname, self.nodefile) )
+                print( " %s: opt: nodes          = %s" % (self.myname, self.nodes) )
+                print( " %s: opt: network env    = %s" % (self.myname, self.flg_envnetwork) )
+                print( " %s: opt: command args   = %s" % (self.myname, self.comm_args) )
+                print( " %s: opt: remote shell   = %s" % (self.myname, self.remoteshell) )
+                print( " %s: opt: flg_debug      = %s" % (self.myname, self.flg_debug) )
+                print( " %s: opt: debuglevel     = %s" % (self.myname, self.debuglevel) )
+                if ( self.flg_multrun ):
+                    print( " %s: opt: portfile   = %s" % (self.myname, self.portfile) )
+                    print( " %s: opt: offsetrank = %s" % (self.myname, self.offsetrank) )
+#
+    #########################################################
+    def set_nprocs_acp( self ):
+        self.lst_nprocs_acp = []
+        for i in range( self.nprocs ):
+            self.lst_nprocs_acp.append( self.nprocs )
+
+    #########################################################
+    def set_taskid( self ):
+        self.lst_taskid = []
+        for i in range( self.nprocs ):
+            self.lst_taskid.append( TASKID )
+
+    #########################################################
+    def read_nodenames( self ):
+        self.lst_nodename_read = []
+        if ( len( self.nodefile ) <= 0 ):
+            for i in range( self.nprocs ):
+                self.lst_nodename_read.append( "localhost" )
+        else:
+            try:
+                if self.nodes:
+                    self.lst_nodename_read = copy.deepcopy( self.nodes )
+                else:
+                    f = open( self.nodefile )
+                    lines = f.readlines()
+                    f.close()
+                    for nodename in lines:
+                        nodename = nodename.rstrip()
+                        self.lst_nodename_read.append( nodename )
+            except RuntimeError:
+                sys.exit( "%s: error, while processing nodefile %s." % (self.myname, self.nodefile) )
+
+    #########################################################
+    def resolv_nodenames( self ):
+        self.lst_lhostip = []
+        for nodename in self.lst_lhost:
+            if ( len( self.nodefile ) <= 0 ):
+                self.lst_lhostip.append( "127.0.0.1" )
+            else:
+                self.lst_lhostip.append( socket.gethostbyname( nodename ) )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: In %s():" % (self.myname, sys._getframe().f_code.co_name) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
+
+    #########################################################
+    def mult_nodenames( self ):
+        if len( self.lst_lhost ) < self.nprocs:
+            self.lst_lhost = []
+            ip = 0
+            while ip < self.nprocs:
+                ipmod = ip % len( self.lst_nodename_read )
+                self.lst_lhost.append( self.lst_nodename_read[ ipmod ] )
+                ip += 1
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: In %s():" % (self.myname, sys._getframe().f_code.co_name) )
+                print( " %s: lst_lhost:   %s" % (self.myname, self.lst_lhost) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
+
+    #########################################################
+    def get_array_lport( self ):
+        self.lst_lport = []
+        for node in range( self.nprocs ):
+            flg = False
+            if self.ver_python == 2:
+                flg = self.lst_for_gen_lst_lport.has_key( self.lst_lhostip[ node ] )
+            elif self.ver_python == 3:
+                flg = self.lst_lhostip[ node ] in self.lst_for_gen_lst_lport
+            else:
+                sys.exit( "Python version error.: %s" % sys.version )
+            # 
+            if flg:
+                ip = self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ]
+                self.lst_lport.append( ip + 1 )
+                self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ] = ip + 1
+            else:
+                self.lst_lport.append( PORTID_START )
+                self.lst_for_gen_lst_lport[ self.lst_lhostip[ node ] ] = PORTID_START
+
+    #########################################################
+    def get_array_rport_rhostip( self ):
+        if   ( self.flg_envnetwork == "UDP"        ) or ( self.flg_envnetwork == "udp"  ):
+            self.get_array_rport_rhostip_udp()
+        elif ( self.flg_envnetwork == "INFINIBAND" ) or ( self.flg_envnetwork == "IB"   ) or \
+             ( self.flg_envnetwork == "infiniband" ) or ( self.flg_envnetwork == "ib"   ):
+            self.get_array_rport_rhostip_ib()
+        elif ( self.flg_envnetwork == "TOFU"       ) or ( self.flg_envnetwork == "tofu" ):
+            self.get_array_rport_rhostip_tofu()
+        else:
+            sys.exit( "Error: %s: Network %s: not supported.\n" % (self.myname, self.flg_envnetwork) )
+
+    #########################################################
+    def get_array_rport_rhostip_udp( self ):
+        self.lst_rport   = []
+        self.lst_rhostip = []
+        for i in range( self.nprocs ):
+            self.lst_rport.append( 0 )
+            self.lst_rhostip.append( " " )
+        for node in range( self.nprocs ):
+            if self.ver_python == 2:
+                self.lst_rport  [ node ] = self.lst_lport  [ node / 2 ]
+                self.lst_rport  [ node ] = self.lst_lport  [ node / 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node / 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node / 2 ]
+            elif self.ver_python == 3:
+                self.lst_rport  [ node ] = self.lst_lport  [ node // 2 ]
+                self.lst_rport  [ node ] = self.lst_lport  [ node // 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node // 2 ]
+                self.lst_rhostip[ node ] = self.lst_lhostip[ node // 2 ]
+            else:
+                sys.exit( "%s: python version error.: %s", (self.myname, sys.version) )
+
+    #########################################################
+    def get_array_rport_rhostip_ib( self ):
+        self.lst_rport   = []
+        self.lst_rhostip = []
+        for node in range( self.nprocs-1):
+            self.lst_rport.append(   self.lst_lport  [ node + 1 ] )
+            self.lst_rhostip.append( self.lst_lhostip[ node + 1 ] )
+        self.lst_rport.append(   self.lst_lport [ 0 ] )
+        self.lst_rhostip.append( self.lst_lhostip[ 0 ] )
+
+    #########################################################
+    def get_array_rport_rhostip_tofu( self ):
+        error_not_supported_network( self.flg_envnetwork )
+
+    #########################################################
+    def read_ports_ipaddresses_from_file( self ):
+        filename = self.portfile
+        rport    = open( filename, "r" )
+        rlines   = rport.readlines()
+        rport.close()
+        lines            = []
+        for i in range( len( rlines ) ):
+            lines.append( rlines[ i ].rstrip().split() )
+        #
+        self.lst_nprocs_acp = []
+        self.lst_taskid     = []
+        self.lst_lport      = []
+        self.lst_rport      = []
+        self.lst_rhostip    = []
+        self.lst_lhostip    = []
+        for i in range( len( lines ) ):
+            self.lst_nprocs_acp.append( int( lines[ i ][ 1 ] ) )
+            self.lst_taskid.append(     int( lines[ i ][ 5 ] ) )
+            self.lst_lport.append(      int( lines[ i ][ 2 ] ) )
+            self.lst_rport.append(      int( lines[ i ][ 3 ] ) )
+            self.lst_rhostip.append(         lines[ i ][ 4 ]   )
+            self.lst_lhostip.append(         lines[ i ][ 8 ]   )
+        if self.flg_debug:
+            if self.debuglevel > 200:
+                print( " %s: lst_nprocs: %s"  % (self.myname, self.lst_nprocs_acp) )
+                print( " %s: lst_taskid: %s"  % (self.myname, self.lst_taskid) )
+                print( " %s: lst_lport: %s"   % (self.myname, self.lst_lport) )
+                print( " %s: lst_rport: %s"   % (self.myname, self.lst_rport) )
+                print( " %s: lst_rhostip: %s" % (self.myname, self.lst_rhostip) )
+                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
+
+    #########################################################
+    def gen_ssh_commands( self ):
+        self.comms_ssh = []
+        self.sepcomms_ssh = []
+        lcomm = ""
+        for ip in range( len(self.comm_args) ):
+            lcomm = lcomm + " " + self.comm_args[ ip ]
+        for ip in range( self.nprocs ):
+            ipp  = self.offsetrank + ip
+            comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
+                   ( self.cwd, STR_ENVMYRANK, ipp,                          \
+                               STR_ENVNPROCS, self.lst_nprocs_acp[ ipp ],   \
+                               STR_ENVTASKID, self.lst_taskid[ ipp ],       \
+                               STR_ENVLPORT,  self.lst_lport [ ipp ],       \
+                               STR_ENVRPORT,  self.lst_rport [ ipp ],       \
+                               STR_ENVRHOST,  self.lst_rhostip[ ipp ],      \
+                               STR_ENVSMSIZE, self.starter_memsize, lcomm )
+            if (self.flg_localmode):
+                comm = "sh -c" + " \"" + comm + "\""
+            else:
+                #comm = "ssh " + self.lst_lhost[ ipp ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ipp ) + " 2>&1"
+                #comm = REMOTESHELL + " " + self.lst_lhost[ ipp ] + " \"" + comm + "\""
+                comm = self.remoteshell + " " + self.lst_lhostip[ ipp ] + " \"" + comm + "\""
+            self.comms_ssh.append( comm )
+
+    #########################################################
+    # 0 ~ (nprocs-2) => background process
+    # nprocs-1       => foreground process
+    def exec_ssh_commands( self ):
+        for ip in range( self.nprocs-1 ):
+            comm = shlex.split( self.comms_ssh[ ip ] )
+            subprocess.Popen( comm )                             # background
+        comm = shlex.split( self.comms_ssh[ self.nprocs-1 ] )
+        subprocess.call( comm )                                  # foreground
+        #if ( self.flg_multrun ):
+        #    subprocess.Popen( comm )                             # foreground
+        #else:
+        #    subprocess.call( comm )                              # foreground
+
+###############################################################################
+###############################################################################
+###### MAIN ###################################################################
+###############################################################################
+###############################################################################
+acprun = Acprun()
+
+acprun.cwd = os.environ.get( "PWD" )
+acprun.parse_argv()
+#
+acprun.check_envnetwork()
+#
+if ( len( acprun.nodefile ) > 0 ):
+    acprun.localmode = 0 
+    if (not os.path.isfile( acprun.nodefile )):
+        sys.exit( "Error: %s: could not open file : %s" % acprun.myname, acprun.nodefile )
+#
+if ( acprun.flg_multrun ):
+    # Called from macprun
+    acprun.read_ports_ipaddresses_from_file()
+else:
+    # Normal acprun
+    acprun.set_nprocs_acp()
+    acprun.set_taskid()
+    acprun.read_nodenames()
+    acprun.mult_nodenames()
+    acprun.resolv_nodenames()
+    acprun.get_array_lport()
+    acprun.get_array_rport_rhostip()
+#
+acprun.gen_ssh_commands()
+if acprun.flg_debug:
+    print( " %s: executed command:" % acprun.myname )
+    for i in range( len( acprun.comms_ssh )-1 ):
+        print( " " + acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
+    print( " " + acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+    #if ( acprun.flg_multrun ):
+    #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
+    #else:
+    #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
+#
+if EXECUTE_COMMAND:
+    acprun.exec_ssh_commands()

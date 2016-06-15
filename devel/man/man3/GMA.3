@@ -1,0 +1,453 @@
+.TH "GMA" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GMA \- ACP Basic Layer Global Memory Access
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBACP_HANDLE_ALL\fP   0xffffffffffffffffLLU"
+.br
+.ti -1c
+.RI "#define \fBACP_HANDLE_CONT\fP   0xfffffffffffffffeLLU"
+.br
+.ti -1c
+.RI "#define \fBACP_HANDLE_NULL\fP   0x0000000000000000LLU"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef int64_t \fBacp_handle_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_copy\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, size_t size, \fBacp_handle_t\fP order)"
+.br
+.RI "\fICopy\&. \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_cas4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t oldval, uint32_t newval, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Compare and Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_cas8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t oldval, uint64_t newval, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Compare and Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_swap4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_swap8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Swap \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_add4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Add \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_add8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte Add \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_xor4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte Exclusive OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_xor8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_or4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_or8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte OR \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_and4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI4byte AND \fP"
+.ti -1c
+.RI "\fBacp_handle_t\fP \fBacp_and8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+.br
+.RI "\fI8byte AND \fP"
+.ti -1c
+.RI "void \fBacp_complete\fP (\fBacp_handle_t\fP handle)"
+.br
+.RI "\fICompletion of GMA\&. \fP"
+.ti -1c
+.RI "int \fBacp_inquire\fP (\fBacp_handle_t\fP handle)"
+.br
+.RI "\fIQuery for the completion of GMA\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Functions for Global memory access
+.PP
+\&.\&.\&.\&.\&.\&.\&.\&.\&.\&. 
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define ACP_HANDLE_ALL   0xffffffffffffffffLLU"
+Represents all of the handles of GMAs that have been invoked so far\&. 
+.SS "#define ACP_HANDLE_CONT   0xfffffffffffffffeLLU"
+Represents the continuation of the previous GMA\&.(*)\&. 
+.SS "#define ACP_HANDLE_NULL   0x0000000000000000LLU"
+Represents that no handle is available\&. 
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef int64_t \fBacp_handle_t\fP"
+Handle of GMA\&. Used as identifiers of the invoked GMAs\&. 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_handle_t\fP acp_add4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+
+.PP
+4byte Add Performs an atomic add operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be added is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be added\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_add8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+
+.PP
+8byte Add Performs an atomic add operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be added is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be added\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_and4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+
+.PP
+4byte AND Performs an atomic AND operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the AND operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_and8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+
+.PP
+8byte AND Performs an atomic AND operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the AND operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_cas4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t oldval, uint32_t newval, \fBacp_handle_t\fP order)"
+
+.PP
+4byte Compare and Swap Performs an atomic compare-and-swap operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be compared and swapped is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIoldval\fP Old value to be compared\&. 
+.br
+\fInewval\fP New value to be swapped\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_cas8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t oldval, uint64_t newval, \fBacp_handle_t\fP order)"
+
+.PP
+8byte Compare and Swap Performs an atomic compare-and-swap operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be compared and swapped is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIoldval\fP Old value to be compared\&. 
+.br
+\fInewval\fP New value to be swapped\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "void acp_complete (\fBacp_handle_t\fP handle)"
+
+.PP
+Completion of GMA\&. Complete GMAs in order\&. It waits until the GMA of the specified handle completes\&. This means all the GMAs invoked before that one are also completed\&. If ACP_HANDLE_ALL is specified, it completes all of the out-standing GMAs\&. If the specified handle is ACP_HANDLE_NULL, the handle of the GMA that has already been completed, or the handle of the GMA that has not been invoked, this function returns immediately\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhandle\fP Handle of a GMA to be waited for the completion\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_copy (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, size_t size, \fBacp_handle_t\fP order)"
+
+.PP
+Copy\&. Copies data of the specified size between the specified global addresses of the global memory\&. Ranks of both of dst and src can be different from the rank of the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address of the head of the destination region of the copy\&. 
+.br
+\fIsrc\fP Global address of the head of the source region of the copy\&. 
+.br
+\fIsize\fP Size of the data to be copied\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "int acp_inquire (\fBacp_handle_t\fP handle)"
+
+.PP
+Query for the completion of GMA\&. Queries if any of the GMAs that are invoked earlier than the GMA of the specified handle, including that GMA, are incomplete\&. It returns zero if all of those GMAs have been completed\&. Otherwise, it returns one\&. If ACP_HANDLE_ALL is specified, it checks of of the out-standing GMAs\&. If the specified handle is ACP_HANDLE_NULL, the handle of the GMA that has already been completed, or the handle of the GMA that has not been invoked, it returns zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIhandle\fP Handle of the GMA to be checked for the completion\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP No incomlete GMAs\&. 
+.br
+\fI1\fP There is at least one incomplete GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_or4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+
+.PP
+4byte OR Performs an atomic OR operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the OR operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_or8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+
+.PP
+8byte OR Performs an atomic OR operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the OR operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_swap4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+
+.PP
+4byte Swap Performs an atomic swap operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be swapped is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be swapped\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_swap8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+
+.PP
+8byte Swap Performs an atomic swap operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be swapped is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be swapped\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_xor4 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
+
+.PP
+4byte Exclusive OR Performs an atomic XOR operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 4byte\&. Global addresses must be 4byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the XOR operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SS "\fBacp_handle_t\fP acp_xor8 (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
+Performs an atomic XOR operation on the global address specified as src\&. The result of the operation is stored in the global address specified as dst\&. The rank of the dst must be the rank of the caller process\&. The values to be applied is 8byte\&. Global addresses must be 8byte aligned\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIdst\fP Global address to store the result\&. 
+.br
+\fIsrc\fP Global address to apply the operation\&. 
+.br
+\fIvalue\fP Value to be applied the XOR operation\&. 
+.br
+\fIorder\fP The handle to be used as a condition for starting this GMA 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_HANDLE_NULL\fP Fail 
+.br
+\fIotherwise\fP A handle for this GMA\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

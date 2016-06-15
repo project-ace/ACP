@@ -1,0 +1,26 @@
+.TH "acpbl" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+acpbl \- ACP Basic Layer
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBACP Basic Layer Infrastructure\fP"
+.br
+.ti -1c
+.RI "\fBACP Basic Layer Global Memory Management\fP"
+.br
+.ti -1c
+.RI "\fBACP Basic Layer Global Memory Access\fP"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+ACP basic layer is a thin abstraction of underlying communication devices\&.
+.PP
+The basic layer of ACP provides global address space shared among all of the processes\&. The global address of this space is represented by 64bit unsigned integer, so that it can be directly handled by the atomic operations of CPUs and devices\&. Any local memory space of any process can be mapped to this space via the registration function\&. 
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

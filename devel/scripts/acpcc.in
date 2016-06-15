@@ -1,0 +1,262 @@
+#!/bin/bash
+#
+# Copyright (c) 2014-2016 Kyushu University 
+# Copyright (c) 2014-2016 Institute of Systems, Information Technologies 
+#                         and Nanotechnologies 2014
+# Copyright (c) 2014-2016 FUJITSU LIMITED
+#
+# This software is released under the BSD License, see LICENSE. 
+
+COMMAND=${0##*/}
+NETDEV=@NETDEV@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+INCLUDEDIR=@includedir@
+LIBDIR=@libdir@
+LIBS=@LIBS@
+LIBS_BL="-lacpbl"
+LIBS_ML="-lacpml"
+MPIACP=
+OPTIONS=
+SOURCES=
+OUTFILE="a.out"
+MODE="link"
+VERSION="@VERSION@"
+SHOWME=
+
+[[ `uname -s` == "Darwin" ]] && RPATH= || RPATH="-Wl,-rpath -Wl,$LIBDIR"
+
+show_help()
+{
+  echo "$COMMAND [-showme[:<command,compile,link,incdirs,"
+  echo "              libdirs,libs,version,help>]] args" 
+  echo "" 
+  echo "  -showme:command    Show command used to invoke real compiler"
+  echo "  -showme:compile    Show flags added when compiling"
+  echo "  -showme:link       Show flags added when linking"
+  echo "  -showme:incdirs    Show list of include dirs added when compiling"
+  echo "  -showme:libdirs    Show list of library dirs added when linking"
+  echo "  -showme:libs       Show list of libraries added when linking"
+  echo "  -showme:version    Show version of ACP Library"
+  echo "  -showme:help       This help message"
+}
+
+check_source()
+{
+  case $1 in
+	*.[ci] | \
+	*.cc|*.cp|*.cxx|*.cpp|*.CPP|*.c++*|.C,ii | \
+	*.f|*.for|*.ftn|*.F|*.FOR|*.fpp|*.FPP|*.FTN| \
+	*.f90|*.f95|*.f03|*.f08|*.F90|*.F95|*.F03|*.F08 | \
+	*.s|*.S|*.sx | \
+	*.o)
+	return 0;;
+	*)
+	return -1;;
+  esac
+}
+
+case $COMMAND in
+	acpcc | acpgcc)
+		COMPILER=gcc
+		;;
+	acpicc)
+		COMPILER=icc
+		;;
+	acpc++ | acpg++ | acpcxx | acpgxx | acpCC)
+		COMPILER=g++
+		;;
+	acpicpc)
+		COMPILER=icpc
+		;;
+	acpfc)
+		COMPILER=gfortran
+		;;
+	acpifort)
+		COMPILER=ifort
+		;;
+	macpcc | macpgcc)
+		MPIACP=_mpi
+		COMPILER=mpicc
+		;;
+	macpc++ | macpg++ | macpcxx | macpgxx | macpCC)
+		MPIACP=_mpi
+		COMPILER=mpic++
+		;;
+	macpfc)
+		MPIACP=_mpi
+		COMPILER=mpifort
+		;;
+esac
+
+while [ $# -ge 1 ]; do
+	case $1 in
+		--help)
+		${COMPILER} --help
+		exit 0
+		;;
+		--showme)
+		SHOWME="ALL"
+		shift;;
+		--showme:compile)
+		SHOWME="COMPILE"
+		shift;;
+		--showme:link)
+		SHOWME="LINK"
+		shift;;
+		--showme:command)
+		SHOWME="COMMAND"
+		shift;;
+		--showme:incdirs)
+		SHOWME="INCDIRS"
+		shift;;
+		--showme:libdirs)
+		SHOWME="LIBDIRS"
+		shift;;
+		--showme:libs)
+		SHOWME="LIBS"
+		shift;;
+		--showme:version)
+		SHOWME="VERSION"
+		shift;;
+		--showme:help)
+		show_help
+		exit 0
+		;;
+		-c)
+		MODE="compile"
+		shift;;
+		-o)
+		OUTFILE="$2"
+		shift 2;;
+		--output=*)
+		OUTFILE="${1##*=}"
+		shift;;
+		-ndev)
+		NETDEV="$2"
+		shift 2;;
+		-I)
+		INCLUDEDIR="$INCLUDEDIR $1 $2"
+		shift 2;;
+		-I*)
+		INCLUDEDIR="$INCLUDEDIR $1"
+		shift;;
+		-L)
+		LIBDIR="$LIBDIR $1 $2"
+		shift 2;;
+		-L*)
+		LIBDIR="$LIBDIR $1"
+		shift;;
+		-l*)
+		LIBS="$LIBS $1"
+		shift;;
+		-[A-z]*)
+		if [ $# -eq 1 ]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x-[A-z] ]]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x-[A-z]* ]]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		elif [[ "x$2" =~ x--[A-z]* ]]; then
+			OPTIONS="$OPTIONS $1"
+			shift
+		else
+			check_source $2
+			if [ $? -eq 0 ]; then
+				OPTIONS="$OPTIONS $1"
+				shift
+			else
+				OPTIONS="$OPTIONS $1 $2"
+				shift 2
+			fi
+		fi
+		;;
+		--[A-z]*)
+		OPTIONS="$OPTIONS $1"
+		shift;;
+		*.[ci] | \
+		*.cc|*.cp|*.cxx|*.cpp|*.CPP|*.c++*|.C,ii | \
+		*.f|*.for|*.ftn|*.F|*.FOR|*.fpp|*.FPP|*.FTN| \
+		*.f90|*.f95|*.f03|*.f08|*.F90|*.F95|*.F03|*.F08 | \
+		*.s|*.S|*.sx | \
+		*.o)
+		[ -z "$SOURCES" ] && SOURCES="$1" || SOURCES="$SOURCES $1"
+		shift;;
+		*)
+		shift;;
+	esac
+done
+
+if [ "$MODE" = "compile" -a "${OUTFILE}" = "a.out" ]; then
+	OUTFILE="${SOURCES%.*}.o"
+fi
+
+case $NETDEV in
+	UDP | udp)
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_udp${MPIACP}"
+		;;
+	INFINIBAND | inifiniband | IB | ib)
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_ib${MPIACP}"
+		;;
+	TOFU | tofu)
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_tofu${MPIACP}"
+		;;
+	*)
+		echo "${COMMAND}: Error: unsupported network device is given."
+		exit 1
+		;;
+esac
+
+##### SHOWME #####
+case $SHOWME in
+	"ALL")
+		if test "$MODE" = 'link'; then
+			echo "$COMPILER -I $INCLUDEDIR $OPTIONS -o $OUTFILE $SOURCES $RPATH -L $LIBDIR $LIBS"
+		else
+			echo "$COMPILER -I $INCLUDEDIR $OPTIONS -c -o $OUTFILE $SOURCES"
+		fi
+		exit 0
+		;;
+	"COMPILE")
+		echo "-I$INCLUDEDIR"
+		exit 0
+		;;
+	"LINK")
+		echo "$RPATH -L$LIBDIR $LIBS"
+		exit 0
+		;;
+	"COMMAND")
+		echo "$COMPILER"
+		exit 0
+		;;
+	"INCDIRS")
+		echo "$INCLUDEDIR"
+		exit 0
+		;;
+	"LIBDIRS")
+		echo "$LIBDIR"
+		exit 0
+		;;
+	"LIBS")
+		echo "$LIBS" | sed -e "s,-l,,g"
+		exit 0
+		;;
+	"VERSION")
+		echo "$COMMAND: ACP Library $VERSION"
+		exit 0
+		;;
+	*)
+		;;
+esac
+
+[ -z "$SOURCES" ] && exit 0
+
+##### COMPILE #####
+if test "$MODE" = 'link'; then
+	$COMPILER -I $INCLUDEDIR $OPTIONS -o $OUTFILE $SOURCES $RPATH -L $LIBDIR $LIBS
+else
+	$COMPILER -I $INCLUDEDIR $OPTIONS -c -o $OUTFILE $SOURCES
+fi

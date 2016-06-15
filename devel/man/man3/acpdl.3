@@ -1,0 +1,346 @@
+.TH "acpdl" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+acpdl \- ACP Middle Layer Data Library
+.SS "Modules"
+
+.in +1c
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Vector\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Deque\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library List\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Set\fP"
+.br
+.ti -1c
+.RI "\fBACP Middle Layer Dara Library Map\fP"
+.br
+.in -1c
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBacp_wsditem\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_element_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_pair_t\fP"
+.br
+.in -1c
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBACP_WSD_NULL\fP   (\fBacp_wsd_t\fP)(\-1)"
+.br
+.RI "\fItypedef int64_t acp_wsd_t; \fP"
+.ti -1c
+.RI "#define \fBacp_assign\fP(type, \&.\&.\&.)                             acp_assign_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_assign_range\fP(type, \&.\&.\&.)                 acp_assign_range_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_at\fP(type, \&.\&.\&.)                                     acp_at_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_back\fP(type, \&.\&.\&.)                                 acp_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_begin\fP(type, \&.\&.\&.)                               acp_begin_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_bucket\fP(type, \&.\&.\&.)                             acp_bucket_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_bucket_count\fP(type, \&.\&.\&.)                 acp_bucket_count_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_bucket_size\fP(type, \&.\&.\&.)                   acp_bucket_size_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_capacity\fP(type, \&.\&.\&.)                         acp_capacity_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_clear\fP(type, \&.\&.\&.)                               acp_clear_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_count\fP(type, \&.\&.\&.)                               acp_count_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_create\fP(type, \&.\&.\&.)                             acp_create_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_destroy\fP(type, \&.\&.\&.)                           acp_destroy_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_empty\fP(type, \&.\&.\&.)                               acp_empty_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_end\fP(type, \&.\&.\&.)                                   acp_end_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_erase\fP(type, \&.\&.\&.)                               acp_erase_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_erase_range\fP(type, \&.\&.\&.)                   acp_erase_range_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_find\fP(type, \&.\&.\&.)                                 acp_find_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_front\fP(type, \&.\&.\&.)                               acp_front_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_insert\fP(type, \&.\&.\&.)                             acp_insert_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_insert_range\fP(type, \&.\&.\&.)                 acp_insert_range_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_merge\fP(type, \&.\&.\&.)                               acp_merge_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_pop_back\fP(type, \&.\&.\&.)                         acp_pop_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_pop_front\fP(type, \&.\&.\&.)                       acp_pop_front_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_push_back\fP(type, \&.\&.\&.)                       acp_push_back_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_push_front\fP(type, \&.\&.\&.)                     acp_push_front_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_remove\fP(type, \&.\&.\&.)                             acp_remove_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_reserve\fP(type, \&.\&.\&.)                           acp_reserve_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_reverse\fP(type, \&.\&.\&.)                           acp_reverse_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_size\fP(type, \&.\&.\&.)                                 acp_size_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_size\fP(type, \&.\&.\&.)                                 acp_size_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_sort\fP(type, \&.\&.\&.)                                 acp_sort_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_splice\fP(type, \&.\&.\&.)                             acp_splice_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_swap\fP(type, \&.\&.\&.)                                 acp_swap_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_unique\fP(type, \&.\&.\&.)                             acp_unique_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_advance\fP(type, \&.\&.\&.)                           acp_advance_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_decrement\fP(type, \&.\&.\&.)                       acp_decrement_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_dereference\fP(type, \&.\&.\&.)                   acp_dereference_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_dereference_value\fP(type, \&.\&.\&.)       acp_dereference_value_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_distance\fP(type, \&.\&.\&.)                         acp_distance_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_increment\fP(type, \&.\&.\&.)                       acp_increment_##type(__VA_ARGS__)"
+.br
+.ti -1c
+.RI "#define \fBacp_size_value\fP(type, \&.\&.\&.)                     acp_size_value_##type(__VA_ARGS__)"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef \fBacp_wsditem\fP * \fBacp_wsd_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_wsd_t\fP \fBacp_create_ws\fP (size_t size)"
+.br
+.RI "\fIWorkspace creation\&. \fP"
+.ti -1c
+.RI "int \fBacp_setparams_ws\fP (size_t proc_start, size_t size_default)"
+.br
+.RI "\fIWorkspace creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_ws\fP (\fBacp_wsd_t\fP WSD)"
+.br
+.RI "\fIWorkspace destruction\&. \fP"
+.ti -1c
+.RI "int \fBacp_read_ws\fP (\fBacp_wsd_t\fP WSD, \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+.br
+.RI "\fIReading workspace\&. \fP"
+.ti -1c
+.RI "int \fBacp_write_ws\fP (\fBacp_wsd_t\fP WSD, const \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+.br
+.RI "\fIWriting workspace\&. \fP"
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_malloc\fP (size_t size, int rank)"
+.br
+.RI "\fIGlobal memory allocation\&. \fP"
+.ti -1c
+.RI "void \fBacp_free\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIDeallocate the global memory\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+This library provides various data handling functions: Vector, List, Deque, Set, Map
+.PP
+\&.\&.\&.\&.\&.\&.\&.\&.\&.\&.\&. 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_wsd_t\fP acp_create_ws (size_t size)"
+
+.PP
+Workspace creation\&. Creates a workspace
+.PP
+\fBParameters:\fP
+.RS 4
+\fIsize\fP Size of the workspace 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_WSD_NULL\fP Fial 
+.br
+\fIacp_wsd_t\fP Workspace descriptor 
+.RE
+.PP
+
+.SS "void acp_destroy_ws (\fBacp_wsd_t\fP WSD)"
+
+.PP
+Workspace destruction\&. Destroies a workspace\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIWSD\fP Workspace descriptor 
+.RE
+.PP
+
+.SS "void acp_free (\fBacp_ga_t\fP ga)"
+
+.PP
+Deallocate the global memory\&. Deallocate the global memory allocation pointed to by ga
+.PP
+\fBParameters:\fP
+.RS 4
+\fIga\fP The address of the global memory to deallocate 
+.RE
+.PP
+
+.SS "\fBacp_ga_t\fP acp_malloc (size_t size, int rank)"
+
+.PP
+Global memory allocation\&. Allocate a global memory on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIsize\fP Size of the memory to allocate 
+.br
+\fIrank\fP Rank number\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_GA_NULL\fP Fail 
+.br
+\fIacp_ga_t\fP Global address of the allocated memory 
+.RE
+.PP
+
+.SS "int acp_read_ws (\fBacp_wsd_t\fP WSD, \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+
+.PP
+Reading workspace\&. Read data in a workspace from the specified position\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIWSD\fP Workspace descriptor 
+.br
+\fIga\fP The global address of the storage location for the data 
+.br
+\fIsize\fP Size of the data to read 
+.br
+\fIoffset\fP The start point of the data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI1\fP Fail 
+.RE
+.PP
+
+.SS "int acp_setparams_ws (size_t proc_start, size_t size_default)"
+
+.PP
+Workspace creation\&. Creates a workspace
+.PP
+\fBParameters:\fP
+.RS 4
+\fIproc_start\fP Start rank for workspace 
+.br
+\fIsize_default\fP Default allocated size on each process 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIalways\fP 0 
+.RE
+.PP
+
+.SS "int acp_write_ws (\fBacp_wsd_t\fP WSD, const \fBacp_ga_t\fP ga, size_t size, size_t offset)"
+
+.PP
+Writing workspace\&. Write data in a workspace at the specified position\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIWSD\fP Workspace descriptor 
+.br
+\fIga\fP The global address of the storage location for the data 
+.br
+\fIsize\fP Size of the data to write 
+.br
+\fIoffset\fP The start point of the data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI1\fP Fail 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

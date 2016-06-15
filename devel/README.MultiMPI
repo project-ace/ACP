@@ -1,0 +1,146 @@
+Multiple MPI ACP Library
+===========
+
+ 0. Overview
+ 1. Installation
+ 2. Compiling user Multi-MPI ACP Applications
+ 3. Running user Multi-MPI ACP Applications
+
+0. Overview
+-----------
+Current ACP library supports mechanism for connecting Multiple MPI applications (Multi-MPI ACP).
+This is similar to MPI-Spawn except spawning dynamical processes.
+
+
+1. Installation
+---------------
+ A. MPI
+  Install MPI correctly.
+  Check PATH and LD_LIBRARY_PATH shell environment variables.
+  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are tested.
+
+ B. ACP
+  Sources of Multi-MPI ACP are inside of the ACP library.
+  To install this library, add "--with-mpi" option to the configure command ACP.
+
+  shell$ ./configure --with-mpi --prefix=/where/to/install
+  [...lots of output...]
+  shell$ make all install
+
+  Original ACP libraries are also installed by this procedure.
+  If your machine supports Infiniband (IB),
+  this configure command detects and sets up as default IB library.
+
+
+2. Compiling user ACP Applications
+--------------------------------
+ACP provides "wrapper" compilers that should be used for
+compiling Multi-MPI ACP applications:
+
+Sources used both  MPI and ACP functions
+C:          macpcc, macpgcc
+C++:        macpc++, macpcxx
+Fortran:    macpfc (not provided yet)
+
+Sources used pure ACP functions
+C:          acpcc, acpgcc
+C++:        acpc++, acpcxx
+Fortran:    acpfc (not provided yet)
+
+For example:
+
+  shell$ macpcc hello_world_macp.c -o hello_world_macp -g
+  shell$ acpcc  hello_world_acp.c  -o hello_world_acp -g
+  shell$
+
+If your machine supports IB and you want to choose UDP environment,
+ compile with "-ndev UDP" option.
+
+
+3. Running user ACP Applications
+--------------------------------
+Multi-MPI ACP library supports macprun program to launch Multi-MPI ACP appliations.
+For example:
+
+  shell$ macprun -np 6 inputfile
+
+  with the following inputfile:
+  ---------------------------------------------------------------------------
+  # Number of runtime environments
+  3
+  # Runtime environments
+  acprun -smemsize 10240                    # options can be specified
+  mpirun                                    # options can be specified
+  mpirun                                    # options can be specified
+  # Number of processes
+  1
+  2
+  3
+  # Commands
+  ./hello_world_acp                         # options can be specified
+  ./hello_world_macp                        # options can be specified
+  ./hello_world_macp                        # options can be specified
+  ---------------------------------------------------------------------------
+
+This launches one hello_world_acp application (APP0) consists with one process by acprun,
+and two hello_world_macp applications (APP1 and APP2) with two and three processes by mpirun on the localhost.
+These three applications with six processes are connected by ACP library as shown in following figure.
+
+ proc ID     0       1       2       3       4       5    
+         +-------+---------------+-----------------------+
+         |  APP0 |     APP1      |          APP2         |
+         +-------+-------+-------+-------+-------+-------+
+  Midel  |       |      MPI      |          MPI          |
+  Layer  +       +-------+-------+-------+-------+-------+
+         |                      ACP                      |
+         +-------+-------+-------+-------+-------+-------+
+  NODE   |                   localhost                   |
+         +-----------------------------------------------+
+
+
+You can specify a "-nodefile nodefile" option to indicate hostnames
+ on which hello_world_acp and hello_world_macp commands will be launched.
+
+If you want launch above processes on pc01 pc02 and pc03, use following command:
+
+  shell$ macprun -np 6 -nodefile nodefile inputfile
+
+  with the following nodefile:
+  ---------------------------------------------------------------------------
+  pc01
+  pc01
+  pc02
+  pc02
+  pc03
+  pc03
+  ---------------------------------------------------------------------------
+
+ proc ID     0       1       2       3       4       5    
+         +-------+---------------+-----------------------+
+         |  APP0 |     APP1      |          APP2         |
+         +-------+-------+-------+-------+-------+-------+
+  Midel  |       |      MPI      |          MPI          |
+  Layer  +       +-------+-------+-------+-------+-------+
+         |                      ACP                      |
+         +-------+-------+-------+-------+-------+-------+
+  NODE   |     pc01      |     pc02      |     pc03      |
+         +-----------------------------------------------+
+
+
+To specify network device, for example infiniband (or udp, tofu),
+use "-net ib" (or udp, tofu) option as follows:
+
+  shell$ macprun -np 6 -nodefile nodefile -net ib inputfile
+
+
+---------------------------------------------------------------------------
+Notice:
+  1.  Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are tested.
+  2.  Tofu network device may not supported in this version.
+===========================================================================
+
+Copyright (c) 2014      Kyushu University 
+Copyright (c) 2014      Institute of Systems, Information Technologies 
+                        and Nanotechnologies 2014
+Copyright (c) 2014      FUJITSU LIMITED
+

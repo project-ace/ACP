@@ -1,0 +1,226 @@
+.TH "GMM" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+GMM \- ACP Basic Layer Global Memory Management
+.SS "Macros"
+
+.in +1c
+.ti -1c
+.RI "#define \fBACP_ATKEY_NULL\fP   0LLU"
+.br
+.ti -1c
+.RI "#define \fBACP_GA_NULL\fP   0LLU"
+.br
+.in -1c
+.SS "Typedefs"
+
+.in +1c
+.ti -1c
+.RI "typedef uint64_t \fBacp_atkey_t\fP"
+.br
+.ti -1c
+.RI "typedef uint64_t \fBacp_ga_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_query_starter_ga\fP (int rank)"
+.br
+.RI "\fIQuery for the global address of the starter memory\&. \fP"
+.ti -1c
+.RI "\fBacp_atkey_t\fP \fBacp_register_memory\fP (void *addr, size_t size, int color)"
+.br
+.RI "\fIMemory registration\&. \fP"
+.ti -1c
+.RI "int \fBacp_unregister_memory\fP (\fBacp_atkey_t\fP atkey)"
+.br
+.RI "\fIMemory unregistration\&. \fP"
+.ti -1c
+.RI "\fBacp_ga_t\fP \fBacp_query_ga\fP (\fBacp_atkey_t\fP atkey, void *addr)"
+.br
+.RI "\fIQuery for the global address\&. \fP"
+.ti -1c
+.RI "void * \fBacp_query_address\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the logical address\&. \fP"
+.ti -1c
+.RI "int \fBacp_query_rank\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the rank of the global address\&. \fP"
+.ti -1c
+.RI "int \fBacp_query_color\fP (\fBacp_ga_t\fP ga)"
+.br
+.RI "\fIQuery for the color of the global address\&. \fP"
+.ti -1c
+.RI "int \fBacp_colors\fP (void)"
+.br
+.RI "\fIQuery for the maximum number of colors\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+Functions for global memory management\&. 
+.SH "Macro Definition Documentation"
+.PP 
+.SS "#define ACP_ATKEY_NULL   0LLU"
+Represents that no address translation key is available\&. 
+.SS "#define ACP_GA_NULL   0LLU"
+Null address of the global memory\&. 
+.SH "Typedef Documentation"
+.PP 
+.SS "typedef uint64_t \fBacp_atkey_t\fP"
+Address translation key\&. An attribute to translate between a logical address and a global address\&. 
+.SS "typedef uint64_t \fBacp_ga_t\fP"
+Global address\&. Commonly used among processes for byte-wise addressing of the global memory\&. 
+.SH "Function Documentation"
+.PP 
+.SS "int acp_colors (void)"
+
+.PP
+Query for the maximum number of colors\&. Returns the maximum number of colors on this environment\&.
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=1\fP Maximum number of colors\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "void* acp_query_address (\fBacp_ga_t\fP ga)"
+
+.PP
+Query for the logical address\&. Returns the logical address of the specified global address\&. It fails if the process that keeps the logical region of the global address is different from the caller\&. It can be used for retrieving logical address of the starter memory\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIga\fP Global address\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fINULL\fP Fail 
+.br
+\fIotherwise\fP Logical address\&. 
+.RE
+.PP
+
+.SS "int acp_query_color (\fBacp_ga_t\fP ga)"
+
+.PP
+Query for the color of the global address\&. Returns the color of the specified global address\&. It returns -1 if the ACP_GA_NULL is specified as the global address\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIga\fP Global address
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=0\fP Color number\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "\fBacp_ga_t\fP acp_query_ga (\fBacp_atkey_t\fP atkey, void * addr)"
+
+.PP
+Query for the global address\&. Returns the global address of the specified logical address translated by the specified address translation key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIatkey\fP Address translation key\&. 
+.br
+\fIaddr\fP Logical address\&.
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP Global address of starter memory\&. 
+.RE
+.PP
+
+.SS "int acp_query_rank (\fBacp_ga_t\fP ga)"
+
+.PP
+Query for the rank of the global address\&. Returns the rank of the process that keeps the logical region of the specified global address\&. It can be used for retrieving the rank of the starter memory\&. It returns -1 if the ACP_GA_NULL is specified as the global address\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIga\fP Global address\&.
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI>=0\fP Rank number\&. 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SS "\fBacp_ga_t\fP acp_query_starter_ga (int rank)"
+
+.PP
+Query for the global address of the starter memory\&. Returns the global address of the starter memory of the specified rank\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIrank\fP Rank number
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIga\fP Global address of the starter memory 
+.br
+\fIACP_GA_NULL\fP Fail 
+.RE
+.PP
+
+.SS "\fBacp_atkey_t\fP acp_register_memory (void * addr, size_t size, int color)"
+
+.PP
+Memory registration\&. Registers the specified memory region to global memory and returns an address translation key for it\&. The color that will be used for GMA with the address is also included in the key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIaddr\fP Logical address of the top of the memory region to be registered\&. 
+.br
+\fIsize\fP Size of the region to be registered\&. 
+.br
+\fIcolor\fP Color number that will be used for GMA with the global memory\&.
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIACP_ATKEY_NULL\fP Fail\&. 
+.br
+\fIotherwise\fP Address translation key\&. 
+.RE
+.PP
+
+.SS "int acp_unregister_memory (\fBacp_atkey_t\fP atkey)"
+
+.PP
+Memory unregistration\&. Unregister the memory region with the specified address translation key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIatkey\fP Address translation key\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP Success 
+.br
+\fI-1\fP Fail 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

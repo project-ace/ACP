@@ -1,0 +1,214 @@
+.TH "map" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+map \- ACP Middle Layer Dara Library Map
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBacp_map_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_map_ib_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBacp_assign_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.ti -1c
+.RI "void \fBacp_assign_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_begin_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_count_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_size_map\fP (\fBacp_map_t\fP map, int index)"
+.br
+.ti -1c
+.RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "\fIDelete elements of lists in a map type data\&. \fP"
+.ti -1c
+.RI "\fBacp_map_t\fP \fBacp_create_map\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "\fIMap creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "\fIMap destruction\&. \fP"
+.ti -1c
+.RI "int \fBacp_empty_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_end_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "\fIMap end iterator\&. \fP"
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_erase_map\fP (\fBacp_map_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_erase_range_map\fP (\fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.RI "\fIMap finding\&. \fP"
+.ti -1c
+.RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size, const \fBacp_ga_t\fP value, size_t value_size)"
+.br
+.RI "\fIMap creation\&. \fP"
+.ti -1c
+.RI "\fBacp_map_ib_t\fP \fBacp_insert_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.br
+.ti -1c
+.RI "size_t \fBacp_size_map\fP (\fBacp_map_t\fP map)"
+.br
+.ti -1c
+.RI "void \fBacp_swap_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_advance_map_it\fP (\fBacp_map_it_t\fP it, int n)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_decrement_map_it\fP (\fBacp_map_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_pair_t\fP \fBacp_dereference_map_it\fP (\fBacp_map_it_t\fP it)"
+.br
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_increment_map_it\fP (\fBacp_map_it_t\fP it)"
+.br
+.in -1c
+.SH "Detailed Description"
+.PP 
+ACP Middle Layer Data Library Map 
+.SH "Function Documentation"
+.PP 
+.SS "void acp_clear_map (\fBacp_map_t\fP map)"
+
+.PP
+Delete elements of lists in a map type data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_t\fP acp_create_map (int num_ranks, const int * ranks, int num_slots, int rank)"
+
+.PP
+Map creation\&. Creates a map type data on any set of processes\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fInum_ranks\fP Number of processes\&. 
+.br
+\fIranks\fP Array of the rank numbers of the processes to distribute map\&. 
+.br
+\fInum_slots\fP Number of slots 
+.br
+\fIrank\fP Rank number to place the information of the map\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_MAP_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created map data\&. 
+.RE
+.PP
+
+.SS "void acp_destroy_map (\fBacp_map_t\fP map)"
+
+.PP
+Map destruction\&. Destroys a map type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_end_map (\fBacp_map_t\fP map)"
+
+.PP
+Map end iterator\&. Query for the iterator just after the tail element of a map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The iterator just after the tail element of a map\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_find_map (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+
+.PP
+Map finding\&. Find a key-value pair according to a key in a map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of a map type data\&. 
+.br
+\fIkey\fP Global address of the key to search\&. 
+.br
+\fIsize_key\fP Size of the key\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The item found in the map\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_ib_t\fP acp_insert_map (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size, const \fBacp_ga_t\fP value, size_t value_size)"
+
+.PP
+Map creation\&. Inserts a key-value pair to a map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of a map type data\&. 
+.br
+\fIkey\fP Global address of the key of the key-value pair\&. 
+.br
+\fIsize_key\fP Size of the key\&. 
+.br
+\fIvalue\fP Global address of the value of the key-value pair\&. 
+.br
+\fIsize_value\fP Size of the value\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember success == 0\fP Fail or the same key-value pair is already in the map\&. 
+.br
+\fIotherwise\fP The item inserted to the map\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

@@ -1,0 +1,423 @@
+.TH "set" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.ad l
+.nh
+.SH NAME
+set \- ACP Middle Layer Dara Library Set
+.SS "Data Structures"
+
+.in +1c
+.ti -1c
+.RI "struct \fBacp_set_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_set_it_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_set_ib_t\fP"
+.br
+.in -1c
+.SS "Functions"
+
+.in +1c
+.ti -1c
+.RI "void \fBacp_assign_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.RI "\fISet type data assignment\&. \fP"
+.ti -1c
+.RI "void \fBacp_assign_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.RI "\fISet assignment with range\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_begin_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fIQuery for the head iterator of a set\&. \fP"
+.ti -1c
+.RI "int \fBacp_bucket_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_count_set\fP (\fBacp_set_t\fP set)"
+.br
+.ti -1c
+.RI "int \fBacp_bucket_size_set\fP (\fBacp_set_t\fP set, int index)"
+.br
+.ti -1c
+.RI "void \fBacp_clear_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fISet elimination\&. \fP"
+.ti -1c
+.RI "\fBacp_set_t\fP \fBacp_create_set\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "\fISet creation\&. \fP"
+.ti -1c
+.RI "void \fBacp_destroy_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fISet destruction\&. \fP"
+.ti -1c
+.RI "int \fBacp_empty_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fIQuery for set empty\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_end_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fIQuery for the tail iterator of a set\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_erase_set\fP (\fBacp_set_it_t\fP it)"
+.br
+.RI "\fIErase a set element\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_erase_range_set\fP (\fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.RI "\fIDeletion of the set data from 'start' to 'end'\&. \fP"
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_find_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_insert_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.br
+.RI "\fIInsert a set element\&. \fP"
+.ti -1c
+.RI "\fBacp_set_ib_t\fP \fBacp_insert_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.br
+.RI "\fIInsertion of the set data from 'start' to 'end'\&. \fP"
+.ti -1c
+.RI "size_t \fBacp_size_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "\fIQuery of the data size in the set\&. \fP"
+.ti -1c
+.RI "void \fBacp_swap_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.RI "\fISwap set type data\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_advance_set_it\fP (\fBacp_set_it_t\fP it, int n)"
+.br
+.RI "\fIAdvancement of an iterator for set type data\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_decrement_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.RI "\fIDecrement an iterater of a set data\&. \fP"
+.ti -1c
+.RI "\fBacp_element_t\fP \fBacp_dereference_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.RI "\fIQuery of the global address of a reference of set tyep iterator\&. \fP"
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_increment_set_it\fP (\fBacp_set_it_t\fP it)"
+.br
+.RI "\fIIncrement an iterater of a set data\&. \fP"
+.in -1c
+.SH "Detailed Description"
+.PP 
+ACP Middle Layer Data Library Set 
+.SH "Function Documentation"
+.PP 
+.SS "\fBacp_set_it_t\fP acp_advance_set_it (\fBacp_set_it_t\fP it, int n)"
+
+.PP
+Advancement of an iterator for set type data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP The iterator of set type data 
+.br
+\fIn\fP The number for advancing 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI\fBacp_set_it_t\fP\fP The advanced iterator of set type data 
+.RE
+.PP
+
+.SS "void acp_assign_range_set (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+
+.PP
+Set assignment with range\&. Copy set data from the point of 'start' to 'end'\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of destination set data\&. 
+.br
+\fIstart\fP A set type data iterator for pointing the starting address 
+.br
+\fIend\fP A set type data iterator for pointing the end address 
+.RE
+.PP
+
+.SS "void acp_assign_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+
+.PP
+Set type data assignment\&. Copy set type data between two sets\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of destination set data\&. 
+.br
+\fIset2\fP A reference of source set data\&. 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_begin_set (\fBacp_set_t\fP set)"
+
+.PP
+Query for the head iterator of a set\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The head iterator of the set\&. 
+.RE
+.PP
+
+.SS "void acp_clear_set (\fBacp_set_t\fP set)"
+
+.PP
+Set elimination\&. Set the size of the set to be zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set data\&. 
+.RE
+.PP
+
+.SS "\fBacp_set_t\fP acp_create_set (int num_ranks, const int * ranks, int num_slots, int rank)"
+
+.PP
+Set creation\&. Creates a set type data on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fInum_rank\fP A process number for assigning buckets 
+.br
+\fIranks\fP An array of rank number for assigning buckets 
+.br
+\fInum_slots\fP A number of bucket slot for one process 
+.br
+\fIrank\fP The rank number where has the control information of a set 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created set data\&. 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_decrement_set_it (\fBacp_set_it_t\fP it)"
+
+.PP
+Decrement an iterater of a set data\&. Decrements an iterater of a set data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP An iterater reference of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The previous iterator of the specified one\&. 
+.RE
+.PP
+
+.SS "\fBacp_element_t\fP acp_dereference_set_it (\fBacp_set_it_t\fP it)"
+
+.PP
+Query of the global address of a reference of set tyep iterator\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP The iterator of set type data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIacp_ga_t\fP The global address of a reference of set type iterator 
+.RE
+.PP
+
+.SS "void acp_destroy_set (\fBacp_set_t\fP set)"
+
+.PP
+Set destruction\&. Destroies a set type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set data\&. 
+.RE
+.PP
+
+.SS "int acp_empty_set (\fBacp_set_t\fP set)"
+
+.PP
+Query for set empty\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Empty 
+.br
+\fI0\fP There is a set data 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_end_set (\fBacp_set_t\fP set)"
+
+.PP
+Query for the tail iterator of a set\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIoterhwise\fP The iterator that points to the behind of the last element 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_erase_range_set (\fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+
+.PP
+Deletion of the set data from 'start' to 'end'\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIstart\fP The iterator of set data to erase 
+.br
+\fIend\fP The iterator of just behind of the deleting set data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI\fBacp_set_it_t\fP\fP The iterator of just behind of the deleted set data 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_erase_set (\fBacp_set_it_t\fP it)"
+
+.PP
+Erase a set element\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP An iterator of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIoterhwise\fP The iterator that points to the element which is immediately after the erased o ne\&. 
+.RE
+.PP
+
+.SS "\fBacp_set_it_t\fP acp_increment_set_it (\fBacp_set_it_t\fP it)"
+
+.PP
+Increment an iterater of a set data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The next iterator of the specified one\&. 
+.RE
+.PP
+
+.SS "\fBacp_set_ib_t\fP acp_insert_range_set (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+
+.PP
+Insertion of the set data from 'start' to 'end'\&. Copy deque data from the point of 'start' to 'end'\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP An iterator of the point for inserting data 
+.br
+\fIstart\fP The iterator of head address of the data to insert 
+.br
+\fIend\fP The iterator of just behind address of the data to insert 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember success == 1\fP Success 
+.br
+\fImember success == 0\fP Fail 
+.br
+\fImember it\fP An iterator for the iserted key 
+.RE
+.PP
+
+.SS "\fBacp_set_ib_t\fP acp_insert_set (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+
+.PP
+Insert a set element\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of set type data 
+.br
+\fIkey\fP An inserting key 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember success == 1\fP Success 
+.br
+\fImember success == 0\fP Fail 
+.br
+\fImember it\fP An iterator for the iserted key 
+.RE
+.PP
+
+.SS "size_t acp_size_set (\fBacp_set_t\fP set)"
+
+.PP
+Query of the data size in the set\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A referenc of the set data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP The data size in the set 
+.RE
+.PP
+
+.SS "void acp_swap_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+
+.PP
+Swap set type data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of set data to be swapped\&. 
+.br
+\fIset2\fP Another reference of set data to be swapped\&. 
+.RE
+.PP
+
+.SH "Author"
+.PP 
+Generated automatically by Doxygen for ACP Library from the source code\&.

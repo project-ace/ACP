@@ -17,11 +17,11 @@ noinst_PROGRAMS = \
 	       acpbl_rr \
 	       acpbl_rr2
 
-noinst_SCRIPTS = \
-	      run-acecls-exec.sh \
-	      run-acecls.sh \
-	      test-acecls.sh \
-	      test01.sh
+#noinst_SCRIPTS = \
+#	      run-acecls-exec.sh \
+#	      run-acecls.sh \
+#	      test-acecls.sh \
+#	      test01.sh
 
 acpbl_DEPENDENCIES = $(LDADD)
 acpbl_SOURCES = acpbl_test.c acp.h

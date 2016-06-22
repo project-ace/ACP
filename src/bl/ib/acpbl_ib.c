@@ -117,6 +117,9 @@
 #define CMD_PRE_PUTRRMGETEDFLAG_ISSUED       23U
 #define CMD_PRE_PUTRRMGETEDFLAG_PUT_DST      24U
 
+/* comm. thread releases the own cpu time.  */
+#define ECOUNT 100
+
 /* acp_sync() */
 #define ST_SYNC_INIT 0
 #define ST_SYNC_IDLE 1
@@ -677,8 +680,12 @@ int iacp_free_rcdbsync()
 
 int acp_sync( void )
 {
+    if ( acp_procs() == 1 ) return 0;
+    
     iacp_start_rcdbsync();
     iacp_wait_rcdbsync();
+    
+    return 0;
 }        
 
 int acp_colors(void){
@@ -2914,7 +2921,7 @@ static void *comm_thread_func(void *dm){
     fprintf(stdout, "%d: getcpu %d\n", acp_rank(), sched_getcpu());
     
     rc = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
-    if (0 != rc) {
+    if (0 != rc) 
         perror("failed schecd_getaffinity");
         exit(1);
     }
@@ -2947,7 +2954,7 @@ static void *comm_thread_func(void *dm){
     
     while (1) {
         if ( 0 == comm_work ) {
-            if ( 10 == no_event_count ){
+            if ( ECOUNT == no_event_count ){
                 no_event_count = 0;
                 sched_yield();
             }

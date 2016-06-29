@@ -2921,7 +2921,7 @@ static void *comm_thread_func(void *dm){
     fprintf(stdout, "%d: getcpu %d\n", acp_rank(), sched_getcpu());
     
     rc = sched_getaffinity(0, sizeof(cpu_set_t), &mask);
-    if (0 != rc) 
+    if (0 != rc) {
         perror("failed schecd_getaffinity");
         exit(1);
     }

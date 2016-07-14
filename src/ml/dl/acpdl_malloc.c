@@ -39,10 +39,10 @@
  */
 
 #define HEAP  16
-#define LLOCK ((HEAP)+32)
-#define GLOCK ((HEAP)+40)
-#define HEAD  ((HEAP)+48)
-#define TOP   ((HEAP)+56)
+#define LLOCK 32
+#define GLOCK 40
+#define HEAD  48
+#define TOP   56
 
 void iacpdl_init_malloc(void)
 {
@@ -60,7 +60,7 @@ void iacpdl_init_malloc(void)
     tmp[HEAD >> 3] = local_heap + TOP;
     
     /* set free block */
-    tmp[TOP >> 3] = (iacp_starter_memory_size_dl & ~7ULL) - TOP;
+    tmp[TOP >> 3] = (iacp_starter_memory_size_dl & ~7ULL) - HEAP - TOP;
     tmp[(TOP >> 3) + 1] = local_heap + TOP;
     
     return;
@@ -410,11 +410,11 @@ void acp_free(acp_ga_t ga)
  */
 
 #define HEAP  16
-#define LLOCK ((HEAP)+40)
-#define GLOCK ((HEAP)+48)
-#define HEAD  ((HEAP)+56)
-#define SNTNL ((HEAP)+64)
-#define TOP   ((HEAP)+72)
+#define LLOCK 40
+#define GLOCK 48
+#define HEAD  56
+#define SNTNL 64
+#define TOP   72
 
 #define BLOCK_ALLOCATED 3
 #define BLOCK_FREE      5
@@ -428,7 +428,7 @@ void iacpdl_init_malloc(void)
     
     local_heap = iacp_query_starter_ga_dl(acp_rank()) + HEAP;
     tmp = (volatile uint64_t*)acp_query_address(local_heap);
-    s = iacp_starter_memory_size_dl >> 3;
+    s = (iacp_starter_memory_size_dl - HEAP) >> 3;
     
     /* initialize locks */
     tmp[LLOCK >> 3] = 0;

@@ -334,8 +334,8 @@ static int iacp_init(void)
     
     /* Initialize Middle Layer */
     
-///    if (iacp_init_dl()) return -1;
-///    if (iacp_init_cl()) return -1;
+    if (iacp_init_dl()) return -1;
+    if (iacp_init_cl()) return -1;
     /* if (iacp_init_vd()) return -1; */
     
     return 0;
@@ -535,8 +535,8 @@ int acp_finalize(void)
     int r;
     
     /* iacp_finalize_vd(); */
-///    iacp_finalize_cl();
-///    iacp_finalize_dl();
+    iacp_finalize_cl();
+    iacp_finalize_dl();
     
     acp_complete(ACP_HANDLE_ALL);
     acp_sync();

@@ -44,13 +44,22 @@ static int sock_listen, sock_accept0, sock_accept1, sock_connect;
 static int num_child;
 static uint64_t sync_sequence_number;
 
-int iacpbludp_my_rank;
-int iacpbludp_num_procs;
-uint32_t  iacpbludp_taskid;
+#define ACPBL_UDP_RANK_ERROR 0xffffffff
+#define ACPBL_UDP_TASKID_ERROR 0xffffffff
+
+uint32_t iacpbludp_my_rank;
+uint32_t iacpbludp_num_procs;
+uint32_t iacpbludp_my_inner_number;
+uint32_t iacpbludp_my_gateway;
+uint32_t iacpbludp_node_pop;
+uint32_t iacpbludp_taskid;
 
 uint32_t* iacpbludp_rank_table;
 uint16_t* iacpbludp_port_table;
 uint32_t* iacpbludp_addr_table;
+uint16_t* iacpbludp_inum_table;
+uint32_t* iacpbludp_gtwy_table;
+uint32_t* iacpbludp_lmem_table;
 
 static int iacp_init(void)
 {
@@ -69,9 +78,13 @@ static int iacp_init(void)
     RANK_TABLE = malloc(NUM_PROCS * sizeof(uint32_t));
     PORT_TABLE = malloc(NUM_PROCS * sizeof(uint16_t));
     ADDR_TABLE = malloc(NUM_PROCS * sizeof(uint32_t));
+    INUM_TABLE = malloc(NUM_PROCS * sizeof(uint16_t));
+    GTWY_TABLE = malloc(NUM_PROCS * sizeof(uint32_t));
     debug printf("rank %d - rank_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)RANK_TABLE);
     debug printf("rank %d - port_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)PORT_TABLE);
     debug printf("rank %d - addr_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)ADDR_TABLE);
+    debug printf("rank %d - inum_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)INUM_TABLE);
+    debug printf("rank %d - gtwy_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)GTWY_TABLE);
     
     /* Count branchs */
     
@@ -182,7 +195,7 @@ static int iacp_init(void)
         printf("rank %d - recv taskid0: 0x%08x, taskid1: 0x%08x\n", MY_RANK, taskid0, taskid1);
 #endif
     if (taskid0 != TASKID && taskid1 != TASKID)
-        TASKID = ACPBL_UDP_GPID_ERROR;
+        TASKID = ACPBL_UDP_TASKID_ERROR;
     if (MY_RANK > 0)
         while (write(sock_connect, &TASKID, sizeof(TASKID)) < 0) if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) exit(-1);
     
@@ -191,12 +204,12 @@ static int iacp_init(void)
     if (MY_RANK > 0)
         while (recv(sock_connect, &TASKID, sizeof(TASKID), MSG_WAITALL) < 0) ;
     else if (MY_RANK == ACPBL_UDP_RANK_ERROR)
-        TASKID = ACPBL_UDP_GPID_ERROR;
+        TASKID = ACPBL_UDP_TASKID_ERROR;
     if (num_child > 0)
         while (write(sock_accept0, &TASKID, sizeof(TASKID)) < 0) if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) exit(-1);
     if (num_child > 1)
         while (write(sock_accept1, &TASKID, sizeof(TASKID)) < 0) if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) exit(-1);
-    if (TASKID == ACPBL_UDP_GPID_ERROR)
+    if (TASKID == ACPBL_UDP_TASKID_ERROR)
         exit(-1);
     debug printf("rank %d - allreduced taskid 0x%08x\n", MY_RANK, TASKID);
     
@@ -313,6 +326,25 @@ static int iacp_init(void)
         while (write(sock_accept1, PORT_TABLE, sizeof(PORT_TABLE[0]) * NUM_PROCS) < 0) if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) exit(-1);
         while (write(sock_accept1, ADDR_TABLE, sizeof(ADDR_TABLE[0]) * NUM_PROCS) < 0) if (errno != EINTR && errno != EAGAIN && errno != EWOULDBLOCK) exit(-1);
     }
+    
+    /* Initialize gateways and local numnbers */
+    {
+        int i, j;
+        for (i = 0; i < NUM_PROCS; i++) {
+            int n = 0, g = i;
+            for (j = i; j > 0; j--) {
+                if (ADDR_TABLE[j - 1] == ADDR_TABLE[i]) {
+                    n = INUM_TABLE[j - 1] + 1;
+                    g = GTWY_TABLE[j - 1];
+                    break;
+                }
+            }
+            INUM_TABLE[i] = n; /* n (UDP and shared memory) or 0 (UDP only) */
+            GTWY_TABLE[i] = g; /* g (UDP and shared memory) or i (UDP only) */
+        }
+    }
+    MY_INUM    = INUM_TABLE[MY_RANK];
+    MY_GATEWAY = GTWY_TABLE[MY_RANK];
 #ifdef DEBUG
     {
         struct in_addr addr;
@@ -320,10 +352,22 @@ static int iacp_init(void)
         printf("rank %d - broadcasted info\n", MY_RANK);
         for (i = 0; i < NUM_PROCS; i++) {
             addr.s_addr = ADDR_TABLE[i];
-            printf("rank %d - rank %6d = %s:%d\n", MY_RANK, i, inet_ntoa(addr), PORT_TABLE[i]);
+            printf("rank %d - rank %6d (gateway %6d, inum %3d) = %s:%d\n", MY_RANK, i, GTWY_TABLE[i], INUM_TABLE[i], inet_ntoa(addr), PORT_TABLE[i]);
         }
     }
 #endif
+    
+    /* Initialize node population and local member talbe */
+    {
+        int i, j;
+        for (i = 0, j = 0; i < NUM_PROCS; i++) if (GTWY_TABLE[i] == MY_GATEWAY) j++;
+        NODE_POP = j;
+        
+        LMEM_TABLE = malloc(NODE_POP * sizeof(uint32_t));
+        for (i = 0, j = 0; i < NUM_PROCS; i++) if (GTWY_TABLE[i] == MY_GATEWAY) LMEM_TABLE[j++] = i;
+        debug printf("rank %d - node population %3d\n", MY_RANK, NODE_POP);
+        debug printf("rank %d - lmem_table 0x%016" PRIx64 "\n", MY_RANK, (uint64_t)LMEM_TABLE);
+    }
     
     /* Initialize GSM and GMA */
     
@@ -337,6 +381,7 @@ static int iacp_init(void)
     if (iacp_init_dl()) return -1;
     if (iacp_init_cl()) return -1;
     /* if (iacp_init_vd()) return -1; */
+    acp_sync();
     
     return 0;
 }
@@ -351,7 +396,7 @@ int acp_init(int* argc, char*** argv)
     uint32_t taskid ;
     uint16_t lport, rport ;
     char     rhost[ BUFSIZ ] ;
-    ///fprintf( stderr, "zero: *argc: %d\n", *argc ) ;
+    ///fprintf( stderr, "zero: np, me: %d, %d\n", nprocs_runtime, myrank_runtime ) ;
 ///
 #ifdef MPIACP
     if ( (*argc >= 4) &&
@@ -479,11 +524,33 @@ static int iacp_finalize(void)
 {
     unsigned char buf[256];
     
+    acp_complete(ACP_HANDLE_ALL);
+    acp_sync();
+    
+    /* iacp_finalize_vd(); */
+    iacp_finalize_cl();
+    iacp_finalize_dl();
+    
+    acp_sync();
+    
     /* Finalize GMA and GSM */
     
     iacpbludp_finalize_gma();
     
     iacpbludp_finalize_gmm();
+    
+    free(LMEM_TABLE);
+    free(GTWY_TABLE);
+    free(INUM_TABLE);
+    free(ADDR_TABLE);
+    free(PORT_TABLE);
+    free(RANK_TABLE);
+    LMEM_TABLE = NULL;
+    GTWY_TABLE = NULL;
+    INUM_TABLE = NULL;
+    ADDR_TABLE = NULL;
+    PORT_TABLE = NULL;
+    RANK_TABLE = NULL;
     
     /* Close TCP connection */
     
@@ -506,11 +573,28 @@ static int iacp_finalize(void)
 
 static void iacp_abort(void)
 {
+    /* iacp_abort_vd(); */
+    iacp_abort_cl();
+    iacp_abort_dl();
+    
     /* Abort GMA and GSM */
     
     iacpbludp_abort_gma();
     
     iacpbludp_abort_gmm();
+    
+    free(LMEM_TABLE);
+    free(GTWY_TABLE);
+    free(INUM_TABLE);
+    free(ADDR_TABLE);
+    free(PORT_TABLE);
+    free(RANK_TABLE);
+    LMEM_TABLE = NULL;
+    GTWY_TABLE = NULL;
+    INUM_TABLE = NULL;
+    ADDR_TABLE = NULL;
+    PORT_TABLE = NULL;
+    RANK_TABLE = NULL;
     
     /* Shutdown TCP connection */
     
@@ -532,24 +616,7 @@ static void iacp_abort(void)
 
 int acp_finalize(void)
 {
-    int r;
-    
-    /* iacp_finalize_vd(); */
-    iacp_finalize_cl();
-    iacp_finalize_dl();
-    
-    acp_complete(ACP_HANDLE_ALL);
-    acp_sync();
-    r = iacp_finalize();
-    
-    free(RANK_TABLE);
-    free(PORT_TABLE);
-    free(ADDR_TABLE);
-    RANK_TABLE = NULL;
-    PORT_TABLE = NULL;
-    ADDR_TABLE = NULL;
-    
-    return r;
+    return iacp_finalize();
 }
 
 int acp_reset(int rank)
@@ -563,18 +630,7 @@ int acp_reset(int rank)
 
 void acp_abort(const char* str)
 {
-    /* iacp_abort_vd(); */
-///    iacp_abort_cl();
-///    iacp_abort_dl();
-    
     iacp_abort();
-    
-    free(RANK_TABLE);
-    free(PORT_TABLE);
-    free(ADDR_TABLE);
-    RANK_TABLE = NULL;
-    PORT_TABLE = NULL;
-    ADDR_TABLE = NULL;
     
     return;
 }

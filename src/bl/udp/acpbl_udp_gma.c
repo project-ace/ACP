@@ -11,6 +11,7 @@
  * Note:
  *
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +25,10 @@
 #include <arpa/inet.h>
 #include <poll.h>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <time.h>
+#include <fcntl.h>
 #include <sched.h>
 #include <acp.h>
 #include "acpbl.h"
@@ -32,1570 +37,2697 @@
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
 
-/* Datagram format */
+/*
+Xeon 5160     2.933333 GHz -> 15/44 nsec (hana)
+Xeon E5520    2.266667 GHz -> 15/34 nsec (rx)
+Opteron 8354  2.200000 GHz -> 5/11 nsec (hx)
+*/
 
-#define MAX_DG_SIZE    (ACPBL_UDP_MFS)
-#define DG_HEADER_SIZE 32
-#define MAX_DATA_SIZE  ((MAX_DG_SIZE)-DG_HEADER_SIZE)
-
-#define TYPE_COPY      0
-#define TYPE_PUT       1
-#define TYPE_CAS4      2
-#define TYPE_CAS8      3
-#define TYPE_SWAP4     4
-#define TYPE_SWAP8     5
-#define TYPE_ADD4      6
-#define TYPE_ADD8      7
-#define TYPE_XOR4      8
-#define TYPE_XOR8      9
-#define TYPE_OR4       10
-#define TYPE_OR8       11
-#define TYPE_AND4      12
-#define TYPE_AND8      13
-#define TYPE_ACK       14
-#define TYPE_NACK      15
-#define TYPE_RETRY     16
-#define TYPE_READ      17
-#define TYPE_READACK   18
-#define TYPE_END       19
-#define TYPE_ENDACK    20
-#define TYPE_SCOPY     21
-
-#define BIT_TYPE       5
-#define WIDTH_TYPE     (1 << BIT_TYPE)
-#define MASK_TYPE      (WIDTH_TYPE - 1)
-
-#define POS_DSID       (BIT_TYPE)
-#define BIT_DSID       (ACPBL_UDP_DS_SIZE)
-#define WIDTH_DSID     (1 << BIT_DSID)
-#define MASK_DSID      (WIDTH_DSID - 1)
-
-#define POS_SWID       (POS_DSID + BIT_DSID)
-
-int iacpbludp_init_gma(void);
-int iacpbludp_finalize_gma(void);
-void iacpbludp_abort_gma(void);
-
-static inline uint32_t* dg_task(unsigned char* ptr) { return (uint32_t*)ptr; }
-static inline uint32_t* dg_type(unsigned char* ptr) { return (uint32_t*)(ptr + 4); }
-static inline uint32_t* dg_rank(unsigned char* ptr) { return (uint32_t*)(ptr + 8); }
-static inline uint32_t* dg_seq (unsigned char* ptr) { return (uint32_t*)(ptr + 12); }
-static inline uint64_t* dg_ptr (unsigned char* ptr) { return (uint64_t*)(ptr + 16); }
-static inline acp_ga_t* dg_dst (unsigned char* ptr) { return (acp_ga_t*)(ptr + 24); }
-static inline acp_ga_t* dg_src (unsigned char* ptr) { return (acp_ga_t*)(ptr + DG_HEADER_SIZE); }
-static inline uint64_t* dg_size(unsigned char* ptr) { return (uint64_t*)(ptr + DG_HEADER_SIZE + 8); }
-static inline uint32_t* dg_old4(unsigned char* ptr) { return (uint32_t*)(ptr + DG_HEADER_SIZE + 8); }
-static inline uint64_t* dg_old8(unsigned char* ptr) { return (uint64_t*)(ptr + DG_HEADER_SIZE + 8); }
-static inline uint32_t* dg_val4(unsigned char* ptr) { return (uint32_t*)(ptr + DG_HEADER_SIZE + 8); }
-static inline uint64_t* dg_val8(unsigned char* ptr) { return (uint64_t*)(ptr + DG_HEADER_SIZE + 8); }
-static inline uint32_t* dg_new4(unsigned char* ptr) { return (uint32_t*)(ptr + DG_HEADER_SIZE + 12); }
-static inline uint64_t* dg_new8(unsigned char* ptr) { return (uint64_t*)(ptr + DG_HEADER_SIZE + 16); }
-static inline uint32_t* dg_len (unsigned char* ptr) { return (uint32_t*)(ptr + 12); }
-static inline uint64_t* dg_plen(unsigned char* ptr) { return (uint64_t*)(ptr + 16); }
-static inline unsigned char* dg_data(unsigned char* ptr) { return ptr + DG_HEADER_SIZE; }
-static inline uint32_t* dg_ret4(unsigned char* ptr) { return (uint32_t*)(ptr + DG_HEADER_SIZE); }
-static inline uint64_t* dg_ret8(unsigned char* ptr) { return (uint64_t*)(ptr + DG_HEADER_SIZE); }
-
-static inline int atomic_size(uint32_t type)
+static inline uint64_t get_nsec(void)
 {
-    if (type == TYPE_CAS4 || type == TYPE_SWAP4 || type == TYPE_ADD4 || type == TYPE_XOR4 || type == TYPE_OR4 || type == TYPE_AND4 ) return 4;
-    if (type == TYPE_CAS8 || type == TYPE_SWAP8 || type == TYPE_ADD8 || type == TYPE_XOR8 || type == TYPE_OR8 || type == TYPE_AND8 ) return 8;
-    return 0;
-}
-
-static inline uint32_t type2dsid(uint32_t type)
-{
-    return (type >> POS_DSID) & MASK_DSID;
-}
-
-static inline uint32_t type2swid(uint32_t type)
-{
-    return type >> POS_SWID;
-}
-
-static inline uint32_t dsid2type(uint32_t type, uint32_t dsid, uint32_t swid)
-{
-    return type | (dsid << POS_DSID) | (swid << POS_SWID);
-}
-
-/* Sequence number table */
-
-static uint32_t* txseq_table;
-static uint32_t* rxseq_table;
-
-static void init_sequence(void)
-{
-    uint32_t rank, crc32c;
-    uint64_t data;
-    int i;
-    
-    /* Randomize initial sequence numbers with common seeds */
-    for (rank = 0; rank < NUM_PROCS; rank++) {
-        data = ((uint64_t)TASKID << 32) | (uint64_t)rank;
-        crc32c = 0xffffffffU;
-        for (i = 0; i < 64; i++){
-            crc32c = (crc32c << 1) ^ ((((crc32c >> 31) ^ data) & 1) ? 0x1edc6f31U : 0U);
-            data >>= 1;
-        }
-        rxseq_table[rank] = crc32c;
-    }
-    for (i = 0; i < NUM_PROCS; i++)
-        txseq_table[i] = rxseq_table[MY_RANK];
-#ifdef DEBUG
-    printf("rank %d - rx sequendce number table\n", MY_RANK);
-    for (i = 0; i < NUM_PROCS; i++)
-        printf("rank %d - rxseq_table[%6d] = 0x%08x\n", MY_RANK, i, rxseq_table[i]);
+#ifdef CLOCK_MONOTONIC_RAW
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+    return (uint64_t)now.tv_sec * 1000000000ULL + (uint64_t)now.tv_nsec;
+#else
+    return (get_clock() * 15) / 34;
 #endif
+}
+
+/****************************/
+/* Thread control variables */
+/****************************/
+
+static pthread_mutex_t mutex_comm_thread_ready;
+static pthread_cond_t cond_comm_thread_ready;
+static pthread_mutex_t mutex_comm_thread_start;
+static pthread_cond_t cond_comm_thread_start;
+static pthread_mutex_t mutex_quit_comm_thread;
+static int quit_comm_thread;
+
+/************************/
+/* Shared memory buffer */
+/************************/
+
+static int shmfd;
+static void* shmbuf;
+static size_t shmbuf_size;
+static doorbell_t *doorbell;
+static ibuf_t *ibuf;
+static txbuf_t *txbuf;
+static rxbuf_t *rxbuf;
+
+static inline int ibuf_pos(int dst_inum, int src_inum)
+{
+    return NODE_POP * dst_inum + src_inum;
+}
+
+static int init_shmbuffer()
+{
+    char shmfn[256];
+    pthread_mutexattr_t mutexattr;
+    pthread_condattr_t condattr;
+    int i, j, p;
+    char c;
+    
+    /* Create shared memory buffer */
+    sprintf(shmfn, "%s_task%d_gateway%d", SHMPATH, TASKID, MY_GATEWAY);
+    shmfd = open(shmfn, O_CREAT|O_RDWR, 0600);
+    if (shmfd == -1) return -1;
+    if (NUM_PROCS == NODE_POP)
+        shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP;
+    else
+        shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t) + sizeof(rxbuf_t)) * NODE_POP;
+    lseek(shmfd, shmbuf_size, SEEK_SET);
+    read(shmfd, &c, sizeof(char));
+    write(shmfd, &c, sizeof(char));
+    shmbuf = mmap(NULL, shmbuf_size, PROT_READ | PROT_WRITE, MAP_SHARED, shmfd, 0);
+    if (shmbuf == MAP_FAILED) return -1;
+    doorbell = (doorbell_t*)shmbuf;
+    ibuf = (ibuf_t*)(shmbuf + sizeof(doorbell_t) * NODE_POP);
+    if (NUM_PROCS != NODE_POP) {
+        txbuf = (txbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP);
+        rxbuf = (rxbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t)) * NODE_POP);
+    }
+    
+    /* Prepare attributes */
+    pthread_mutexattr_init(&mutexattr);
+    pthread_mutexattr_setpshared(&mutexattr, PTHREAD_PROCESS_SHARED);
+    pthread_condattr_init(&condattr);
+    pthread_condattr_setpshared(&condattr, PTHREAD_PROCESS_SHARED);
+    
+    /* Initialize doorbell */
+    pthread_mutex_init(&doorbell[MY_INUM].mutex, &mutexattr);
+    pthread_cond_init(&doorbell[MY_INUM].cond, &condattr);
+    
+    /* Initialize ibuf */
+    p = NODE_POP * MY_INUM;
+    for (i = 0 ; i < NODE_POP; i++) {
+        ibuf[p].vc0.dg.head = ibuf[p].vc0.dg.tail = -1;
+        for (j = 0; j < IBUF_VC0_SIZE - 1; j++) ibuf[p].vc0.list[j].next = j + 1;
+        ibuf[p].vc0.list[j].next = -1;
+        ibuf[p].vc0.free.head = 0;
+        ibuf[p].vc0.free.tail = j;
+        pthread_mutex_init(&ibuf[p].vc0.free.mutex, &mutexattr);
+        
+        ibuf[p].vc1.dg.head = ibuf[p].vc1.dg.tail = -1;
+        ibuf[p].vc1.dg.dg_count = ibuf[p].vc1.free.ack_count = 0;
+        for (j = 0; j < IBUF_VC1_SIZE - 1; j++) ibuf[p].vc1.list[j].next = j + 1;
+        ibuf[p].vc1.list[j].next = -1;
+        ibuf[p].vc1.free.head = 0;
+        ibuf[p].vc1.free.tail = j;
+        pthread_mutex_init(&ibuf[p].vc1.free.mutex, &mutexattr);
+        
+        ibuf[p].vc2.dg.head = ibuf[p].vc2.dg.tail = -1;
+        for (j = 0; j < IBUF_VC2_SIZE - 1; j++) ibuf[p].vc2.list[j].next = j + 1;
+        ibuf[p].vc2.list[j].next = -1;
+        ibuf[p].vc2.free.head = 0;
+        ibuf[p].vc2.free.tail = j;
+        pthread_mutex_init(&ibuf[p].vc2.free.mutex, &mutexattr);
+        p++;
+    }
+    
+    if (NUM_PROCS == NODE_POP) return 0;
+    
+    /* Initialize txbuf */
+    txbuf[MY_INUM].vc0.dg.head = txbuf[MY_INUM].vc0.dg.tail = -1;
+    for (i = 0; i < TXBUF_VC0_SIZE - 1; i++) txbuf[MY_INUM].vc0.list[i].next = i + 1;
+    txbuf[MY_INUM].vc0.list[i].next = -1;
+    txbuf[MY_INUM].vc0.free.head = 0;
+    txbuf[MY_INUM].vc0.free.tail = i;
+    txbuf[MY_INUM].vc0.wait.head = txbuf[MY_INUM].vc0.wait.tail = -1;
+    pthread_mutex_init(&txbuf[MY_INUM].vc0.dg.mutex, &mutexattr);
+    pthread_mutex_init(&txbuf[MY_INUM].vc0.free.mutex, &mutexattr);
+    
+    txbuf[MY_INUM].vc1.dg.head = txbuf[MY_INUM].vc1.dg.tail = -1;
+    for (i = 0; i < TXBUF_VC1_SIZE - 1; i++) txbuf[MY_INUM].vc1.list[i].next = i + 1;
+    txbuf[MY_INUM].vc1.list[i].next = -1;
+    txbuf[MY_INUM].vc1.free.head = 0;
+    txbuf[MY_INUM].vc1.free.tail = i;
+    txbuf[MY_INUM].vc1.ack.head = txbuf[MY_INUM].vc1.ack.tail = -1;
+    txbuf[MY_INUM].vc1.wait.head = txbuf[MY_INUM].vc1.wait.tail = -1;
+    pthread_mutex_init(&txbuf[MY_INUM].vc1.dg.mutex, &mutexattr);
+    pthread_mutex_init(&txbuf[MY_INUM].vc1.ack.mutex, &mutexattr);
+    
+    txbuf[MY_INUM].vc2.dg.head = txbuf[MY_INUM].vc2.dg.tail = -1;
+    for (i = 0; i < TXBUF_VC2_SIZE - 1; i++) txbuf[MY_INUM].vc2.list[i].next = i + 1;
+    txbuf[MY_INUM].vc2.list[i].next = -1;
+    txbuf[MY_INUM].vc2.free.head = 0;
+    txbuf[MY_INUM].vc2.free.tail = i;
+    txbuf[MY_INUM].vc2.wait.head = txbuf[MY_INUM].vc2.wait.tail = -1;
+    pthread_mutex_init(&txbuf[MY_INUM].vc2.dg.mutex, &mutexattr);
+    pthread_mutex_init(&txbuf[MY_INUM].vc2.free.mutex, &mutexattr);
+    
+    /* Initialize rxbuf */
+    rxbuf[MY_INUM].vc0.dg.head = rxbuf[MY_INUM].vc0.dg.tail = -1;
+    rxbuf[MY_INUM].vc0.dg.num = 0;
+    rxbuf[MY_INUM].vc1.dg.head = rxbuf[MY_INUM].vc1.dg.tail = -1;
+    rxbuf[MY_INUM].vc1.dg.num = 0;
+    rxbuf[MY_INUM].vc2.dg.head = rxbuf[MY_INUM].vc2.dg.tail = -1;
+    rxbuf[MY_INUM].vc2.dg.num = 0;
+    for (i = 0; i < RXBUF_SIZE - 1; i++) rxbuf[MY_INUM].list[i].next = i + 1;
+    rxbuf[MY_INUM].list[i].next = -1;
+    rxbuf[MY_INUM].free.head = 0;
+    rxbuf[MY_INUM].free.tail = i;
+    rxbuf[MY_INUM].free.vc1ack.head = rxbuf[MY_INUM].free.vc1ack.tail = -1;
+    rxbuf[MY_INUM].free.vc1ack.num = 0;
+    pthread_mutex_init(&rxbuf[MY_INUM].free.mutex, &mutexattr);
+    
+    return 0;
+}
+
+static void finalize_shmbuffer()
+{
+    int i, p;
+    
+    if (NUM_PROCS != NODE_POP) {
+        /* Finalize rxbuf */
+        pthread_mutex_destroy(&rxbuf[MY_INUM].free.mutex);
+        
+        /* Finalize txbuf */
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc0.dg.mutex);
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc0.free.mutex);
+        
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc1.dg.mutex);
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc1.ack.mutex);
+        
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc2.dg.mutex);
+        pthread_mutex_destroy(&txbuf[MY_INUM].vc2.free.mutex);
+    }
+    
+    /* Finalize ibuf */
+    p = NODE_POP * MY_INUM;
+    for (i = 0 ; i < NODE_POP; i++) {
+        pthread_mutex_destroy(&ibuf[p].vc0.free.mutex);
+        pthread_mutex_destroy(&ibuf[p].vc1.free.mutex);
+        pthread_mutex_destroy(&ibuf[p].vc2.free.mutex);
+        p++;
+    }
+    
+    /* Finalize doorbell */
+    pthread_cond_destroy(&doorbell[MY_INUM].cond);
+    pthread_mutex_destroy(&doorbell[MY_INUM].mutex);
+    
+    /* Destroy shared memory buffer */
+    munmap(shmbuf, shmbuf_size);
+    close(shmfd);
     
     return;
 }
 
-static uint32_t inc_seq(uint32_t seq)
+/* Doorbell functions */
+
+static inline void doorbell_wait(void)
 {
-    return seq < 0xffffffffU ? seq + 1U : 0U;
-}
-
-static uint32_t inc_txseq(uint32_t rank)
-{
-    uint32_t seq;
-    seq = txseq_table[rank];
-    txseq_table[rank] = inc_seq(seq);
-    return seq;
-}
-
-static uint32_t inc_rxseq(uint32_t rank)
-{
-    uint32_t seq;
-    seq = rxseq_table[rank];
-    rxseq_table[rank] = inc_seq(seq);
-    return seq;
-}
-
-static int compare_seq(uint32_t seq1, uint32_t seq2)
-{
-    if (seq2 > seq1) return (seq2 - seq1 <  0x80000000U) ? -1 :  1;
-    if (seq1 > seq2) return (seq1 - seq2 <= 0x80000000U) ?  1 : -1;
-    return 0;
-}
-
-/* Command Queue */
-
-#define BIT_CQ    (ACPBL_UDP_CQ_SIZE)
-#define WIDTH_CQ  (1LL << BIT_CQ)
-#define MASK_CQ   (WIDTH_CQ - 1LL)
-
-#define CQSTAT_COPY3READY    -1
-#define CQSTAT_COPY3TRY      -2
-#define CQSTAT_COPY3WAIT     -3
-#define CQSTAT_COPY2READY    -4
-#define CQSTAT_COPY2TRY      -5
-#define CQSTAT_COPY2WAIT     -6
-#define CQSTAT_COPY1READY    -7
-#define CQSTAT_COPY1TRY      -8
-#define CQSTAT_COPY0         -9
-#define CQSTAT_ATOMIC2READY  -10
-#define CQSTAT_ATOMIC2TRY    -11
-#define CQSTAT_ATOMIC2WAIT   -12
-#define CQSTAT_ATOMIC1READY  -13
-#define CQSTAT_ATOMIC1TRY    -14
-#define CQSTAT_ATOMIC0       -15
-#define CQSTAT_SCOPY3        -16
-
-typedef struct {
-    volatile int stat;
-    uint32_t type;
-    acp_ga_t dst;
-    acp_ga_t src;
-    size_t size;
-    uint32_t old4;
-    uint32_t new4;
-    uint64_t old8;
-    uint64_t new8;
-    uint32_t val4;
-    uint64_t val8;
-    acp_handle_t order;
-} cqe_t;
-
-static volatile cqe_t cq[WIDTH_CQ];
-static volatile uint64_t cqlk, cqwp, cqfp, cqrp, cqcp;
-static uint64_t last_copy_cqp;
-static acp_ga_t last_copy_dst, last_copy_src;
-
-static void cq_reset(void)
-{
-    cqwp = cqfp = cqrp = cqcp = 1;
-    sync_synchronize();
-    cqlk = 0;
-    last_copy_cqp = 0;
-    last_copy_dst = last_copy_src = ACP_GA_NULL;
+    /* Need doorbell.[MY_INUM].mutex locked */
+    if (MY_INUM == 0 && NUM_PROCS != NODE_POP) return;
+    pthread_cond_wait(&doorbell[MY_INUM].cond, &doorbell[MY_INUM].mutex);
     return;
 }
 
-static inline int cq_lock(void)
+static inline void doorbell_ring(int inum)
 {
-    while (sync_val_compare_and_swap_8(&cqlk, 0, 1)) ;
-    uint64_t wp = cqwp;
-    while (cqcp + WIDTH_CQ <= wp) ;
-    return (int)(wp & MASK_CQ);
+    /* Need doorbell.[inum].mutex locked */
+    if (inum == 0 && NUM_PROCS != NODE_POP) return;
+    //pthread_cond_signal(&doorbell[inum].cond);
+    pthread_cond_broadcast(&doorbell[inum].cond);
+    return;
 }
 
-static inline uint64_t cq_unlock(void)
+/* Pop free entry from target ibuf */
+
+static inline int ibuf_vc0_pop_free(int inum)
+{
+    int pos, ret;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&ibuf[pos].vc0.free.mutex);
+    ret = ibuf[pos].vc0.free.head;
+    if (ret >= 0)
+        if (ibuf[pos].vc0.list[ret].next < 0)
+            ibuf[pos].vc0.free.head = ibuf[pos].vc0.free.tail = -1;
+        else
+            ibuf[pos].vc0.free.head = ibuf[pos].vc0.list[ret].next;
+    pthread_mutex_unlock(&ibuf[pos].vc0.free.mutex);
+    
+    return ret;
+}
+
+static inline int ibuf_vc1_pop_free(int inum)
+{
+    int pos, ret;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&ibuf[pos].vc1.free.mutex);
+    ret = ibuf[pos].vc1.free.head;
+    if (ret >= 0)
+        if (ibuf[pos].vc1.list[ret].next < 0)
+            ibuf[pos].vc1.free.head = ibuf[pos].vc1.free.tail = -1;
+        else
+            ibuf[pos].vc1.free.head = ibuf[pos].vc1.list[ret].next;
+    pthread_mutex_unlock(&ibuf[pos].vc1.free.mutex);
+    
+    return ret;
+}
+
+static inline int ibuf_vc2_pop_free(int inum)
+{
+    int pos, ret;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&ibuf[pos].vc2.free.mutex);
+    ret = ibuf[pos].vc2.free.head;
+    if (ret >= 0)
+        if (ibuf[pos].vc2.list[ret].next < 0)
+            ibuf[pos].vc2.free.head = ibuf[pos].vc2.free.tail = -1;
+        else
+            ibuf[pos].vc2.free.head = ibuf[pos].vc2.list[ret].next;
+    pthread_mutex_unlock(&ibuf[pos].vc2.free.mutex);
+    
+    return ret;
+}
+
+/* Push datagram entry to target ibuf */
+
+static inline void ibuf_vc0_push_dg(int inum, int elem_id)
+{
+    int pos;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&doorbell[inum].mutex);
+    ibuf[pos].vc0.list[elem_id].next = -1;
+    if (ibuf[pos].vc0.dg.tail < 0)
+        ibuf[pos].vc0.dg.head = elem_id;
+    else
+        ibuf[pos].vc0.list[ibuf[pos].vc0.dg.tail].next = elem_id;
+    ibuf[pos].vc0.dg.tail = elem_id;
+    doorbell_ring(inum);
+    pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return;
+}
+
+static inline uint64_t ibuf_vc1_push_dg(int inum, int elem_id)
+{
+    int pos;
+    uint64_t ret;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&doorbell[inum].mutex);
+    ibuf[pos].vc1.list[elem_id].next = -1;
+    if (ibuf[pos].vc1.dg.tail < 0)
+        ibuf[pos].vc1.dg.head = elem_id;
+    else
+        ibuf[pos].vc1.list[ibuf[pos].vc1.dg.tail].next = elem_id;
+    ibuf[pos].vc1.dg.tail = elem_id;
+    ret = ++ibuf[pos].vc1.dg.dg_count;
+    doorbell_ring(inum);
+    pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return ret;
+}
+
+static inline void ibuf_vc2_push_dg(int inum, int elem_id)
+{
+    int pos;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&doorbell[inum].mutex);
+    ibuf[pos].vc2.list[elem_id].next = -1;
+    if (ibuf[pos].vc2.dg.tail < 0)
+        ibuf[pos].vc2.dg.head = elem_id;
+    else
+        ibuf[pos].vc2.list[ibuf[pos].vc2.dg.tail].next = elem_id;
+    ibuf[pos].vc2.dg.tail = elem_id;
+    doorbell_ring(inum);
+    pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return;
+}
+
+/* Pop datagram entry from my ibuf */
+
+static inline int ibuf_vc0_pop_dg(int inum)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int pos, ret;
+    pos = ibuf_pos(MY_INUM, inum);
+    ret = ibuf[pos].vc0.dg.head;
+    if (ret >= 0)
+        if (ibuf[pos].vc0.list[ret].next < 0)
+            ibuf[pos].vc0.dg.head = ibuf[pos].vc0.dg.tail = -1;
+        else
+            ibuf[pos].vc0.dg.head = ibuf[pos].vc0.list[ret].next;
+    return ret;
+}
+
+static inline int ibuf_vc1_pop_dg(int inum)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int pos, ret;
+    pos = ibuf_pos(MY_INUM, inum);
+    ret = ibuf[pos].vc1.dg.head;
+    if (ret >= 0) {
+        if (ibuf[pos].vc1.list[ret].next < 0)
+            ibuf[pos].vc1.dg.head = ibuf[pos].vc1.dg.tail = -1;
+        else
+            ibuf[pos].vc1.dg.head = ibuf[pos].vc1.list[ret].next;
+    }
+    return ret;
+}
+
+static inline int ibuf_vc2_pop_dg(int inum)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int pos, ret;
+    pos = ibuf_pos(MY_INUM, inum);
+    ret = ibuf[pos].vc2.dg.head;
+    if (ret >= 0)
+        if (ibuf[pos].vc2.list[ret].next < 0)
+            ibuf[pos].vc2.dg.head = ibuf[pos].vc2.dg.tail = -1;
+        else
+            ibuf[pos].vc2.dg.head = ibuf[pos].vc2.list[ret].next;
+    return ret;
+}
+
+/* Push free entry to my ibuf */
+
+static inline void ibuf_vc0_push_free(int inum, int elem_id)
+{
+    int pos;
+    
+    pos = ibuf_pos(MY_INUM, inum);
+    pthread_mutex_lock(&ibuf[pos].vc0.free.mutex);
+    ibuf[pos].vc0.list[elem_id].next = -1;
+    if (ibuf[pos].vc0.free.tail < 0)
+        ibuf[pos].vc0.free.head = elem_id;
+    else
+        ibuf[pos].vc0.list[ibuf[pos].vc0.free.tail].next = elem_id;
+    ibuf[pos].vc0.free.tail = elem_id;
+    pthread_mutex_unlock(&ibuf[pos].vc0.free.mutex);
+    
+    return;
+}
+
+static inline void ibuf_vc1_push_free(int inum, int elem_id)
+{
+    int pos;
+    
+    pos = ibuf_pos(MY_INUM, inum);
+    pthread_mutex_lock(&ibuf[pos].vc1.free.mutex);
+    ibuf[pos].vc1.list[elem_id].next = -1;
+    if (ibuf[pos].vc1.free.tail < 0)
+        ibuf[pos].vc1.free.head = elem_id;
+    else
+        ibuf[pos].vc1.list[ibuf[pos].vc1.free.tail].next = elem_id;
+    ibuf[pos].vc1.free.tail = elem_id;
+    ibuf[pos].vc1.free.ack_count++;
+    pthread_mutex_unlock(&ibuf[pos].vc1.free.mutex);
+    
+    return;
+}
+
+static inline uint64_t ibuf_vc1_free_ack_count(int inum)
+{
+    uint64_t ret;
+    int pos;
+    
+    pos = ibuf_pos(inum, MY_INUM);
+    pthread_mutex_lock(&ibuf[pos].vc1.free.mutex);
+    ret = ibuf[pos].vc1.free.ack_count;
+    pthread_mutex_unlock(&ibuf[pos].vc1.free.mutex);
+    
+    return ret;
+}
+
+static inline void ibuf_vc2_push_free(int inum, int elem_id)
+{
+    int pos;
+    
+    pos = ibuf_pos(MY_INUM, inum);
+    pthread_mutex_lock(&ibuf[pos].vc2.free.mutex);
+    ibuf[pos].vc2.list[elem_id].next = -1;
+    if (ibuf[pos].vc2.free.tail < 0)
+        ibuf[pos].vc2.free.head = elem_id;
+    else
+        ibuf[pos].vc2.list[ibuf[pos].vc2.free.tail].next = elem_id;
+    ibuf[pos].vc2.free.tail = elem_id;
+    pthread_mutex_unlock(&ibuf[pos].vc2.free.mutex);
+    
+    return;
+}
+
+/* Pop free entry from my txbuf */
+
+static inline int txbuf_vc0_pop_free(void)
+{
+    int ret;
+    
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc0.free.mutex);
+    ret = txbuf[MY_INUM].vc0.free.head;
+    if (ret >= 0)
+        if (txbuf[MY_INUM].vc0.list[ret].next < 0)
+            txbuf[MY_INUM].vc0.free.head = txbuf[MY_INUM].vc0.free.tail = -1;
+        else
+            txbuf[MY_INUM].vc0.free.head = txbuf[MY_INUM].vc0.list[ret].next;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc0.free.mutex);
+    
+    return ret;
+}
+
+static inline int txbuf_vc1_pop_free(void)
+{
+    int ret;
+    
+    ret = txbuf[MY_INUM].vc1.free.head;
+    if (ret >= 0)
+        if (txbuf[MY_INUM].vc1.list[ret].next < 0)
+            txbuf[MY_INUM].vc1.free.head = txbuf[MY_INUM].vc1.free.tail = -1;
+        else
+            txbuf[MY_INUM].vc1.free.head = txbuf[MY_INUM].vc1.list[ret].next;
+    
+    return ret;
+}
+
+static inline int txbuf_vc2_pop_free(void)
+{
+    int ret;
+    
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc2.free.mutex);
+    ret = txbuf[MY_INUM].vc2.free.head;
+    if (ret >= 0)
+        if (txbuf[MY_INUM].vc2.list[ret].next < 0)
+            txbuf[MY_INUM].vc2.free.head = txbuf[MY_INUM].vc2.free.tail = -1;
+        else
+            txbuf[MY_INUM].vc2.free.head = txbuf[MY_INUM].vc2.list[ret].next;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc2.free.mutex);
+    
+    return ret;
+}
+
+/* Push datagram entry to my txbuf */
+
+static inline void txbuf_vc0_push_dg(int elem_id)
+{
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc0.dg.mutex);
+    txbuf[MY_INUM].vc0.list[elem_id].next = -1;
+    if (txbuf[MY_INUM].vc0.dg.tail < 0)
+        txbuf[MY_INUM].vc0.dg.head = elem_id;
+    else
+        txbuf[MY_INUM].vc0.list[txbuf[MY_INUM].vc0.dg.tail].next = elem_id;
+    txbuf[MY_INUM].vc0.dg.tail = elem_id;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc0.dg.mutex);
+    
+    return;
+}
+
+static inline void txbuf_vc1_push_dg(int elem_id)
+{
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc1.dg.mutex);
+    txbuf[MY_INUM].vc1.list[elem_id].next = -1;
+    if (txbuf[MY_INUM].vc1.dg.tail < 0)
+        txbuf[MY_INUM].vc1.dg.head = elem_id;
+    else
+        txbuf[MY_INUM].vc1.list[txbuf[MY_INUM].vc1.dg.tail].next = elem_id;
+    txbuf[MY_INUM].vc1.dg.tail = elem_id;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc1.dg.mutex);
+    
+    return;
+}
+
+static inline void txbuf_vc2_push_dg(int elem_id)
+{
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc2.dg.mutex);
+    txbuf[MY_INUM].vc2.list[elem_id].next = -1;
+    if (txbuf[MY_INUM].vc2.dg.tail < 0)
+        txbuf[MY_INUM].vc2.dg.head = elem_id;
+    else
+        txbuf[MY_INUM].vc2.list[txbuf[MY_INUM].vc2.dg.tail].next = elem_id;
+    txbuf[MY_INUM].vc2.dg.tail = elem_id;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc2.dg.mutex);
+    
+    return;
+}
+
+/* Pop datagram entry from target txbuf */
+
+static inline int txbuf_vc0_pop_dg(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc0.dg.mutex);
+    ret = txbuf[inum].vc0.dg.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc0.list[ret].next < 0)
+            txbuf[inum].vc0.dg.head = txbuf[inum].vc0.dg.tail = -1;
+        else
+            txbuf[inum].vc0.dg.head = txbuf[inum].vc0.list[ret].next;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc0.dg.mutex);
+    
+    return ret;
+}
+
+static inline int txbuf_vc1_pop_dg(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc1.dg.mutex);
+    ret = txbuf[inum].vc1.dg.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc1.list[ret].next < 0)
+            txbuf[inum].vc1.dg.head = txbuf[inum].vc1.dg.tail = -1;
+        else
+            txbuf[inum].vc1.dg.head = txbuf[inum].vc1.list[ret].next;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc1.dg.mutex);
+    
+    return ret;
+}
+
+static inline int txbuf_vc2_pop_dg(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc2.dg.mutex);
+    ret = txbuf[inum].vc2.dg.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc2.list[ret].next < 0)
+            txbuf[inum].vc2.dg.head = txbuf[inum].vc2.dg.tail = -1;
+        else
+            txbuf[inum].vc2.dg.head = txbuf[inum].vc2.list[ret].next;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc2.dg.mutex);
+    
+    return ret;
+}
+
+/* Push wait entry to target txbuf */
+
+static inline void txbuf_vc0_push_wait(int inum, int elem_id)
+{
+    txbuf[inum].vc0.list[elem_id].next = -1;
+    if (txbuf[inum].vc0.wait.tail < 0)
+        txbuf[inum].vc0.wait.head = elem_id;
+    else
+        txbuf[inum].vc0.list[txbuf[inum].vc0.wait.tail].next = elem_id;
+    txbuf[inum].vc0.wait.tail = elem_id;
+    
+    return;
+}
+
+static inline void txbuf_vc1_push_wait(int inum, int elem_id)
+{
+    txbuf[inum].vc1.list[elem_id].next = -1;
+    if (txbuf[inum].vc1.wait.tail < 0)
+        txbuf[inum].vc1.wait.head = elem_id;
+    else
+        txbuf[inum].vc1.list[txbuf[inum].vc1.wait.tail].next = elem_id;
+    txbuf[inum].vc1.wait.tail = elem_id;
+    
+    return;
+}
+
+static inline void txbuf_vc2_push_wait(int inum, int elem_id)
+{
+    txbuf[inum].vc2.list[elem_id].next = -1;
+    if (txbuf[inum].vc2.wait.tail < 0)
+        txbuf[inum].vc2.wait.head = elem_id;
+    else
+        txbuf[inum].vc2.list[txbuf[inum].vc2.wait.tail].next = elem_id;
+    txbuf[inum].vc2.wait.tail = elem_id;
+    
+    return;
+}
+
+/* Pop wait entry to target txbuf */
+
+static inline int txbuf_vc0_pop_wait(int inum)
+{
+    int ret;
+    
+    ret = txbuf[inum].vc0.wait.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc0.list[ret].next < 0)
+            txbuf[inum].vc0.wait.head = txbuf[inum].vc0.wait.tail = -1;
+        else
+            txbuf[inum].vc0.wait.head = txbuf[inum].vc0.list[ret].next;
+    
+    return ret;
+}
+
+static inline int txbuf_vc1_pop_wait(int inum)
+{
+    int ret;
+    
+    ret = txbuf[inum].vc1.wait.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc1.list[ret].next < 0)
+            txbuf[inum].vc1.wait.head = txbuf[inum].vc1.wait.tail = -1;
+        else
+            txbuf[inum].vc1.wait.head = txbuf[inum].vc1.list[ret].next;
+    
+    return ret;
+}
+
+static inline int txbuf_vc2_pop_wait(int inum)
+{
+    int ret;
+    
+    ret = txbuf[inum].vc2.wait.head;
+    if (ret >= 0)
+        if (txbuf[inum].vc2.list[ret].next < 0)
+            txbuf[inum].vc2.wait.head = txbuf[inum].vc2.wait.tail = -1;
+        else
+            txbuf[inum].vc2.wait.head = txbuf[inum].vc2.list[ret].next;
+    
+    return ret;
+}
+
+/* Push ack entry to target txbuf vc1 */
+
+static inline void txbuf_vc1_push_ack(int inum, int elem_id)
+{
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc1.ack.mutex);
+    txbuf[inum].vc1.list[elem_id].next = -1;
+    if (txbuf[inum].vc1.ack.tail < 0)
+        txbuf[inum].vc1.ack.head = elem_id;
+    else
+        txbuf[inum].vc1.list[txbuf[inum].vc1.ack.tail].next = elem_id;
+    txbuf[inum].vc1.ack.tail = elem_id;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc1.ack.mutex);
+    
+    return;
+}
+
+/* Pop ack entry from my txbuf vc1 */
+
+static inline int txbuf_vc1_pop_ack(void)
+{
+    int ret;
+    
+    if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc1.ack.mutex);
+    ret = txbuf[MY_INUM].vc1.ack.head;
+    if (ret >= 0)
+        if (txbuf[MY_INUM].vc1.list[ret].next < 0)
+            txbuf[MY_INUM].vc1.ack.head = txbuf[MY_INUM].vc1.ack.tail = -1;
+        else
+            txbuf[MY_INUM].vc1.ack.head = txbuf[MY_INUM].vc1.list[ret].next;
+    if (MY_INUM > 0) pthread_mutex_unlock(&txbuf[MY_INUM].vc1.ack.mutex);
+    
+    return ret;
+}
+
+/* Push free entry to target txbuf */
+
+static inline void txbuf_vc0_push_free(int inum, int elem_id)
+{
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc0.free.mutex);
+    txbuf[inum].vc0.list[elem_id].next = -1;
+    if (txbuf[inum].vc0.free.tail < 0)
+        txbuf[inum].vc0.free.head = elem_id;
+    else
+        txbuf[inum].vc0.list[txbuf[inum].vc0.free.tail].next = elem_id;
+    txbuf[inum].vc0.free.tail = elem_id;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc0.free.mutex);
+    
+    return;
+}
+
+static inline void txbuf_vc1_push_free(int elem_id)
+{
+    txbuf[MY_INUM].vc1.list[elem_id].next = -1;
+    if (txbuf[MY_INUM].vc1.free.tail < 0)
+        txbuf[MY_INUM].vc1.free.head = elem_id;
+    else
+        txbuf[MY_INUM].vc1.list[txbuf[MY_INUM].vc1.free.tail].next = elem_id;
+    txbuf[MY_INUM].vc1.free.tail = elem_id;
+    
+    return;
+}
+
+static inline void txbuf_vc2_push_free(int inum, int elem_id)
+{
+    if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc2.free.mutex);
+    txbuf[inum].vc2.list[elem_id].next = -1;
+    if (txbuf[inum].vc2.free.tail < 0)
+        txbuf[inum].vc2.free.head = elem_id;
+    else
+        txbuf[inum].vc2.list[txbuf[inum].vc2.free.tail].next = elem_id;
+    txbuf[inum].vc2.free.tail = elem_id;
+    if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc2.free.mutex);
+    
+    return;
+}
+
+/* Pop free entry from target rxbuf */
+
+static inline int rxbuf_pop_free(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&rxbuf[inum].free.mutex);
+    ret = rxbuf[inum].free.head;
+    if (ret >= 0)
+        if (rxbuf[inum].list[ret].next < 0)
+            rxbuf[inum].free.head = rxbuf[inum].free.tail = -1;
+        else
+            rxbuf[inum].free.head = rxbuf[inum].list[ret].next;
+    if (inum > 0) pthread_mutex_unlock(&rxbuf[inum].free.mutex);
+    
+    return ret;
+}
+
+/* Push datagram entry to target rxbuf */
+
+static inline int rxbuf_vc0_push_dg(int inum, int elem_id)
+{
+    int ret = 0;
+    
+    if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+    if (rxbuf[inum].vc0.dg.num < RXBUF_VC0_SIZE) {
+        rxbuf[inum].list[elem_id].next = -1;
+        if (rxbuf[inum].vc0.dg.tail < 0)
+            rxbuf[inum].vc0.dg.head = elem_id;
+        else
+            rxbuf[inum].list[rxbuf[inum].vc0.dg.tail].next = elem_id;
+        rxbuf[inum].vc0.dg.tail = elem_id;
+        rxbuf[inum].vc0.dg.num += 1;
+        doorbell_ring(inum);
+    } else
+        ret = -1;
+    if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return ret;
+}
+
+static inline int rxbuf_vc1_push_dg(int inum, int elem_id)
+{
+    int ret = 0;
+    
+    if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+    if (rxbuf[inum].vc1.dg.num < RXBUF_VC1_SIZE) {
+        rxbuf[inum].list[elem_id].next = -1;
+        if (rxbuf[inum].vc1.dg.tail < 0)
+            rxbuf[inum].vc1.dg.head = elem_id;
+        else
+            rxbuf[inum].list[rxbuf[inum].vc1.dg.tail].next = elem_id;
+        rxbuf[inum].vc1.dg.tail = elem_id;
+        rxbuf[inum].vc1.dg.num += 1;
+        doorbell_ring(inum);
+    } else
+        ret = -1;
+    if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return ret;
+}
+
+static inline int rxbuf_vc2_push_dg(int inum, int elem_id)
+{
+    int ret = 0;
+    
+    if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+    if (rxbuf[inum].vc2.dg.num < RXBUF_VC2_SIZE) {
+        rxbuf[inum].list[elem_id].next = -1;
+        if (rxbuf[inum].vc2.dg.tail < 0)
+            rxbuf[inum].vc2.dg.head = elem_id;
+        else
+            rxbuf[inum].list[rxbuf[inum].vc2.dg.tail].next = elem_id;
+        rxbuf[inum].vc2.dg.tail = elem_id;
+        rxbuf[inum].vc2.dg.num += 1;
+        doorbell_ring(inum);
+    } else
+        ret = -1;
+    if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+    
+    return ret;
+}
+
+/* Pop datagram entry from my rxbuf */
+
+static inline int rxbuf_vc0_pop_dg(void)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int ret;
+    
+    ret = rxbuf[MY_INUM].vc0.dg.head;
+    if (ret >= 0) {
+        if (rxbuf[MY_INUM].list[ret].next < 0)
+            rxbuf[MY_INUM].vc0.dg.head = rxbuf[MY_INUM].vc0.dg.tail = -1;
+        else
+            rxbuf[MY_INUM].vc0.dg.head = rxbuf[MY_INUM].list[ret].next;
+        rxbuf[MY_INUM].vc0.dg.num -= 1;
+    }
+    
+    return ret;
+}
+
+static inline int rxbuf_vc1_pop_dg(void)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int ret;
+    
+    ret = rxbuf[MY_INUM].vc1.dg.head;
+    if (ret >= 0) {
+        if (rxbuf[MY_INUM].list[ret].next < 0)
+            rxbuf[MY_INUM].vc1.dg.head = rxbuf[MY_INUM].vc1.dg.tail = -1;
+        else
+            rxbuf[MY_INUM].vc1.dg.head = rxbuf[MY_INUM].list[ret].next;
+        rxbuf[MY_INUM].vc1.dg.num -= 1;
+    }
+    
+    return ret;
+}
+
+static inline int rxbuf_vc2_pop_dg(void)
+{
+    /* Need doorbell.[MY_INUM].mutex locked */
+    int ret;
+    
+    ret = rxbuf[MY_INUM].vc2.dg.head;
+    if (ret >= 0) {
+        if (rxbuf[MY_INUM].list[ret].next < 0)
+            rxbuf[MY_INUM].vc2.dg.head = rxbuf[MY_INUM].vc2.dg.tail = -1;
+        else
+            rxbuf[MY_INUM].vc2.dg.head = rxbuf[MY_INUM].list[ret].next;
+        rxbuf[MY_INUM].vc2.dg.num -= 1;
+    }
+    
+    return ret;
+}
+
+/* Push free entry to my rxbuf */
+
+static inline void rxbuf_push_free(int inum, int elem_id)
+{
+    if (inum > 0) pthread_mutex_lock(&rxbuf[inum].free.mutex);
+    rxbuf[inum].list[elem_id].next = -1;
+    if (rxbuf[inum].free.tail < 0)
+        rxbuf[inum].free.head = elem_id;
+    else
+        rxbuf[inum].list[rxbuf[inum].free.tail].next = elem_id;
+    rxbuf[inum].free.tail = elem_id;
+    if (inum > 0) pthread_mutex_unlock(&rxbuf[inum].free.mutex);
+    
+    return;
+}
+
+/* Check full: my rxbuf vc1ack */
+
+static inline int rxbuf_vc1ack_is_not_full(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&rxbuf[inum].free.mutex);
+    ret = (rxbuf[inum].free.vc1ack.num < RXBUF_VC1ACK_SIZE) ? 1 : 0;
+    if (inum > 0) pthread_mutex_unlock(&rxbuf[inum].free.mutex);
+    
+    return ret;
+}
+
+/* Push free entry to my rxbuf vc1ack */
+
+static inline void rxbuf_push_free_vc1ack(int inum, int elem_id)
+{
+    if (inum > 0) pthread_mutex_lock(&rxbuf[inum].free.mutex);
+    rxbuf[inum].list[elem_id].next = -1;
+    if (rxbuf[inum].free.vc1ack.tail < 0) {
+        rxbuf[inum].free.vc1ack.head = elem_id;
+        rxbuf[inum].free.vc1ack.num = 1;
+    } else {
+        rxbuf[inum].list[rxbuf[inum].free.vc1ack.tail].next = elem_id;
+        rxbuf[inum].free.vc1ack.num++;
+    }
+    rxbuf[inum].free.vc1ack.tail = elem_id;
+    if (inum > 0) pthread_mutex_unlock(&rxbuf[inum].free.mutex);
+    
+    return;
+}
+
+/* Pop free entry from my rxbuf vc1ack */
+
+static inline int rxbuf_pop_free_vc1ack(int inum)
+{
+    int ret;
+    
+    if (inum > 0) pthread_mutex_lock(&rxbuf[inum].free.mutex);
+    ret = rxbuf[inum].free.vc1ack.head;
+    if (ret >= 0)
+        if (rxbuf[inum].list[ret].next < 0) {
+            rxbuf[inum].free.vc1ack.head = rxbuf[inum].free.vc1ack.tail = -1;
+            rxbuf[inum].free.vc1ack.num = 0;
+        } else {
+            rxbuf[inum].free.vc1ack.head = rxbuf[inum].list[ret].next;
+            rxbuf[inum].free.vc1ack.num--;
+        }
+    if (inum > 0) pthread_mutex_unlock(&rxbuf[inum].free.mutex);
+    
+    return ret;
+}
+
+/***********************/
+/* Interface functions */
+/***********************/
+
+static cqe_t cq[WIDTH_CQ];
+static uint64_t cqwp, cqcp;
+static uint64_t cqxp;
+static acp_ga_t cq_latest_src_rank, cq_latest_dst_rank;
+
+/*
+                .
+                .
+         (wait) * cqcp
+         (done) :
+         (wait) *
+         (wait) *
+        (ready) + cqxp
+        (ready) |
+        (ready) |
+           cqwp .
+                .
+ [main thread]  .  [protocol thread]
+*/
+
+static void init_cq(void)
+{
+    cqwp = cqxp = cqcp = 1;
+    cq_latest_src_rank = cq_latest_dst_rank = -1;
+    return;
+}
+
+static void finalize_cq(void)
+{
+    return;
+}
+
+static inline int cq_open_entry(acp_ga_t dst, acp_ga_t src, acp_handle_t order)
+{
+    int src_rank, dst_rank, p;
+    
+    src_rank = ga2rank(src);
+    dst_rank = ga2rank(dst);
+    
+    while (1) {
+        if (pthread_mutex_trylock(&doorbell[MY_INUM].mutex) == 0)
+            if (cqcp + WIDTH_CQ <= cqwp)
+                pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+            else
+                break;
+        sched_yield();
+    }
+    p = (int)(cqwp & MASK_CQ);
+    
+    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
+    cq[p].ptr = cqwp;
+    cq[p].rank = MY_RANK;
+    cq[p].src = src;
+    cq[p].dst = dst;
+    
+    if (src_rank == MY_RANK && dst_rank == MY_RANK) {
+        cq[p].stat = CQSTAT_11;
+        cq[p].inum = MY_INUM;
+        cq[p].gateway = MY_GATEWAY;
+        cq[p].rfence = 0;
+    } else {
+        if (src_rank == MY_RANK) {
+            cq[p].stat = CQSTAT_12;
+            cq[p].inum = MY_INUM;
+            cq[p].gateway = MY_GATEWAY;
+        } else {
+            cq[p].stat = CQSTAT_2X;
+            cq[p].inum = INUM_TABLE[src_rank];
+            cq[p].gateway = GTWY_TABLE[src_rank];
+        }
+        cq[p].rfence = (cq[p].order == cqwp - 1 && src_rank == cq_latest_src_rank && dst_rank == cq_latest_dst_rank) ? 1 : 0;
+    }
+    
+    cq_latest_src_rank = src_rank;
+    cq_latest_dst_rank = dst_rank;
+    
+    return p;
+}
+
+static inline acp_handle_t cq_close_entry(void)
 {
     uint64_t wp = cqwp++;
-    sync_synchronize();
-    cqlk = 0;
-    return wp;
-}
-
-static inline int cqstat_copy(acp_ga_t dst, acp_ga_t src, size_t size)
-{
-    if (ga2rank(dst) == MY_RANK && ga2rank(src) == MY_RANK) return CQSTAT_COPY0;
-    if (ga2rank(src) == MY_RANK && size <= MAX_DATA_SIZE) return CQSTAT_COPY1READY;
-    if (ga2rank(dst) == MY_RANK) return CQSTAT_COPY2READY;
-    return CQSTAT_COPY3READY;
-}
-
-static inline int cqstat_atomic(acp_ga_t dst, acp_ga_t src)
-{
-    if (ga2rank(dst) == MY_RANK && ga2rank(src) == MY_RANK) return CQSTAT_ATOMIC0;
-    if (ga2rank(src) == MY_RANK) return CQSTAT_ATOMIC1READY;
-    return CQSTAT_ATOMIC2READY;
-}
-
-acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat = cqstat_copy(dst, src, size);
-    cq[p].type = TYPE_COPY;
-    cq[p].dst  = dst;
-    cq[p].src  = src;
-    cq[p].size = size;
-    if (cqwp == last_copy_cqp + 1 && ga2rank(dst) == ga2rank(last_copy_dst) && ga2rank(src) == ga2rank(last_copy_src)) {
-        if (cq[p].stat == CQSTAT_COPY3READY) {
-            cq[p].order = ACP_HANDLE_NULL;
-            cq[p].stat = CQSTAT_SCOPY3;
-            cq[p].type = TYPE_SCOPY;
-        }
-    }
-//    last_copy_cqp = cqwp;
-    last_copy_dst = dst;
-    last_copy_src = src;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newval, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_CAS4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].old4  = oldval;
-    cq[p].new4  = newval;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newval, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_CAS8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].old8  = oldval;
-    cq[p].new8  = newval;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_SWAP4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val4  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_SWAP8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val8  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_ADD4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val4  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_ADD8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val8  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_XOR4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val4  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_XOR8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val8  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_OR4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val4  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_OR8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val8  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_AND4;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val4  = value;
-    return (acp_handle_t)cq_unlock();
-}
-
-acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
-{
-    int p = cq_lock();
-    cq[p].order = (order == ACP_HANDLE_ALL || order == ACP_HANDLE_CONT) ? cqwp - 1 : order;
-    cq[p].stat  = cqstat_atomic(dst, src);
-    cq[p].type  = TYPE_AND8;
-    cq[p].dst   = dst;
-    cq[p].src   = src;
-    cq[p].val8  = value;
-    return (acp_handle_t)cq_unlock();
+    doorbell_ring(MY_INUM);
+    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    return (acp_handle_t)wp;
 }
 
 void acp_complete(acp_handle_t handle)
 {
     if (handle == ACP_HANDLE_NULL) return;
-    if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
-    if (handle < cqcp) return;
-    if (handle >= cqwp) return;
-    if (handle < cqrp) {
-        cqcp = handle+1;
-      return;
+    while (1) {
+        if (pthread_mutex_trylock(&doorbell[MY_INUM].mutex) == 0) {
+            if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) {
+                if (cqcp <= cqwp - 1)
+                    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+                else
+                    break;
+            } else {
+                if(cqcp <= handle)
+                    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+                else
+                    break;
+            }
+        }
+        sched_yield();
     }
-    while (cqrp <= handle) {
-        while (cq[cqrp & MASK_CQ].stat < 0) ;
-        cqrp++;
-    }
-    cqcp = cqrp;
+    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
     
     return;
 }
 
 int acp_inquire(acp_handle_t handle)
 {
-    if (handle == ACP_HANDLE_NULL) return 0;
+    int ret = 0;
+    
+    if (handle == ACP_HANDLE_NULL) return ret;
+    pthread_mutex_lock(&doorbell[MY_INUM].mutex);
     if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
-    if (handle < cqrp) return 0;
-    if (handle >= cqwp) return 0;
-    while (cqrp <= handle) {
-      if (cq[cqrp & MASK_CQ].stat < 0) return 1;
-      cqrp++;
+    if (cqcp > handle) ret = 1;
+    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    
+    return ret;
+}
+
+acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = COPY;
+    cq[p].size = size;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newval, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = CAS4;
+    cq[p].old4 = oldval;
+    cq[p].new4 = newval;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newval, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = CAS8;
+    cq[p].old8 = oldval;
+    cq[p].new8 = newval;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = SWAP4;
+    cq[p].val4 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = SWAP8;
+    cq[p].val8 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = ADD4;
+    cq[p].val4 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = ADD8;
+    cq[p].val8 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = XOR4;
+    cq[p].val4 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = XOR8;
+    cq[p].val8 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = OR4;
+    cq[p].val4 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = OR8;
+    cq[p].val8 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = AND4;
+    cq[p].val4 = value;
+    return cq_close_entry();
+}
+
+acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t order)
+{
+    int p = cq_open_entry(dst, src, order);
+    cq[p].type = AND8;
+    cq[p].val8 = value;
+    return cq_close_entry();
+}
+
+/************************/
+/* Communication thread */
+/************************/
+
+/* Delegate queue */
+
+static cqe_t dq[WIDTH_DQ];
+static int dqnext[WIDTH_DQ];
+static int dqprev[WIDTH_DQ];
+static int dqhead, dqexec, dqtail;
+static uint64_t dqoffset;
+static uint64_t dqwait[WIDTH_DQ];
+static int dqfreelist[WIDTH_DQ];
+static int dqflhead, dqflnum;
+
+/*
+  (wait/notify) * dqhead
+  (wait/notify) *
+                :
+  (wait/notify) *
+                :
+  (wait/notify) *
+       (active) + dqexec
+       (active) |
+       (active) | dqtail
+*/
+
+static inline void dq_reset(void)
+{
+    int i;
+    
+    debug printf("rank %d - dq reset\n", MY_RANK);
+    dqhead = dqexec = dqtail = -1;
+    dqoffset = 0;
+    for (i = 0; i < WIDTH_DQ; i++) dqfreelist[i] = i;
+    dqflhead = 0;
+    dqflnum = WIDTH_DQ;
+    
+    return;
+}
+
+static inline int is_dq_full(void)
+{
+    return (dqflnum == 0) ? 1 : 0;
+}
+
+static inline int is_dq_not_full(void)
+{
+    return (dqflnum > 0) ? 1 : 0;
+}
+
+static inline int is_dq_empty(void)
+{
+    return (dqflnum == WIDTH_DQ) ? 1 : 0;
+}
+
+static inline int is_dq_not_empty(void)
+{
+    return (dqflnum < WIDTH_DQ) ? 1 : 0;
+}
+
+static inline int dq_push(uint64_t ptr, uint32_t rank, uint32_t rfence, uint16_t type, acp_ga_t dst, acp_ga_t src)
+{
+    int dst_rank, pos;
+    
+    pos = dqfreelist[dqflhead];
+    dqflhead = (dqflhead + 1) & MASK_DQ;
+    dqflnum--;
+    dqnext[pos] = -1;
+    dqprev[pos] = dqtail;
+    dq[pos].stat = rfence ? DQSTAT_FENCE : DQSTAT_ACTIVE;
+    if (dqtail < 0) {
+        dqhead = dqexec = dqtail = pos;
+        dqoffset = 0;
+    } else {
+        dqnext[dqtail] = dqtail = pos;
+        if (dqexec < 0) {
+            dqexec = pos;
+            dqoffset = 0;
+        }
     }
     
+    dst_rank = ga2rank(dst);
+    dq[pos].inum = INUM_TABLE[dst_rank];
+    dq[pos].gateway = GTWY_TABLE[dst_rank];
+    dq[pos].ptr = ptr;
+    dq[pos].rank = rank;
+    dq[pos].rfence = rfence;
+    dq[pos].type = type;
+    dq[pos].dst = dst;
+    dq[pos].src = src;
+    
+    return pos;
+}
+
+static inline void dq_free(int pos)
+{
+    if (pos < 0) return;
+    if (dqexec == pos) {
+        dqexec = dqnext[pos];
+        dqoffset = 0;
+    }
+    if (dqhead == pos && dqtail == pos) {
+        dqhead = dqexec = dqtail = -1;
+        dqoffset = 0;
+    }else if (dqhead == pos) {
+        dqhead = dqnext[pos];
+        dqprev[dqhead] = -1;
+    } else if (dqtail == pos) {
+        dqtail = dqprev[pos];
+        dqnext[dqtail] = -1;
+    } else {
+        dqnext[dqprev[pos]] = dqnext[pos];
+        dqprev[dqnext[pos]] = dqprev[pos];
+    }
+    dqfreelist[(dqflhead + dqflnum) & MASK_DQ] = pos;
+    dqflnum++;
+    
+    return;
+}
+
+/* Datagram size utilities */
+
+static inline int dg_size_vc0(uint32_t type)
+{
+    if (type == CAS4 || type == SWAP4 || type == ADD4 || type == XOR4 || type == OR4 || type == AND4 ) return 44;
+    if (type == CAS8 ) return 56;
+    return 48;
+}
+
+static inline int dg_biased_size(int len)
+{
+    return ((len < 18) ? 18 : len) + DATAGRAM_BIAS;
+}
+
+/* Serial number */
+
+ser_entry_t* ser_table;
+
+static inline void init_ser(void)
+{
+    int i;
+    
+    ser_table = (ser_entry_t*)malloc(sizeof(ser_entry_t) * 3 * NODE_POP);
+    
+    for (i = 0; i < 3 * NODE_POP; i++) {
+        ser_table[i].last = 0;
+        ser_table[i].next = 0;
+    }
+    
+    return;
+}
+
+static inline void finalize_ser(void)
+{
+    if (ser_table != NULL) free(ser_table);
+    return;
+}
+
+static inline uint16_t inc_ser(int inum, int vc)
+{
+    uint16_t next;
+    int pos;
+    
+    pos = inum * 3 + vc;
+    next = ser_table[pos].next;
+    ser_table[pos].next = (next < 0xffff) ? next + 1 : 0;
+    if (ser_table[pos].last == next) ser_table[pos].last = (next < 0xffff) ? next + 1 : 0;
+    
+    return next;
+}
+
+static inline int update_ser(int inum, int vc, uint16_t ser)
+{
+    uint16_t last, next;
+    int pos, ret;
+    
+    pos = inum * 3 + vc;
+    next = ser_table[pos].next;
+    last = ser_table[pos].last;
+    ret = 0;
+    if (last != next + 1 && (last != 0 || next != 0xffff)) {
+        if (last <= next && (last <= ser && ser < next)) ret = 1;
+        if (next < last && (ser < next || last <= ser)) ret = 1;
+    }
+    ser_table[pos].last = (ser < 0xffff) ? ser + 1 : 0;
+    
+    return ret;
+}
+
+/* Sequence number */
+
+seq_entry_t* seq_table;
+
+static inline void init_seq(void)
+{
+    uint32_t rank;
+    uint64_t data, crc64;
+    int i, j;
+    
+    seq_table = (seq_entry_t*)malloc(sizeof(seq_entry_t) * NUM_PROCS * NODE_POP);
+    
+    /* Initialize sequence numbers for all ranks and all VCs */
+    for (rank = 0; rank < NUM_PROCS; rank++) {
+        data = ((uint64_t)TASKID << 32) | (uint64_t)rank;
+        crc64 = 0ULL;
+        for (i = 0; i < 64; i++){
+            crc64 = (crc64 << 1) ^ ((((crc64 >> 63) ^ data) & 1ULL) ? 0x42f0e1eba9ea3693ULL : 0ULL);
+            data >>= 1;
+        }
+        seq_table[rank].rxseq0 = crc64 & 0xffff;
+        seq_table[rank].rxseq1 = (crc64 >> 24) & 0xffff;
+        seq_table[rank].rxseq2 = (crc64 >> 48) & 0xffff;
+        seq_table[rank].rxseq1fwd = seq_table[rank].rxseq1;
+    }
+    
+    /* Fill the rest of seq_table */
+    for (i = 0; i < NODE_POP; i++) {
+        int k = i * NUM_PROCS;
+        rank = LMEM_TABLE[i];
+        for (j = 0; j < NUM_PROCS; j++) {
+            seq_table[j + k].txseq0 = seq_table[rank].rxseq0;
+            seq_table[j + k].txseq1 = seq_table[rank].rxseq1;
+            seq_table[j + k].txseq2 = seq_table[rank].rxseq2;
+            if (i == 0) continue;
+            seq_table[j + k].rxseq0 = seq_table[j].rxseq0;
+            seq_table[j + k].rxseq1 = seq_table[j].rxseq1;
+            seq_table[j + k].rxseq2 = seq_table[j].rxseq2;
+            seq_table[j + k].rxseq1fwd = seq_table[j].rxseq1;
+        }
+    }
+    
+    return;
+}
+
+static inline void finalize_seq(void)
+{
+    if (seq_table != NULL) free(seq_table);
+    return;
+}
+
+static inline uint16_t inc_seq(uint16_t* ptr)
+{
+    uint16_t org = *ptr;
+    *ptr = (org < 0xffff) ? org + 1 : 0;
+    return org;
+}
+
+static inline int compare_seq(uint16_t seq1, uint16_t seq2)
+{
+    if (seq2 > seq1) return (seq2 - seq1 <  0x8000U) ? -1 :  1;
+    if (seq1 > seq2) return (seq1 - seq2 <= 0x8000U) ?  1 : -1;
     return 0;
 }
 
-/* Command Station */
+/* Transmit time table */
 
-#define BIT_CS   (ACPBL_UDP_CS_SIZE)
-#define WIDTH_CS (1LL << BIT_CS)
-#define MASK_CS  (WIDTH_CS - 1LL)
+static uint64_t* txtime_table;
 
-typedef struct {
-    int prev;
-    int next;
-    uint64_t cqp;
-    uint64_t time;
-    uint64_t count;
-    uint32_t rank;
-    unsigned char dg[MAX_DG_SIZE];
-    size_t len;
-    struct sockaddr_in addr;
-} cse_t;
-
-static cse_t cs[WIDTH_CS];
-static int csfreelist[WIDTH_CS];
-static int cshead, cstail, csflhead, csflnum;
-
-static inline void cs_reset(void)
+static inline void init_txtime(uint64_t time)
 {
     int i;
     
-    for (i = 0; i < WIDTH_CS; i++) {
-      *dg_task(cs[i].dg) = TASKID;
-      *dg_rank(cs[i].dg) = MY_RANK;
-      cs[i].addr.sin_family = AF_INET;
-    }
-    
-    cshead = cstail = -1;
-    for (i = 0; i < WIDTH_CS; i++) csfreelist[i] = i;
-    csflhead = 0;
-    csflnum = WIDTH_CS;
+    txtime_table = (uint64_t*)malloc(sizeof(uint64_t) * 0x10000 * 3 * NODE_POP);
+    for (i = 0; i < 0x10000 * 3 * NODE_POP; i++) txtime_table[i] = time;
     
     return;
 }
 
-static inline int is_cs_full(void)
+static inline void finalize_txtime(void)
 {
-    return (csflnum == 0) ? 1 : 0;
-}
-
-static inline int is_cs_not_full(void)
-{
-    return (csflnum > 0) ? 1 : 0;
-}
-
-static inline int is_cs_empty(void)
-{
-    return (csflnum == WIDTH_CS) ? 1 : 0;
-}
-
-static inline int is_cs_not_empty(void)
-{
-    return (csflnum < WIDTH_CS) ? 1 : 0;
-}
-
-static inline int cs_add(uint64_t cqp, uint64_t time)
-{
-    int pos;
-    
-    pos = csfreelist[csflhead];
-    csflhead = (csflhead + 1) & MASK_CS;
-    csflnum--;
-    cs[pos].prev = cstail;
-    cs[pos].next = -1;
-    cs[pos].cqp = cqp;
-    cs[pos].time = time;
-    cs[pos].count = 0;
-    if (cstail >= 0)
-      cs[cstail].next = pos;
-    else
-      cshead = pos;
-    cstail = pos;
-    debug printf("rank %d - cs_add  cqp %6" PRIu64 " time %" PRIu64 " pos %d\n", MY_RANK, cqp, time, pos);
-    
-    return pos;
-}
-
-static inline void cs_free(int pos, uint64_t time)
-{
-    debug printf("rank %d - cs_free cqp %6" PRIu64 " time %" PRIu64 " pos %d count %" PRIu64 "\n", MY_RANK, cs[pos].cqp, time, pos, cs[pos].count);
-    if (cs[pos].prev >= 0)
-      cs[cs[pos].prev].next = cs[pos].next;
-    else
-      cshead = cs[pos].next;
-    if (cs[pos].next >= 0)
-      cs[cs[pos].next].prev = cs[pos].prev;
-    else
-      cstail = cs[pos].prev;
-    
-    csfreelist[(csflhead + csflnum) & MASK_CS] = pos;
-    csflnum++;
-    
+    if (txtime_table != NULL) free(txtime_table);
     return;
 }
 
-/* Delegate Station with Streaming Window */
+static inline uint64_t txtime(int inum, int vc, int ser)
+{
+    return txtime_table[((inum * 3 + vc) << 16) | ser];
+}
 
-#define BIT_DS   (ACPBL_UDP_DS_SIZE)
-#define WIDTH_DS (1LL << BIT_DS)
-#define MASK_DS  (WIDTH_DS - 1LL)
+static inline void set_txtime(int inum, int vc, int ser, uint64_t time)
+{
+    txtime_table[((inum * 3 + vc) << 16) | ser] = time;
+    return;
+}
 
-#define BIT_SW   (ACPBL_UDP_SW_SIZE)
-#define WIDTH_SW (1LL << BIT_SW)
-#define MASK_SW  (WIDTH_SW - 1LL)
+/* Round trip time prediction */
 
-#define DSSTAT_EMPTY         0
-#define DSSTAT_COPY_READ     1
-#define DSSTAT_COPY_END      2
-#define DSSTAT_COPY2_READ    3
-#define DSSTAT_ATOMIC_WRITE  4
-#define DSSTAT_ATOMIC_END    5
-#define DSSTAT_COPY_FENCE    6
+static rtt_pred_entry_t* rtt_pred_table;
 
-typedef struct {
-    int prev;
-    int next;
-    uint64_t time;
-    uint64_t count;
-    void* dst;
-    acp_ga_t src;
-    size_t len;
-} swe_t;
-
-typedef struct {
-    int prev;
-    int next;
-    int stat;
-    int complete;
-    uint64_t time;
-    uint64_t count;
-    uint32_t rank;
-    uint32_t seq;
-    acp_ga_t dst;
-    acp_ga_t src;
-    uint64_t size;
-    uint64_t offset;
-    size_t len;
-    unsigned char dg[DG_HEADER_SIZE + 8];
-    struct sockaddr_in addr;
-    swe_t sw[WIDTH_SW];
-    int swfreelist[WIDTH_SW];
-    int swhead, swtail, swflhead, swflnum;
-} dse_t;
-
-static dse_t ds[WIDTH_DS];
-static int dsfreelist[WIDTH_DS];
-static int dshead, dstail, dsflhead, dsflnum;
-
-static inline void ds_reset(void)
+static inline void init_rtt_pred(void)
 {
     int i;
     
-    for (i = 0; i < WIDTH_DS; i++) {
-      ds[i].stat = DSSTAT_EMPTY;
-      *dg_task(ds[i].dg) = TASKID;
-      ds[i].addr.sin_family = AF_INET;
+    rtt_pred_table = (rtt_pred_entry_t*)malloc(sizeof(rtt_pred_entry_t) * 3 * NUM_PROCS);
+    
+    for (i = 0; i < 3 * NUM_PROCS; i++) {
+        rtt_pred_table[i].sa = NETWORK_RTT * 1000ULL;
+        rtt_pred_table[i].sv = NETWORK_RTT * 1000ULL;
     }
-    
-    dshead = dstail = -1;
-    for (i = 0; i < WIDTH_DS; i++) dsfreelist[i] = i;
-    dsflhead = 0;
-    dsflnum = WIDTH_DS;
-    
     return;
 }
 
-static inline int is_ds_full(void)
+static inline void finalize_rtt_pred(void)
 {
-    return (dsflnum == 0) ? 1 : 0;
-}
-
-static inline int is_ds_not_full(void)
-{
-    return (dsflnum > 0) ? 1 : 0;
-}
-
-static inline int is_ds_empty(void)
-{
-    return (dsflnum == WIDTH_DS) ? 1 : 0;
-}
-
-static inline int is_ds_not_empty(void)
-{
-    return (dsflnum < WIDTH_DS) ? 1 : 0;
-}
-
-static inline int ds_add(int stat, uint64_t time)
-{
-    int pos, i;
-    
-    pos = dsfreelist[dsflhead];
-    dsflhead = (dsflhead + 1) & MASK_DS;
-    dsflnum--;
-    ds[pos].prev = dstail;
-    ds[pos].next = -1;
-    ds[pos].stat = stat;
-    ds[pos].complete = 0;
-    ds[pos].time = time;
-    ds[pos].count = 0;
-    if (dstail >= 0)
-        ds[dstail].next = pos;
-    else
-      dshead = pos;
-    dstail = pos;
-    
-    ds[pos].swhead = ds[pos].swtail = -1;
-    for (i = 0; i < WIDTH_SW; i++) ds[pos].swfreelist[i] = i;
-    ds[pos].swflhead = 0;
-    ds[pos].swflnum = WIDTH_SW;
-    
-    for (i = 0; i < WIDTH_SW; i++) ds[pos].sw[i].src = ACP_GA_NULL;
-    
-    debug printf("rank %d - ds_add  stat %5d time %" PRIu64 " pos %d\n", MY_RANK, stat, time, pos);
-    return pos;
-}
-
-static inline void ds_free(int pos, uint64_t time)
-{
-    debug printf("rank %d - ds_free stat %5d time %" PRIu64 " pos %d count %" PRIu64 "\n", MY_RANK, ds[pos].stat, time, pos, ds[pos].count);
-    ds[pos].stat = DSSTAT_EMPTY;
-    
-    if (ds[pos].prev >= 0)
-      ds[ds[pos].prev].next = ds[pos].next;
-    else
-      dshead = ds[pos].next;
-    if (ds[pos].next >= 0)
-      ds[ds[pos].next].prev = ds[pos].prev;
-    else
-      dstail = ds[pos].prev;
-    
-    dsfreelist[(dsflhead + dsflnum) & MASK_DS] = pos;
-    dsflnum++;
-    
+    if (rtt_pred_table != NULL) free(rtt_pred_table);
     return;
 }
 
-static inline int is_sw_full(int pos)
+static inline uint64_t rtt_pred(int rank, int vc)
 {
-    return (ds[pos].swflnum == 0) ? 1 : 0;
-}
-
-static inline int is_sw_not_full(int pos)
-{
-    return (ds[pos].swflnum > 0) ? 1: 0;
-}
-
-static inline int is_sw_empty(int pos)
-{
-    return (ds[pos].swflnum == WIDTH_SW) ? 1 : 0;
-}
-
-static inline int is_sw_not_empty(int pos)
-{
-    return (ds[pos].swflnum < WIDTH_SW) ? 1 : 0;
-}
-
-static inline int sw_add(int dsid, uint64_t time)
-{
+    int64_t sa, sv;
+    uint64_t max_rtt, rtt;
     int pos;
     
-    pos = ds[dsid].swfreelist[ds[dsid].swflhead];
-    ds[dsid].swflhead = (ds[dsid].swflhead + 1) & MASK_SW;
-    ds[dsid].swflnum--;
-    ds[dsid].sw[pos].prev = ds[dsid].swtail;
-    ds[dsid].sw[pos].next = -1;
-    ds[dsid].sw[pos].time = time;
-    ds[dsid].sw[pos].count = 0;
-    if (ds[dsid].swtail >= 0)
-        ds[dsid].sw[ds[dsid].swtail].next = pos;
-    else
-        ds[dsid].swhead = pos;
-    ds[dsid].swtail = pos;
+    pos = rank * 3 + vc;
+    sa = rtt_pred_table[pos].sa;
+    sv = rtt_pred_table[pos].sv;
     
-    debug printf("rank %d - sw_add  dsid %5d time %" PRIu64 " pos %d\n", MY_RANK, dsid, time, pos);
-    return pos;
+    max_rtt = MAX_NETWORK_RTT * 1000ULL;
+    rtt = sa + (sv << 2);
+    if (rtt > max_rtt) return max_rtt;
+    
+    return rtt;
 }
 
-static inline void sw_free(int dsid, int swid, uint64_t time)
+static inline void rtt_update(int rank, int vc, int64_t rtt)
 {
-    debug printf("rank %d - sw_free dsid %5d time %" PRIu64 " pos %d count %" PRIu64 "\n", MY_RANK, dsid, time, swid, ds[dsid].sw[swid].count);
-    ds[dsid].sw[swid].src = ACP_GA_NULL;
+    int64_t delta, sa, sv;
+    int pos;
     
-    if (ds[dsid].sw[swid].prev >= 0)
-        ds[dsid].sw[ds[dsid].sw[swid].prev].next = ds[dsid].sw[swid].next;
-    else
-        ds[dsid].swhead = ds[dsid].sw[swid].next;
-    if (ds[dsid].sw[swid].next >= 0)
-        ds[dsid].sw[ds[dsid].sw[swid].next].prev = ds[dsid].sw[swid].prev;
-    else
-        ds[dsid].swtail = ds[dsid].sw[swid].prev;
+    pos = rank * 3 + vc;
+    sa = rtt_pred_table[pos].sa;
+    sv = rtt_pred_table[pos].sv;
     
-    ds[dsid].swfreelist[(ds[dsid].swflhead + ds[dsid].swflnum) & MASK_SW] = swid;
-    ds[dsid].swflnum++;
+    delta = (rtt > sa) ? rtt - sa : sa - rtt;
+    
+    sa = ((sa + rtt >> 1) + sa >> 1) + sa >> 1;
+    sv = (sv + delta >> 1) + sv >> 1;
+    
+    rtt_pred_table[pos].sa = sa;
+    rtt_pred_table[pos].sv = sv;
     
     return;
 }
 
-/* Communication thread */
+/* Retransmit list */
 
-volatile static int comm_thread_ready;
-volatile static int abort_comm_thread;
-static unsigned char dg[MAX_DG_SIZE];
+static retx_list_entry_t* retx_list;
+static int retx_head, retx_tail;
+
+static inline void init_retx_list(void)
+{
+    int num, i;
+    
+    num = (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE) * NODE_POP;
+    retx_list = (retx_list_entry_t*)malloc(sizeof(retx_list_entry_t) * num);
+    for (i = 0; i < num; i++) retx_list[i].time = 0;
+    retx_head = retx_tail = -1;
+    return;
+}
+
+static inline void finalize_retx_list(void)
+{
+    if (retx_list != NULL) free(retx_list);
+    return;
+}
+
+static inline int retx_list_pos(int inum, int vc, int elem_id)
+{
+    if (vc == 0) return (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE) * inum + elem_id;
+    if (vc == 1) return (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE) * inum + TXBUF_VC0_SIZE + elem_id;
+    return (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE) * inum + TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + elem_id;
+}
+
+static inline int retx_list_pos_inum(int pos)
+{
+    return pos / (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE);
+}
+
+static inline int retx_list_pos_vc(int pos)
+{
+    int i = pos % (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE);
+    if (i < TXBUF_VC0_SIZE) return 0;
+    if (i < TXBUF_VC0_SIZE + TXBUF_VC1_SIZE) return 1;
+    return 2;
+}
+
+static inline int retx_list_pos_elem_id(int pos)
+{
+    int i = pos % (TXBUF_VC0_SIZE + TXBUF_VC1_SIZE + TXBUF_VC2_SIZE);
+    if (i < TXBUF_VC0_SIZE) return i;
+    if (i < TXBUF_VC0_SIZE + TXBUF_VC1_SIZE) return i - TXBUF_VC0_SIZE;
+    return i - TXBUF_VC0_SIZE - TXBUF_VC1_SIZE;
+}
+
+static inline void delete_retx_entry(int pos)
+{
+    int next, prev;
+    
+    if (retx_list[pos].time == 0) return;
+    
+    next = retx_list[pos].next;
+    prev = retx_list[pos].prev;
+    
+    if (prev == -1)
+        retx_head = next;
+    else
+        retx_list[prev].next = next;
+    if (next == -1)
+        retx_tail = prev;
+    else
+        retx_list[next].prev = prev;
+    
+    retx_list[pos].time = 0;
+    
+    return;
+}
+
+static inline void insert_retx_time(int pos, uint64_t time)
+{
+    int ptr = retx_tail;
+    int next = -1;
+    
+    if (retx_list[pos].time) delete_retx_entry(pos);
+    retx_list[pos].time = time ? time : 1;
+    
+    while (ptr >= 0) {
+        if (retx_list[ptr].time <= time) break;
+        next = ptr;
+        ptr = retx_list[ptr].prev;
+    }
+    
+    retx_list[pos].next = next;
+    retx_list[pos].prev = ptr;
+    if (ptr >= 0)
+        retx_list[ptr].next = pos;
+    else
+        retx_head = pos;
+    if (next >= 0)
+        retx_list[next].prev = pos;
+    else
+        retx_tail = pos;
+    return;
+}
+
+/* Communication thread function */
 
 static void* comm_thread_func(void *param)
 {
-    uint64_t free_count;
-    uint64_t last_cqwp;
-    /* UDP communication variables */
-    struct sockaddr_in addr;
-    int sock;
-    struct pollfd pfds[1];
-    socklen_t sock_addr_in_size = sizeof(struct sockaddr_in);
-    int bind_retval;
-    struct sockaddr_in from;
+    struct pollfd* pfds;
+    struct sockaddr_in addr, from;
     socklen_t addr_len;
     ssize_t recv_len;
+    dg_union* dgp;
+    dg_control_t dgc;
+    uint32_t send_to;
+    uint64_t estimated_nsec = 0, current_nsec, tmp_nsec, cqcp_tmp, cqwp_tmp, count, size;
+    int i, j, check, check_clear, check_cont, check_not_full, check_quit, check_wait;
+    int elem_id, inum, len, next, p, pos, prev, ptr, sock, tx_bytes, type, vc;
+    int tx_vc0_next_inum = 0, tx_vc1_next_inum = 0, tx_vc2_next_inum = 0, rx_vc0_next_inum = 0, rx_vc1_next_inum = 0;
     
-#ifdef DEBUG
-    printf("rank %d comm_thread - begin\n", MY_RANK);
-    printf("rank %d comm_thread - maximum datagram size%5dB (data%5dB)\n", MY_RANK, MAX_DG_SIZE, MAX_DATA_SIZE);
-    printf("rank %d comm_thread - command queue    %5d bytes %5d entries\n", MY_RANK, sizeof(cqe_t), WIDTH_CQ);
-    printf("rank %d comm_thread - command station  %5d bytes %5d entries\n", MY_RANK, sizeof(cse_t), WIDTH_CS);
-    printf("rank %d comm_thread - delegate station %5d bytes %5d entries\n", MY_RANK, sizeof(dse_t), WIDTH_DS);
-    printf("rank %d comm_thread - streaming window %5d bytes %5d entries\n", MY_RANK, sizeof(swe_t), WIDTH_SW);
+    /******** Initinalization for the transport processing ********/
     
-#endif
-    /* bind socket for UDP */
-    addr.sin_family = AF_INET;
-    addr.sin_port = PORT_TABLE[MY_RANK];
-    addr.sin_addr.s_addr = INADDR_ANY;
-    sock = socket(AF_INET, SOCK_DGRAM, 0);
-    bind_retval = bind(sock, (struct sockaddr *)&addr, sock_addr_in_size);
-    
-    /* set pollfd for UDP */
-    pfds[0].fd = sock;
-    pfds[0].events = POLLIN;
-    pfds[0].revents = 0;
-    
-    cq_reset();
-    cs_reset();
-    ds_reset();
-    
-    sync_synchronize();
-    comm_thread_ready = 1;
-    free_count = 0;
-    last_cqwp = cqwp;
-    
-    while (!abort_comm_thread) {
-        uint64_t time, cqp, p, cqnum, len;
-        uint32_t type, pos, rank, seq;
-        uint32_t dsid, swid, drank;
-        uint32_t reverse_seq;
-        int i, j, stat;
+    if (MY_INUM == 0 && NUM_PROCS != NODE_POP) {
+        debug printf("rank %d - initinalization for the transport processing\n", MY_RANK);
+        init_ser();
+        init_seq();
+        init_txtime(get_nsec());
+        init_rtt_pred();
+        init_retx_list();
         
-        time = get_clock();
+        /*** Setup pollfds for UDP communication ***/
         
-        /*** Command Queue ****/
+        pfds = (struct pollfd*)malloc(sizeof(struct pollfd) * NODE_POP);
+        if (pfds == NULL) {
+            pthread_mutex_lock(&mutex_comm_thread_ready);
+            pthread_cond_signal(&cond_comm_thread_ready);
+            pthread_mutex_unlock(&mutex_comm_thread_ready);
+            finalize_retx_list();
+            finalize_rtt_pred();
+            finalize_txtime();
+            finalize_seq();
+            finalize_ser();
+            return NULL;
+        }
         
-        if (free_count++ > 10 && last_cqwp == cqwp)
-            sched_yield();
-        else
-            last_cqwp = cqwp;
-        
-        while (cqrp < cqcp && cq[cqrp & MASK_CQ].stat >= 0) cqrp++;
-        cqnum = (cqwp - cqrp < 64) ? cqwp - cqrp : 64;
-        if (cqfp < cqrp) cqfp = cqrp;
-        for (i = 0; i < cqnum; i++) {
-            if (cqwp <= cqfp) cqfp = cqrp;
-            cqp = cqfp++;
-            p = cqp & MASK_CQ;
-            if (cq[p].order >= cqrp) continue;
-            if (cq[p].stat >= 0) continue;
-            
-            /* Delegating Copy to destination */
-            if (cq[p].stat == CQSTAT_COPY3READY && is_cs_not_full()) {
-                pos = cs_add(cqp, time);
-                rank = cs[pos].rank = ga2rank(cq[p].dst);
-                *dg_type(cs[pos].dg) = TYPE_COPY;
-                *dg_seq (cs[pos].dg) = inc_txseq(rank);
-                *dg_ptr (cs[pos].dg) = cqp;
-                *dg_dst (cs[pos].dg) = cq[p].dst;
-                *dg_src (cs[pos].dg) = cq[p].src;
-                *dg_size(cs[pos].dg) = cq[p].size;
-                cs[pos].len = DG_HEADER_SIZE + 16;
-                cs[pos].addr.sin_port = PORT_TABLE[rank];
-                cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
-                sync_synchronize();
-                cq[p].stat = CQSTAT_COPY3TRY;
+        addr_len = sizeof(struct sockaddr_in);
+        for (i = 0; i < NODE_POP; i++) {
+            /* bind socket */
+            pfds[i].fd = socket(AF_INET, SOCK_DGRAM, 0);
+            addr.sin_family = AF_INET;
+            addr.sin_port = PORT_TABLE[LMEM_TABLE[i]];
+            addr.sin_addr.s_addr = INADDR_ANY;
+            if (bind(pfds[i].fd, (struct sockaddr *)&addr, addr_len)) {
+                for (j = i - 1; j >= 0; j--) close(pfds[j].fd);
+                pthread_mutex_lock(&mutex_comm_thread_ready);
+                pthread_cond_signal(&cond_comm_thread_ready);
+                pthread_mutex_unlock(&mutex_comm_thread_ready);
+                finalize_retx_list();
+                finalize_rtt_pred();
+                finalize_txtime();
+                finalize_seq();
+                finalize_ser();
+                return NULL;
             }
+            /* set events */
+            pfds[i].events = POLLIN;
+            pfds[i].revents = 0;
+        }
+    }
+    
+    /*** Main loop ***/
+    pthread_mutex_lock(&mutex_comm_thread_ready);
+    pthread_cond_signal(&cond_comm_thread_ready);
+    pthread_mutex_unlock(&mutex_comm_thread_ready);
+    debug printf("rank %d - communication thread ready\n", MY_RANK);
+    
+    pthread_mutex_lock(&mutex_comm_thread_start);
+    pthread_cond_wait(&cond_comm_thread_start, &mutex_comm_thread_start);
+    pthread_mutex_unlock(&mutex_comm_thread_start);
+    debug printf("rank %d - communication thread start\n", MY_RANK);
+    
+    while (1) {
+        /*** Quit check ***/
+        
+        pthread_mutex_lock(&mutex_quit_comm_thread);
+        check_quit = quit_comm_thread;
+        pthread_mutex_unlock(&mutex_quit_comm_thread);
+        if (check_quit) break;
+        
+        /******** Transport processing ********/
+        
+        if (MY_INUM == 0 && NUM_PROCS != NODE_POP) {
             
-            /* Delegating Serialized Copy to destination */
-            if (cq[p].stat == CQSTAT_SCOPY3 && is_cs_not_full()) {
-                stat = 0;
-                if (cqp - 1 > cqrp) stat = cq[(cqp - 1) & MASK_CQ].stat;
-                if (stat == CQSTAT_COPY3TRY || stat == CQSTAT_COPY3WAIT || stat == 0) {
-                    pos = cs_add(cqp, time);
-                    rank = cs[pos].rank = ga2rank(cq[p].dst);
-                    *dg_type(cs[pos].dg) = TYPE_SCOPY;
-                    *dg_seq (cs[pos].dg) = inc_txseq(rank);
-                    *dg_ptr (cs[pos].dg) = cqp;
-                    *dg_dst (cs[pos].dg) = cq[p].dst;
-                    *dg_src (cs[pos].dg) = cq[p].src;
-                    *dg_size(cs[pos].dg) = cq[p].size;
-                    cs[pos].len = DG_HEADER_SIZE + 16;
-                    cs[pos].addr.sin_port = PORT_TABLE[rank];
-                    cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
-                    sync_synchronize();
-                    cq[p].stat = CQSTAT_COPY3TRY;
+            /*** Sweep rxbuf vc1 ack ***/
+            current_nsec = get_nsec();
+            tx_bytes = 0;
+            
+            for (inum = 0; inum < NODE_POP; inum++) {
+                while((elem_id = rxbuf_pop_free_vc1ack(inum)) >= 0) {
+                    dgp = (dg_union*)rxbuf[inum].list[elem_id].dg;
+                    send_to = dgp->put.rank;
+                    pos = inum * NUM_PROCS + send_to;
+                    sock = pfds[inum].fd;
+                    dgc.task = TASKID;
+                    dgc.c = ACK;
+                    dgc.vc = 1;
+                    dgc.rank = LMEM_TABLE[inum];
+                    dgc.ser = dgp->put.ser;
+                    inc_seq(&seq_table[pos].rxseq1);
+                    dgc.seq = seq_table[pos].rxseq0;
+                    dgc.seq1 = seq_table[pos].rxseq1;
+                    dgc.seq2 = seq_table[pos].rxseq2;
+                    len = 16;
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    tx_bytes += dg_biased_size(len);
+                    rxbuf_push_free(inum, elem_id);
+                    sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
                 }
             }
             
-            /* Delegating Copy locally */
-            if (cq[p].stat == CQSTAT_COPY2READY && is_ds_not_full()){
-                pos = ds_add(DSSTAT_COPY2_READ, time);
-                rank = ds[pos].rank = ga2rank(cq[p].dst);
-                ds[pos].dst  = cq[p].dst;
-                ds[pos].src  = cq[p].src;
-                ds[pos].size = cq[p].size;
-                ds[pos].offset = 0;
-                *dg_rank(ds[pos].dg) = rank;
-                *dg_ptr (ds[pos].dg) = cqp;
-                drank = ga2rank(cq[p].src);
-                ds[pos].len = DG_HEADER_SIZE;
-                ds[pos].addr.sin_port = PORT_TABLE[drank];
-                ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                sync_synchronize();
-                cq[p].stat = CQSTAT_COPY2WAIT;
-            }
+            /*** Recieve datagram ***/
             
-            /* One-way Copy */
-            if (cq[p].stat == CQSTAT_COPY1READY && is_cs_not_full()) {
-                pos = cs_add(cqp, time);
-                rank = cs[pos].rank = ga2rank(cq[p].dst);
-                *dg_type(cs[pos].dg) = TYPE_PUT;
-                *dg_seq (cs[pos].dg) = inc_txseq(rank);
-                *dg_plen(cs[pos].dg) = cq[p].size;
-                *dg_dst (cs[pos].dg) = cq[p].dst;
-                memcpy(dg_data(cs[pos].dg), ga2address(cq[p].src), cq[p].size);
-                cs[pos].len = DG_HEADER_SIZE + *dg_plen(cs[pos].dg);
-                cs[pos].addr.sin_port = PORT_TABLE[rank];
-                cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
-                sync_synchronize();
-                cq[p].stat = CQSTAT_COPY1TRY;
-            }
-            
-            /* Local Copy */
-            if (cq[p].stat == CQSTAT_COPY0) {
-                debug printf("rank %d - memcpy  cqp %6" PRIu64 " time %" PRIu64 " dst 0x%016" PRIx64 " src 0x%016" PRIx64 " size %" PRIu64 "\n", MY_RANK, cqp, time, (uint64_t)ga2address(cq[p].dst), (uint64_t)ga2address(cq[p].src), cq[p].size);
-                memcpy(ga2address(cq[p].dst), ga2address(cq[p].src), cq[p].size);
-                sync_synchronize();
-                cq[p].stat = 0;
-            }
-            
-            /* Delegating Atomic to source */
-            if (cq[p].stat == CQSTAT_ATOMIC2READY && is_cs_not_full()) {
-                type = cq[p].type;
-                pos = cs_add(cqp, time);
-                rank = cs[pos].rank = ga2rank(cq[p].src);
-                *dg_type(cs[pos].dg) = type;
-                *dg_seq (cs[pos].dg) = inc_txseq(rank);
-                *dg_ptr (cs[pos].dg) = cqp;
-                *dg_dst (cs[pos].dg) = cq[p].dst;
-                *dg_src (cs[pos].dg) = cq[p].src;
-                if        (type == TYPE_CAS4) {
-                    *dg_old4(cs[pos].dg) = cq[p].old4;
-                    *dg_new4(cs[pos].dg) = cq[p].new4;
-                    cs[pos].len = DG_HEADER_SIZE + 16;
-                } else if (type == TYPE_CAS8) {
-                    *dg_old8(cs[pos].dg) = cq[p].old8;
-                    *dg_new8(cs[pos].dg) = cq[p].new8;
-                    cs[pos].len = DG_HEADER_SIZE + 24;
-                } else if (type == TYPE_SWAP4 || type == TYPE_ADD4 || type == TYPE_XOR4 || type == TYPE_OR4 || type == TYPE_AND4){
-                    *dg_val4(cs[pos].dg) = cq[p].val4;
-                    cs[pos].len = DG_HEADER_SIZE + 12;
-                } else {
-                    *dg_val8(cs[pos].dg) = cq[p].val8;
-                    cs[pos].len = DG_HEADER_SIZE + 16;
-                }
-                cs[pos].addr.sin_port = PORT_TABLE[rank];
-                cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
-                sync_synchronize();
-                cq[p].stat = CQSTAT_ATOMIC2TRY;
-            }
-            
-            /* One-way Atomic */
-            if (cq[p].stat == CQSTAT_ATOMIC1READY && is_cs_not_full()) {
-                type = cq[p].type;
-                pos = cs_add(cqp, time);
-                rank = cs[pos].rank = ga2rank(cq[p].dst);
-                *dg_type(cs[pos].dg) = TYPE_PUT;
-                *dg_seq (cs[pos].dg) = inc_txseq(rank);
-                *dg_plen(cs[pos].dg) = atomic_size(type);
-                *dg_dst (cs[pos].dg) = cq[p].dst;
-                if      (type == TYPE_CAS4)
-                    *dg_ret4(cs[pos].dg) = sync_val_compare_and_swap_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].old4, cq[p].new4);
-                else if (type == TYPE_CAS8)
-                    *dg_ret8(cs[pos].dg) = sync_val_compare_and_swap_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].old8, cq[p].new8);
-                else if (type == TYPE_SWAP4)
-                    *dg_ret4(cs[pos].dg) = sync_swap_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_SWAP8)
-                    *dg_ret8(cs[pos].dg) = sync_swap_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_ADD4)
-                    *dg_ret4(cs[pos].dg) = sync_fetch_and_add_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_ADD8)
-                    *dg_ret8(cs[pos].dg) = sync_fetch_and_add_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_XOR4)
-                    *dg_ret4(cs[pos].dg) = sync_fetch_and_xor_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_XOR8)
-                    *dg_ret8(cs[pos].dg) = sync_fetch_and_xor_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_OR4)
-                    *dg_ret4(cs[pos].dg) = sync_fetch_and_or_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_OR8)
-                    *dg_ret8(cs[pos].dg) = sync_fetch_and_or_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_AND4)
-                    *dg_ret4(cs[pos].dg) = sync_fetch_and_and_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else
-                    *dg_ret8(cs[pos].dg) = sync_fetch_and_and_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                cs[pos].len = DG_HEADER_SIZE + *dg_plen(cs[pos].dg);
-                cs[pos].addr.sin_port = PORT_TABLE[rank];
-                cs[pos].addr.sin_addr.s_addr = ADDR_TABLE[rank];
-                sync_synchronize();
-                cq[p].stat = CQSTAT_ATOMIC1TRY;
-            }
-            
-            /* Local Atomic */
-            if (cq[p].stat == CQSTAT_ATOMIC0) {
-                type = cq[p].type;
-                if      (type == TYPE_CAS4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].old4, cq[p].new4);
-                else if (type == TYPE_CAS8)
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].old8, cq[p].new8);
-                else if (type == TYPE_SWAP4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_swap_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_SWAP8)
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_swap_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_ADD4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_add_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_ADD8)
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_add_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_XOR4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_XOR8)
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_OR4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_or_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else if (type == TYPE_OR8)
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_or_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                else if (type == TYPE_AND4)
-                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_and_4((uint32_t* volatile)ga2address(cq[p].src), cq[p].val4);
-                else
-                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_and_8((uint64_t* volatile)ga2address(cq[p].src), cq[p].val8);
-                debug printf("rank %d - local atomic cqp %6" PRIu64 " time %" PRIu64 " dst 0x%016" PRIx64 " src 0x%016" PRIx64 " type %u result %10u new_value %10u\n", MY_RANK, cqp, time, (uint64_t)ga2address(cq[p].dst), (uint64_t)ga2address(cq[p].src), cq[p].type, *(uint32_t*)ga2address(cq[p].dst), *(uint32_t*)ga2address(cq[p].src));
-                sync_synchronize();
-                cq[p].stat = 0;
-            }
-        }
-        
-        /*** Command Station ***/
-        
-        for (i = cshead; i >= 0; i = cs[i].next) {
-            if (cs[i].count < 2) free_count = 0;
-            if (time >= cs[i].time) {
-                sendto(sock, cs[i].dg, cs[i].len, 0, (struct sockaddr *)&cs[i].addr, sock_addr_in_size);
-                /* Set retransmit timer from 200K to 200M clock (around 100 usec to 100 msec) */
-                reverse_seq = *dg_seq(cs[i].dg);
-                reverse_seq = (reverse_seq & 0x249) << 2 | (reverse_seq & 0x492) | (reverse_seq & 0x924) >> 2;
-                reverse_seq = (reverse_seq & 0x1c7) << 3 | (reverse_seq & 0xe38) >> 3;
-                reverse_seq = (reverse_seq & 0x03f) << 6 | (reverse_seq & 0xfc0) >> 6;
-                cs[i].time = time + ((uint64_t)(0x4000 + reverse_seq) << ((cs[i].count < 10) ? cs[i].count + 4 : 10 + 4));
-                cs[i].count++;
-            }
-        }
-        
-        /*** Recieve Datagram ***/
-        
-        poll(pfds, 1, 0);
-        if (pfds[0].revents & POLLIN) {
-            free_count = 0;
-            recv_len = recvfrom(sock, dg, MAX_DG_SIZE, 0, (struct sockaddr*)&from, &addr_len);
-            if (*dg_task(dg) == TASKID && recv_len >= 16) {
-                type = *dg_type(dg) & MASK_TYPE;
-                rank = *dg_rank(dg);
-                seq  = *dg_seq (dg);
-                
-                /* Command datagrams */
-                if (type == TYPE_COPY ) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_COPY_READ, time);
-                        ds[pos].dst  = *dg_dst(dg);
-                        ds[pos].src  = *dg_src(dg);
-                        ds[pos].size = *dg_size(dg);
-                        ds[pos].offset = 0;
-                        *dg_rank(ds[pos].dg) = rank;
-                        *dg_ptr (ds[pos].dg) = *dg_ptr(dg);
-                        drank = ga2rank(*dg_src(dg));
-                        ds[pos].len = DG_HEADER_SIZE;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
+            poll(pfds, NODE_POP, 0);
+            for (inum = 0; inum < NODE_POP; inum++) {
+                if ((pfds[inum].revents & POLLIN) == 0) continue;
+                elem_id = rxbuf_pop_free(inum);
+                dgp = (dg_union*)rxbuf[inum].list[elem_id].dg;
+                recv_len = recvfrom(pfds[inum].fd, (void*)dgp, MAX_DG_SIZE, 0, (struct sockaddr*)&from, &addr_len);
+                if (dgp->ack.task != TASKID) {
+                    rxbuf_push_free(inum, elem_id);
+                    continue;
                     
-                } else if (type == TYPE_SCOPY) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_COPY_FENCE, time);
-                        ds[pos].dst  = *dg_dst(dg);
-                        ds[pos].src  = *dg_src(dg);
-                        ds[pos].size = *dg_size(dg);
-                        ds[pos].offset = 0;
-                        *dg_rank(ds[pos].dg) = rank;
-                        *dg_ptr (ds[pos].dg) = *dg_ptr(dg);
-                        drank = ga2rank(*dg_src(dg));
-                        ds[pos].len = DG_HEADER_SIZE;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_PUT) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (recv_len < DG_HEADER_SIZE) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        memcpy(ga2address(*dg_dst(dg)), dg_data(dg), *dg_plen(dg));
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_CAS4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_val_compare_and_swap_4((uint32_t* volatile)ga2address(*dg_src(dg)), *dg_old4(dg), *dg_new4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_CAS8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 24) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_val_compare_and_swap_8((uint64_t* volatile)ga2address(*dg_src(dg)), *dg_old8(dg), *dg_new8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_SWAP4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 12) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_swap_4((volatile uint32_t*)ga2address(*dg_src(dg)), *dg_val4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_SWAP8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_swap_8((volatile uint64_t*)ga2address(*dg_src(dg)), *dg_val8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_ADD4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 12) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_fetch_and_add_4((volatile uint32_t*)ga2address(*dg_src(dg)), *dg_val4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_ADD8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_fetch_and_add_8((volatile uint64_t*)ga2address(*dg_src(dg)), *dg_val8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_XOR4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 12) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_fetch_and_xor_4((volatile uint32_t*)ga2address(*dg_src(dg)), *dg_val4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_XOR8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_fetch_and_xor_8((volatile uint64_t*)ga2address(*dg_src(dg)), *dg_val8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_OR4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 12) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_fetch_and_or_4((volatile uint32_t*)ga2address(*dg_src(dg)), *dg_val4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_OR8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_fetch_and_or_8((volatile uint64_t*)ga2address(*dg_src(dg)), *dg_val8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_AND4) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 12) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 4;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret4(ds[pos].dg) = sync_fetch_and_and_4((volatile uint32_t*)ga2address(*dg_src(dg)), *dg_val4(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 4;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_AND8) {
-                    *dg_type(dg) = compare_seq(rxseq_table[rank], seq) <= 0 ? TYPE_ACK : TYPE_NACK;
-                    if (is_ds_full() || recv_len < DG_HEADER_SIZE + 16) {
-                        *dg_type(dg) = TYPE_RETRY;
-                    } else if (rxseq_table[rank] == seq) {
-                        pos = ds_add(DSSTAT_ATOMIC_WRITE, time);
-                        drank = ga2rank(*dg_dst(dg));
-                        *dg_type(ds[pos].dg) = TYPE_PUT;
-                        *dg_rank(ds[pos].dg) = MY_RANK;
-                        *dg_seq (ds[pos].dg) = inc_txseq(drank);
-                        *dg_plen(ds[pos].dg) = 8;
-                        *dg_dst (ds[pos].dg) = *dg_dst(dg);
-                        *dg_ret8(ds[pos].dg) = sync_fetch_and_and_8((volatile uint64_t*)ga2address(*dg_src(dg)), *dg_val8(dg));
-                        ds[pos].rank = rank;
-                        ds[pos].offset = *dg_ptr(dg);
-                        ds[pos].len = DG_HEADER_SIZE + 8;
-                        ds[pos].addr.sin_port = PORT_TABLE[drank];
-                        ds[pos].addr.sin_addr.s_addr = ADDR_TABLE[drank];
-                        inc_rxseq(rank);
-                    }
-                    *dg_rank(dg) = MY_RANK;
-                    *dg_seq (dg) = rxseq_table[rank];
-                    sendto(sock, dg, 16, 0, (struct sockaddr *)&from, addr_len);
-                    
-                /* Control datagrams */
-                } else if ((type == TYPE_ACK || type == TYPE_NACK || type == TYPE_RETRY) && recv_len >= 16) {
-                    /* check command station */
-                    for (i = cshead; i >= 0; i = cs[i].next)
-                        if (cs[i].rank == rank) {
-                            if (compare_seq(*dg_seq(cs[i].dg), seq) < 0) {
-                                if      (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_COPY3TRY  ) cq[cs[i].cqp & MASK_CQ].stat = CQSTAT_COPY3WAIT;
-                                else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_COPY1TRY  ) cq[cs[i].cqp & MASK_CQ].stat = 0;
-                                else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_ATOMIC2TRY) cq[cs[i].cqp & MASK_CQ].stat = CQSTAT_ATOMIC2WAIT;
-                                else if (cq[cs[i].cqp & MASK_CQ].stat == CQSTAT_ATOMIC1TRY) cq[cs[i].cqp & MASK_CQ].stat = 0;
-                                cs_free(i, time);
-                            } else if (type == TYPE_NACK && *dg_seq(cs[i].dg) == seq)
-                                cs[i].time = time;
-                            else if (type == TYPE_RETRY && *dg_seq(cs[i].dg) == seq)
-                                cs[i].count = 0;
-                        }
-                    
-                    /* check delegate station */
-                    for (i = dshead; i >= 0; i = ds[i].next)
-                        if (ds[i].stat == DSSTAT_ATOMIC_WRITE)
-                            if (ga2rank(*dg_dst(ds[i].dg)) == rank)
-                                if (compare_seq(*dg_seq(ds[i].dg), seq) < 0) {
-                                    ds[i].stat = DSSTAT_ATOMIC_END;
-                                    ds[i].time = time;
-                                    ds[i].count = 0;
-                                    *dg_type(ds[i].dg) = dsid2type(TYPE_END, i, 0);
-                                    *dg_ptr(ds[i].dg) = ds[i].offset;
-                                    ds[i].len = 24;
-                                    ds[i].addr.sin_port = PORT_TABLE[ds[i].rank];
-                                    ds[i].addr.sin_addr.s_addr = ADDR_TABLE[ds[i].rank];
-                                }
-                    
-                /* Delegate datagrams */
-                } else if (type == TYPE_READ && recv_len >= DG_HEADER_SIZE) {
-                    *dg_type(dg) = dsid2type(TYPE_READACK, type2dsid(*dg_type(dg)), type2swid(*dg_type(dg)));
-                    memcpy(dg_data(dg), ga2address(*dg_dst(dg)), *dg_len(dg));
-                    sendto(sock, dg, DG_HEADER_SIZE + *dg_len(dg), 0, (struct sockaddr *)&from, addr_len);
-                    
-                } else if (type == TYPE_READACK && recv_len >= DG_HEADER_SIZE) {
-                    dsid = type2dsid(*dg_type(dg));
-                    swid = type2swid(*dg_type(dg));
-                    if (ds[dsid].stat == DSSTAT_COPY_READ || ds[dsid].stat == DSSTAT_COPY2_READ)
-                        if (*dg_rank(ds[dsid].dg) == *dg_rank(dg) && *dg_ptr(ds[dsid].dg) == *dg_ptr(dg) && ds[dsid].sw[swid].src == *dg_dst(dg)) {
-                            memcpy(ds[dsid].sw[swid].dst, dg_data(dg), ds[dsid].sw[swid].len);
-                            sw_free(dsid, swid, time);
-                            if (ds[dsid].size == ds[dsid].offset && is_sw_empty(dsid)){
-                                if (ds[dsid].stat == DSSTAT_COPY_READ) {
-                                    ds[dsid].stat = DSSTAT_COPY_END;
-                                    ds[dsid].time = time;
-                                    ds[dsid].count = 0;
-                                    *dg_type(ds[dsid].dg) = dsid2type(TYPE_END, dsid, 0);
-                                    ds[dsid].len = 24;
-                                    ds[dsid].addr.sin_port = PORT_TABLE[*dg_rank(ds[dsid].dg)];
-                                    ds[dsid].addr.sin_addr.s_addr = ADDR_TABLE[*dg_rank(ds[dsid].dg)];
-                                } else if (ds[dsid].stat == DSSTAT_COPY2_READ) {
-                                    cqp = *dg_ptr(ds[dsid].dg);
-                                    ds_free(dsid, time);
-                                    if (cq[cqp & MASK_CQ].stat == CQSTAT_COPY2WAIT) {
-                                        sync_synchronize();
-                                        cq[cqp & MASK_CQ].stat = 0;
-                                    }
-                                }
+                } else if (dgp->ack.c != NORMAL) {
+                    debug printf("rank %d - transport Receive control %d from = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgp->ack.c, dgp->ack.rank, dgp->ack.vc, dgp->ack.ser, dgp->ack.seq, dgp->ack.seq1, dgp->ack.seq2);
+                    /* Check txbuf vc2 wait list */
+                    prev = -1;
+                    ptr = txbuf[inum].vc2.wait.head;
+                    while (ptr >= 0) {
+                        next = txbuf[inum].vc2.list[ptr].next;
+                        if (txbuf[inum].vc2.list[ptr].send_to == dgp->ack.rank && compare_seq(((dg_control_t*)&txbuf[inum].vc2.list[ptr].dg)->seq, dgp->ack.seq2) < 0) {
+                            if (prev == -1) {
+                                txbuf[inum].vc2.wait.head = next;
+                                if (next == -1) txbuf[inum].vc2.wait.tail = -1;
+                            } else {
+                                txbuf[inum].vc2.list[prev].next = next;
+                                if (next == -1) txbuf[inum].vc2.wait.tail = prev;
                             }
-                        }
-                    
-                } else if (type == TYPE_END && recv_len >= 24) {
-                    *dg_type(dg) = dsid2type(TYPE_ENDACK, type2dsid(*dg_type(dg)), 0);
-                    cqp = *dg_ptr(dg);
-                    if (cqp < cqwp) {
-                        if (cqp >= cqcp) {
-                            if (cq[cqp & MASK_CQ].stat == CQSTAT_COPY3WAIT || cq[cqp & MASK_CQ].stat == CQSTAT_ATOMIC2WAIT) {
-                                sync_synchronize();
-                                cq[cqp & MASK_CQ].stat = 0;
-                                sendto(sock, dg, 24, 0, (struct sockaddr *)&from, addr_len);
-                            } else if (cq[cqp & MASK_CQ].stat >= 0)
-                                sendto(sock, dg, 24, 0, (struct sockaddr *)&from, addr_len);
+                            delete_retx_entry(retx_list_pos(inum, 2, ptr));
+                            txbuf_vc2_push_free(inum, ptr);
                         } else
-                            sendto(sock, dg, 24, 0, (struct sockaddr *)&from, addr_len);
+                            prev = ptr;
+                        ptr = next;
                     }
                     
-                } else if (type == TYPE_ENDACK && recv_len >= 24) {
-                    dsid = type2dsid(*dg_type(dg));
-                    if (ds[dsid].stat == DSSTAT_COPY_END || ds[dsid].stat == DSSTAT_ATOMIC_END)
-                        if (*dg_rank(ds[dsid].dg) == *dg_rank(dg) && *dg_ptr(ds[dsid].dg) == *dg_ptr(dg))
-                            ds_free(dsid, time);
+                    /* Check txbuf vc1 wait list */
+                    prev = -1;
+                    ptr = txbuf[inum].vc1.wait.head;
+                    while (ptr >= 0) {
+                        next = txbuf[inum].vc1.list[ptr].next;
+                        if (txbuf[inum].vc1.list[ptr].send_to == dgp->ack.rank && compare_seq(((dg_control_t*)&txbuf[inum].vc1.list[ptr].dg)->seq, dgp->ack.seq1) < 0) {
+                            if (prev == -1) {
+                                txbuf[inum].vc1.wait.head = next;
+                                if (next == -1) txbuf[inum].vc1.wait.tail = -1;
+                            } else {
+                                txbuf[inum].vc1.list[prev].next = next;
+                                if (next == -1) txbuf[inum].vc1.wait.tail = prev;
+                            }
+                            delete_retx_entry(retx_list_pos(inum, 1, ptr));
+                            txbuf_vc1_push_ack(inum, ptr);
+                        } else
+                            prev = ptr;
+                        ptr = next;
+                    }
+                    
+                    /* Check txbuf vc0 wait list */
+                    prev = -1;
+                    ptr = txbuf[inum].vc0.wait.head;
+                    while (ptr >= 0) {
+                        next = txbuf[inum].vc0.list[ptr].next;
+                        if (txbuf[inum].vc0.list[ptr].send_to == dgp->ack.rank && compare_seq(((dg_control_t*)&txbuf[inum].vc0.list[ptr].dg)->seq, dgp->ack.seq) < 0) {
+                            if (prev == -1) {
+                                txbuf[inum].vc0.wait.head = next;
+                                if (next == -1) txbuf[inum].vc0.wait.tail = -1;
+                            } else {
+                                txbuf[inum].vc0.list[prev].next = next;
+                                if (next == -1) txbuf[inum].vc0.wait.tail = prev;
+                            }
+                            delete_retx_entry(retx_list_pos(inum, 0, ptr));
+                            txbuf_vc0_push_free(inum, ptr);
+                        } else
+                            prev = ptr;
+                        ptr = next;
+                    }
+                    
+                    /* Update round trip time */
+                    if (update_ser(inum, dgp->ack.vc, dgp->ack.ser)) rtt_update(dgp->ack.rank, dgp->ack.vc, get_nsec() - txtime(inum, dgp->ack.vc, dgp->ack.ser));
+                    rxbuf_push_free(inum, elem_id);
+                    continue;
+                    
+                } else if (dgp->end.vc == 2) {
+                    debug printf("rank %d - transport Receive END from = %d, ser = 0x%04x, seq = 0x%04x, cqp = 0x%016" PRIx64 "\n", MY_RANK, dgp->end.rank, dgp->end.ser, dgp->end.seq, dgp->end.ptr);
+                    send_to = dgp->end.rank;
+                    pos = inum * NUM_PROCS + send_to;
+                    sock = pfds[inum].fd;
+                    dgc.task = TASKID;
+                    dgc.c = ACK;
+                    dgc.vc = 2;
+                    dgc.rank = LMEM_TABLE[inum];
+                    dgc.ser = dgp->end.ser;
+                    dgc.seq = seq_table[pos].rxseq0;
+                    dgc.seq1 = seq_table[pos].rxseq1;
+                    dgc.seq2 = seq_table[pos].rxseq2;
+                    len = 16;
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    tx_bytes += dg_biased_size(len);
+                    if (dgp->end.seq == dgc.seq2) {
+                        if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc2.dg.num < RXBUF_VC2_SIZE) {
+                            rxbuf[inum].list[elem_id].next = -1;
+                            if (rxbuf[inum].vc2.dg.tail < 0)
+                                rxbuf[inum].vc2.dg.head = elem_id;
+                            else
+                                rxbuf[inum].list[rxbuf[inum].vc2.dg.tail].next = elem_id;
+                            rxbuf[inum].vc2.dg.tail = elem_id;
+                            rxbuf[inum].vc2.dg.num += 1;
+                            doorbell_ring(inum);
+                            if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                            inc_seq(&seq_table[pos].rxseq2);
+                            dgc.seq2 = seq_table[pos].rxseq2;
+                            sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                            debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                            continue;
+                        }
+                        if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                        dgc.c = FULL;
+                    } else
+                        dgc.c = NACK;
+                    rxbuf_push_free(inum, elem_id);
+                    sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                    continue;
+                    
+                } else if (dgp->put.vc == 1) {
+                    debug printf("rank %d - transport Receive PUT from = %d, ser = 0x%04x, seq = 0x%04x, dst = 0x%016" PRIx64 ", len = %d\n", MY_RANK, dgp->put.rank, dgp->put.ser, dgp->put.seq, dgp->put.dst, dgp->put.len);
+                    send_to = dgp->put.rank;
+                    pos = inum * NUM_PROCS + send_to;
+                    sock = pfds[inum].fd;
+                    dgc.task = TASKID;
+                    dgc.c = ACK;
+                    dgc.vc = 1;
+                    dgc.rank = LMEM_TABLE[inum];
+                    dgc.ser = dgp->put.ser;
+                    dgc.seq = seq_table[pos].rxseq0;
+                    dgc.seq1 = seq_table[pos].rxseq1;
+                    dgc.seq2 = seq_table[pos].rxseq2;
+                    len = 16;
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    tx_bytes += dg_biased_size(len);
+                    if (dgp->put.seq == seq_table[pos].rxseq1fwd) {
+                        if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc1.dg.num < RXBUF_VC1_SIZE) {
+                            rxbuf[inum].list[elem_id].next = -1;
+                            if (rxbuf[inum].vc1.dg.tail < 0)
+                                rxbuf[inum].vc1.dg.head = elem_id;
+                            else
+                                rxbuf[inum].list[rxbuf[inum].vc1.dg.tail].next = elem_id;
+                            rxbuf[inum].vc1.dg.tail = elem_id;
+                            rxbuf[inum].vc1.dg.num += 1;
+                            doorbell_ring(inum);
+                            if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                            inc_seq(&seq_table[pos].rxseq1fwd);
+                            debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                            continue;
+                        }
+                        if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                        dgc.c = FULL;
+                    } else
+                        dgc.c = NACK;
+                    rxbuf_push_free(inum, elem_id);
+                    sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                    continue;
+                    
+                } else if (dgp->copy.vc == 0) {
+                    debug printf("rank %d - transport Receive COMMAND %d from = %d, ser = 0x%04x, seq = 0x%04x, ptr = 0x%016" PRIx64 ", s = %d, dst = 0x%016" PRIx64 ", src = 0x%016" PRIx64 "\n", MY_RANK, dgp->copy.type, dgp->copy.rank, dgp->copy.ser, dgp->copy.seq, dgp->copy.ptr, dgp->copy.s, dgp->copy.dst, dgp->copy.src);
+                    send_to = dgp->copy.rank;
+                    pos = inum * NUM_PROCS + send_to;
+                    sock = pfds[inum].fd;
+                    dgc.task = TASKID;
+                    dgc.c = ACK;
+                    dgc.vc = 0;
+                    dgc.rank = LMEM_TABLE[inum];
+                    dgc.ser = dgp->copy.ser;
+                    dgc.seq = seq_table[pos].rxseq0;
+                    dgc.seq1 = seq_table[pos].rxseq1;
+                    dgc.seq2 = seq_table[pos].rxseq2;
+                    len = 16;
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    tx_bytes += dg_biased_size(len);
+                    if (dgp->copy.seq == dgc.seq) {
+                        if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc0.dg.num < RXBUF_VC0_SIZE) {
+                            rxbuf[inum].list[elem_id].next = -1;
+                            if (rxbuf[inum].vc0.dg.tail < 0)
+                                rxbuf[inum].vc0.dg.head = elem_id;
+                            else
+                                rxbuf[inum].list[rxbuf[inum].vc0.dg.tail].next = elem_id;
+                            rxbuf[inum].vc0.dg.tail = elem_id;
+                            rxbuf[inum].vc0.dg.num += 1;
+                            doorbell_ring(inum);
+                            if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                            inc_seq(&seq_table[pos].rxseq0);
+                            dgc.seq = seq_table[pos].rxseq0;
+                            sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                            debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                            continue;
+                        }
+                        if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
+                        dgc.c = FULL;
+                    } else
+                        dgc.c = NACK;
+                    rxbuf_push_free(inum, elem_id);
+                    sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
+                    continue;
                 }
+            }
+            
+            /*** Check injection rate ***/
+            if (estimated_nsec > current_nsec) {
+                estimated_nsec += tx_bytes * 8000ULL / NETWORK_BANDWIDTH;
+                continue;
+            }
+            
+            /*** Retransmit datagram ***/
+            
+            pos = retx_head;
+            check = 0;
+            while (0) {//while (pos >= 0) {
+                if (retx_list[pos].time > current_nsec) break;
+                next = retx_list[pos].next;
+                inum = retx_list_pos_inum(pos);
+                vc = retx_list_pos_inum(pos);
+                elem_id = retx_list_pos_elem_id(pos);
+                if (vc == 2) {
+                    if ((check & 4) == 0) {
+                        sock = pfds[inum].fd;
+                        dgp = (dg_union*)txbuf[inum].vc2.list[elem_id].dg;
+                        len = 20;
+                        send_to = txbuf[inum].vc2.list[elem_id].send_to;
+                        dgp->end.ser = inc_ser(inum, 2);
+                        struct sockaddr_in addr;
+                        addr.sin_family = AF_INET;
+                        addr.sin_port = PORT_TABLE[send_to];
+                        addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                        sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                        tx_bytes += dg_biased_size(len);
+                        tmp_nsec = get_nsec();
+                        delete_retx_entry(pos);
+                        insert_retx_time(pos, tmp_nsec + rtt_pred(send_to, 2));
+                        set_txtime(inum, 2, dgp->end.ser, tmp_nsec);
+                        check |= 4;
+                    }
+                } else if (vc == 1) {
+                    if ((check & 2) == 0) {
+                        sock = pfds[inum].fd;
+                        dgp = (dg_union*)txbuf[inum].vc1.list[elem_id].dg;
+                        len = 24 + dgp->put.len;
+                        send_to = txbuf[inum].vc1.list[elem_id].send_to;
+                        dgp->put.ser = inc_ser(inum, 1);
+                        addr.sin_family = AF_INET;
+                        addr.sin_port = PORT_TABLE[send_to];
+                        addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                        sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                        tx_bytes += dg_biased_size(len);
+                        tmp_nsec = get_nsec();
+                        delete_retx_entry(pos);
+                        insert_retx_time(pos, tmp_nsec + rtt_pred(send_to, 1));
+                        set_txtime(inum, 1, dgp->put.ser, tmp_nsec);
+                        check |= 2;
+                    }
+                } else { /* vc == 0 */
+                    if ((check & 1) == 0) {
+                        sock = pfds[inum].fd;
+                        dgp = (dg_union*)txbuf[inum].vc0.list[elem_id].dg;
+                        len = dg_size_vc0(dgp->copy.type);
+                        send_to = txbuf[inum].vc0.list[elem_id].send_to;
+                        dgp->copy.ser = inc_ser(inum, 0);
+                        addr.sin_family = AF_INET;
+                        addr.sin_port = PORT_TABLE[send_to];
+                        addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                        sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                        tx_bytes += dg_biased_size(len);
+                        tmp_nsec = get_nsec();
+                        delete_retx_entry(pos);
+                        insert_retx_time(pos, tmp_nsec + rtt_pred(send_to, 0));
+                        set_txtime(inum, 0, dgp->copy.ser, tmp_nsec);
+                        check |= 1;
+                    }
+                }
+                if (check == 7) break;
+                pos = next;
+            }
+            
+            /*** Check injection rate ***/
+            if (estimated_nsec > current_nsec) {
+                estimated_nsec += tx_bytes * 8000ULL / NETWORK_BANDWIDTH;
+                continue;
+            }
+            
+            /*** Transmit datagram ***/
+            
+            /* VC2 */
+            for (i = 0; i < NODE_POP; i++) {
+                inum = tx_vc2_next_inum;
+                tx_vc2_next_inum = (tx_vc2_next_inum < NODE_POP - 1) ? tx_vc2_next_inum + 1 : 0;
+                elem_id = txbuf_vc2_pop_dg(inum);
+                if (elem_id >= 0) {
+                    sock = pfds[inum].fd;
+                    dgp = (dg_union*)txbuf[inum].vc2.list[elem_id].dg;
+                    len = 20;
+                    send_to = txbuf[inum].vc2.list[elem_id].send_to;
+                    dgp->end.ser = inc_ser(inum, 2);
+                    dgp->end.seq = inc_seq(&seq_table[inum * NUM_PROCS + send_to].txseq2);
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    debug printf("rank %d - transport Transmit END from = %d, to = %d, ser = 0x%04x, seq = 0x%04x, cqp = 0x%016" PRIx64 "\n", MY_RANK, dgp->end.rank, send_to, dgp->end.ser, dgp->end.seq, dgp->end.ptr);
+                    sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    tx_bytes += dg_biased_size(len);
+                    txbuf_vc2_push_wait(inum, elem_id);
+                    tmp_nsec = get_nsec();
+                    set_txtime(inum, 2, dgp->end.ser, tmp_nsec);
+                    insert_retx_time(retx_list_pos(inum, 2, elem_id), tmp_nsec + rtt_pred(send_to, 2));
+                    break;
+                }
+            }
+            
+            /* VC1 */
+            for (i = 0; i < NODE_POP; i++) {
+                inum = tx_vc1_next_inum;
+                tx_vc1_next_inum = (tx_vc1_next_inum < NODE_POP - 1) ? tx_vc1_next_inum + 1 : 0;
+                elem_id = txbuf_vc1_pop_dg(inum);
+                if (elem_id >= 0) {
+                    sock = pfds[inum].fd;
+                    dgp = (dg_union*)txbuf[inum].vc1.list[elem_id].dg;
+                    len = 24 + dgp->put.len;
+                    send_to = txbuf[inum].vc1.list[elem_id].send_to;
+                    dgp->put.ser = inc_ser(inum, 1);
+                    dgp->put.seq = inc_seq(&seq_table[inum * NUM_PROCS + send_to].txseq1);
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    debug printf("rank %d - transport Transmit PUT from = %d, to = %d, ser = 0x%04x, seq = 0x%04x, dst = 0x%016" PRIx64 ", len = %d\n", MY_RANK, dgp->put.rank, send_to, dgp->put.ser, dgp->put.seq, dgp->put.dst, dgp->put.len);
+                    sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    tx_bytes += dg_biased_size(len);
+                    txbuf_vc1_push_wait(inum, elem_id);
+                    tmp_nsec = get_nsec();
+                    set_txtime(inum, 1, dgp->put.ser, tmp_nsec);
+                    insert_retx_time(retx_list_pos(inum, 1, elem_id), tmp_nsec + rtt_pred(send_to, 1));
+                    break;
+                }
+            }
+            
+            /* VC0 */
+            for (i = 0; i < NODE_POP; i++) {
+                inum = tx_vc0_next_inum;
+                tx_vc0_next_inum = (tx_vc0_next_inum < NODE_POP - 1) ? tx_vc0_next_inum + 1 : 0;
+                elem_id = txbuf_vc0_pop_dg(inum);
+                if (elem_id >= 0) {
+                    sock = pfds[inum].fd;
+                    dgp = (dg_union*)txbuf[inum].vc0.list[elem_id].dg;
+                    len = dg_size_vc0(dgp->copy.type);
+                    send_to = txbuf[inum].vc0.list[elem_id].send_to;
+                    dgp->copy.ser = inc_ser(inum, 0);
+                    dgp->copy.seq = inc_seq(&seq_table[inum * NUM_PROCS + send_to].txseq0);
+                    addr.sin_family = AF_INET;
+                    addr.sin_port = PORT_TABLE[send_to];
+                    addr.sin_addr.s_addr = ADDR_TABLE[send_to];
+                    debug printf("rank %d - transport Transmit COMMAND %d from = %d, to = %d, ser = 0x%04x, seq = 0x%04x, ptr = 0x%016" PRIx64 ", s = %d, dst = 0x%016" PRIx64 ", dst = 0x%016" PRIx64 "\n", MY_RANK, dgp->copy.type, dgp->copy.rank, send_to, dgp->copy.ser, dgp->copy.seq, dgp->copy.ptr, dgp->copy.s, dgp->copy.dst, dgp->copy.src);
+                    sendto(sock, (void*)dgp, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+                    tx_bytes += dg_biased_size(len);
+                    txbuf_vc0_push_wait(inum, elem_id);
+                    tmp_nsec = get_nsec();
+                    set_txtime(inum, 0, dgp->copy.ser, tmp_nsec);
+                    insert_retx_time(retx_list_pos(inum, 0, elem_id), tmp_nsec + rtt_pred(send_to, 0));
+                    break;
+                }
+            }
+            
+            /* Update estimated time */
+            estimated_nsec = current_nsec + tx_bytes * 8000ULL / NETWORK_BANDWIDTH;
+        }
+        
+        /******** Protocol processing ********/
+        
+        /*** Clearance to wait ***/
+        
+        pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+        
+        /* Receive END: ibuf and rxbuf vc2 */
+        for (inum = 0; inum < NODE_POP; inum++) {
+            while ((elem_id = ibuf_vc2_pop_dg(inum)) >= 0) {
+                dgp = (dg_union*)ibuf[ibuf_pos(MY_INUM, inum)].vc2.list[elem_id].dg;
+                pos = dgp->end.ptr & MASK_CQ;
+                /* if (cq[pos].stat != CQSTAT_WAIT) exception; */
+                cq[pos].stat = CQSTAT_DONE;
+                ibuf_vc2_push_free(inum, elem_id);
+            }
+        }
+        if (NUM_PROCS != NODE_POP) {
+            while ((elem_id = rxbuf_vc2_pop_dg()) >= 0) {
+                dgp = (dg_union*)rxbuf[MY_INUM].list[elem_id].dg;
+                pos = dgp->end.ptr & MASK_CQ;
+                /* if (cq[pos].stat != CQSTAT_WAIT) exception; */
+                cq[pos].stat = CQSTAT_DONE;
+                rxbuf_push_free(MY_INUM, elem_id);
             }
         }
         
-        /*** Delegate Station ***/
+        /* Advance completion pointer */
+        while(cqcp < cqxp) {
+            p = cqcp & MASK_CQ;
+            if (cq[p].stat != CQSTAT_DONE) break;
+            cqcp++;
+            debug printf("rank %d - protocol cqcp advance to 0x%016" PRIx64 " (cqwp 0x%016" PRIx64 ")\n", MY_RANK, cqcp, cqwp);
+        }
+        cqcp_tmp = cqcp;
+        cqwp_tmp = cqwp;
         
-        for (i = dshead; i >= 0; i = ds[i].next) {
-            if (time >= ds[i].time) {
-                if (ds[i].stat == DSSTAT_COPY_FENCE) {
-                    rank = *dg_rank(ds[i].dg);
-                    cqp = *dg_ptr(ds[i].dg);
-                    for (j = dshead; j >= 0; j = ds[j].next)
-                        if (j != i && *dg_rank(ds[j].dg) == rank && *dg_ptr(ds[j].dg) < cqp && (ds[j].stat == DSSTAT_COPY_FENCE || ds[j].stat == DSSTAT_COPY_READ)) break;
-                    if (j < 0) ds[i].stat = DSSTAT_COPY_READ;
+        /* Check empty */
+        if (MY_INUM > 0 && (check_clear = is_dq_empty())) {
+            /* Check rxbuf */
+            if (NUM_PROCS != NODE_POP) {
+                if (rxbuf[MY_INUM].vc0.dg.head >= 0) check_clear = 0;
+                if (rxbuf[MY_INUM].vc1.dg.head >= 0) check_clear = 0;
+            }
+            
+            /* Check ibuf */
+            pos = NODE_POP * MY_INUM;
+            for (i = 0 ; i < NODE_POP; i++) {
+                if (ibuf[pos].vc0.dg.head >= 0) check_clear = 0;
+                if (ibuf[pos].vc1.dg.head >= 0) check_clear = 0;
+                pos++;
+            }
+            
+            /* Check command queue */
+            if (cqcp_tmp < cqwp_tmp) check_clear = 0;
+            
+            /* Wait and redo if it is clear */
+            if (check_clear) {
+                doorbell_wait();
+                pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+                continue;
+            }
+        }
+        pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+        
+        /*** Execute PUT ***/
+        
+        /* Receive a datagram: ibuf and rxbuf vc1 */
+        if (NUM_PROCS != NODE_POP) check_not_full = rxbuf_vc1ack_is_not_full(MY_INUM);
+        if (MY_INUM > 0) pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+        for (i = 0; i < NODE_POP + 1; i++) {
+            if (rx_vc1_next_inum == NODE_POP) {
+                if (NUM_PROCS == NODE_POP)
+                    elem_id = -1;
+                else if (check_not_full)
+                    elem_id = rxbuf_vc1_pop_dg();
+                else
+                    elem_id = -1;
+            } else
+                elem_id = ibuf_vc1_pop_dg(rx_vc1_next_inum);
+            if (elem_id >= 0) break;
+            rx_vc1_next_inum = (rx_vc1_next_inum < NODE_POP) ? rx_vc1_next_inum + 1 : 0;
+        }
+        if (MY_INUM > 0) pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+        
+        if (elem_id >= 0) {
+            if (rx_vc1_next_inum == NODE_POP) {
+                dgp = (dg_union*)rxbuf[MY_INUM].list[elem_id].dg;
+                memcpy(ga2address(dgp->put.dst), (void*)dgp->put.data, dgp->put.len);
+                rxbuf_push_free_vc1ack(MY_INUM, elem_id);
+            } else {
+                dgp = (dg_union*)ibuf[ibuf_pos(MY_INUM, rx_vc1_next_inum)].vc1.list[elem_id].dg;
+                memcpy(ga2address(dgp->put.dst), (void*)dgp->put.data, dgp->put.len);
+                ibuf_vc1_push_free(rx_vc1_next_inum, elem_id);
+            }
+            rx_vc1_next_inum = (rx_vc1_next_inum + 1 < NODE_POP) ? rx_vc1_next_inum + 1 : 0;
+        }
+        
+        /*** Delegate Queue ***/
+        
+        /* Sweep txbuf vc1 ack */
+        if (NUM_PROCS != NODE_POP) {
+            while ((elem_id = txbuf_vc1_pop_ack()) >= 0) {
+                pos = txbuf[MY_INUM].vc1.list[elem_id].dq_pos;
+                /* if (dq[pos].stat != DQSTAT_WAIT) exception */
+                if (dq[pos].rank != MY_RANK) {
+                    dq[pos].stat = DQSTAT_NOTIFY;
+                    dq[pos].inum = INUM_TABLE[dq[pos].rank];
+                    dq[pos].gateway = GTWY_TABLE[dq[pos].rank];
+                } else { /* dq[pos].rank == MY_RANK */
+                    /* Notify completion directly to the corresponding CQ entry */
+                    p = dq[pos].ptr & MASK_CQ;
+                    cq[p].stat = CQSTAT_DONE;
+                    dq_free(pos);
                 }
-                if (ds[i].stat == DSSTAT_COPY_READ && ga2rank(ds[i].dst) == ga2rank(ds[i].src)) {
-                    /* Remote local copy */
-                    memcpy(ga2address(ds[i].dst), ga2address(ds[i].src), ds[i].size);
-                    ds[i].stat = DSSTAT_COPY_END;
-                    ds[i].time = time;
-                    ds[i].count = 0;
-                    *dg_type(ds[i].dg) = dsid2type(TYPE_END, dsid, 0);
-                    ds[i].len = 24;
-                    ds[i].addr.sin_port = PORT_TABLE[*dg_rank(ds[i].dg)];
-                    ds[i].addr.sin_addr.s_addr = ADDR_TABLE[*dg_rank(ds[i].dg)];
-                }
-                if (ds[i].stat == DSSTAT_COPY_READ || ds[i].stat == DSSTAT_COPY2_READ) {
-                    /* Fill streaming window */
-                    while (!ds[i].complete && is_sw_not_full(i)) {
-                        j = sw_add(i, time);
-                        len = ds[i].size - ds[i].offset;
-                        if (len > MAX_DATA_SIZE) len = MAX_DATA_SIZE;
-                        ds[i].sw[j].count = 0;
-                        ds[i].sw[j].dst = ga2address(ds[i].dst + ds[i].offset);
-                        ds[i].sw[j].src = ds[i].src + ds[i].offset;
-                        ds[i].sw[j].len = len;
-                        ds[i].offset += len;
-                        if(ds[i].size <= ds[i].offset){
-                            ds[i].complete = 1;
+                txbuf_vc1_push_free(elem_id);
+                debug printf("rank %d - protocol dq[%d] got ack from txbuf vc1 ack\n", MY_RANK, pos);
+            }
+        }
+        
+        /* Check waiting entries */
+        check_wait = 0;
+        if (is_dq_not_empty()) {
+            pos = dqhead;
+            while (pos != dqexec) {
+                next = dqnext[pos];
+                if (dq[pos].stat == DQSTAT_WAIT) {
+                    check_wait |= 2;
+                    if (dq[pos].gateway == MY_GATEWAY) {
+                        if (ibuf_vc1_free_ack_count(dq[pos].inum) >= dqwait[pos]) {
+                            debug printf("rank %d - protocol dq[%d] got ack from ibuf inum =%d vc1 ack_count = %d\n", MY_RANK, pos, dq[pos].inum, dqwait[pos]);
+                            if (dq[pos].rank != MY_RANK) {
+                                dq[pos].stat = DQSTAT_NOTIFY;
+                                dq[pos].inum = INUM_TABLE[dq[pos].rank];
+                                dq[pos].gateway = GTWY_TABLE[dq[pos].rank];
+                            } else { /* dq[pos].rank == MY_RANK */
+                                /* Notify completion directly to the corresponding CQ entry */
+                                p = dq[pos].ptr & MASK_CQ;
+                                cq[p].stat = CQSTAT_DONE;
+                                dq_free(pos);
+                            }
+                            check_wait--;
                         }
                     }
-                    
-                } else if (ds[i].stat == DSSTAT_ATOMIC_WRITE || ds[i].stat == DSSTAT_COPY_END || ds[i].stat == DSSTAT_ATOMIC_END) {
-                    sendto(sock, ds[i].dg, ds[i].len, 0, (struct sockaddr *)&ds[i].addr, sock_addr_in_size);
-                    /* Set retransmit timer from 200K to 20M clock (around 100 usec to 10 msec) */
-                    ds[i].time = time + ((uint64_t)(0x4000 + ((i & 0xff) << 6)) << ((ds[i].count < 7) ? ds[i].count + 4 : 7 + 4));
-                    ds[i].count++;
+                    check_wait >>= 1;
+                }
+                if (dq[pos].stat == DQSTAT_NOTIFY) {
+                    if (dq[pos].gateway == MY_GATEWAY) {
+                        elem_id = ibuf_vc2_pop_free(dq[pos].inum);
+                        if (elem_id >= 0) {
+                            dgp = (dg_union*)ibuf[ibuf_pos(dq[pos].inum, MY_INUM)].vc2.list[elem_id].dg;
+                            dgp->end.task = TASKID;
+                            dgp->end.c    = NORMAL;
+                            dgp->end.vc   = 2;
+                            dgp->end.rank = MY_RANK;
+                            dgp->end.ptr  = dq[pos].ptr;
+                            ibuf_vc2_push_dg(dq[pos].inum, elem_id);
+                            dq_free(pos);
+                       }
+                    } else { /* dq[pos].gateway != MY_GATEWAY */
+                        elem_id = txbuf_vc2_pop_free();
+                        if (elem_id >= 0) {
+                            txbuf[MY_INUM].vc2.list[elem_id].send_to = dq[pos].rank;
+                            dgp = (dg_union*)txbuf[MY_INUM].vc2.list[elem_id].dg;
+                            dgp->end.task = TASKID;
+                            dgp->end.c    = NORMAL;
+                            dgp->end.vc   = 2;
+                            dgp->end.rank = MY_RANK;
+                            dgp->end.ptr  = dq[pos].ptr;
+                            txbuf_vc2_push_dg(elem_id);
+                            dq_free(pos);
+                        }
+                    }
+                }
+                pos = next;
+            }
+        }
+        
+        if (is_dq_not_empty()) {
+            /* Execute a command */
+            pos = dqexec;
+            if (dq[pos].stat == DQSTAT_FENCE && check_wait == 0) dq[pos].stat = DQSTAT_ACTIVE;
+            if (dq[pos].stat == DQSTAT_ACTIVE) {
+                if (dq[pos].inum == MY_INUM && dq[pos].gateway == MY_GATEWAY) {
+                    type = dq[pos].type;
+                    if (type == COPY) {
+                        memcpy(ga2address(dq[pos].dst), ga2address(dq[pos].src), dq[pos].size);
+                    } else if (type == CAS4) {
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_val_compare_and_swap_4((uint32_t*)ga2address(dq[pos].src), dq[pos].old4, dq[pos].new4);
+                    } else if (type == CAS8) {
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_val_compare_and_swap_8((uint64_t*)ga2address(dq[pos].src), dq[pos].old8, dq[pos].new8);
+                    } else if (type == SWAP4) {
+                        dgp->put.len = 4;
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_swap_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                    } else if (type == SWAP8) {
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_swap_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                    } else if (type == ADD4) {
+                        dgp->put.len = 4;
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_fetch_and_add_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                    } else if (type == ADD8) {
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_fetch_and_add_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                    } else if (type == XOR4) {
+                        dgp->put.len = 4;
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_fetch_and_xor_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                    } else if (type == XOR8) {
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_fetch_and_xor_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                    } else if (type == OR4) {
+                        dgp->put.len = 4;
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_fetch_and_or_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                    } else if (type == OR8) {
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_fetch_and_or_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                    } else if (type == AND4) {
+                        dgp->put.len = 4;
+                        *(uint32_t*)ga2address(dq[pos].dst) = sync_fetch_and_and_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                    } else { /* type == AND8 */
+                        dgp->put.len = 8;
+                        *(uint64_t*)ga2address(dq[pos].dst) = sync_fetch_and_and_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                    }
+                    debug printf("rank %d - protocol Dq %d local execution dqhead = %d, dqexec = %d, dqtail =%d, dqflnum = %d, ds[%d] stat = %d, rank = %d, ptr = 0x%016" PRIx64 ", type = %d\n", MY_RANK, pos, dqhead, dqexec, dqtail, dqflnum, pos, dq[pos].stat, dq[pos].rank, dq[pos].ptr, dq[pos].type);
+                    dq[pos].stat = DQSTAT_NOTIFY;
+                    dq[pos].inum = INUM_TABLE[dq[pos].rank];
+                    dq[pos].gateway = GTWY_TABLE[dq[pos].rank];
+                    dqexec = dqnext[pos];
+                    dqoffset = 0;
+                } else {
+                    if (dq[pos].gateway == MY_GATEWAY) {
+                        elem_id = ibuf_vc1_pop_free(dq[pos].inum);
+                        if (elem_id >= 0) dgp = (dg_union*)ibuf[ibuf_pos(dq[pos].inum, MY_INUM)].vc1.list[elem_id].dg;
+                        debug printf("rank %d - protocol Dq %d to ibuf[%d][%d] vc1 elem_id = %d\n", MY_RANK, pos, dq[pos].inum, MY_INUM, elem_id);
+                    } else {
+                        elem_id = txbuf_vc1_pop_free();
+                        if (elem_id >= 0) {
+                            txbuf[MY_INUM].vc1.list[elem_id].send_to = ga2rank(dq[pos].dst);
+                            dgp = (dg_union*)txbuf[MY_INUM].vc1.list[elem_id].dg;
+                        }
+                    }
+                    if (elem_id >= 0) {
+                        dgp->put.task = TASKID;
+                        dgp->put.c    = NORMAL;
+                        dgp->put.vc   = 1;
+                        dgp->put.rank = MY_RANK;
+                        dgp->put.dst  = dq[pos].dst;
+                        check_cont = 0;
+                        type = dq[pos].type;
+                        if (type == COPY) {
+                            size = dq[pos].size - dqoffset;
+                            size = (size < MAX_DATA_SIZE) ? size : MAX_DATA_SIZE;
+                            dgp->put.dst += dqoffset;
+                            dgp->put.len = size;
+                            memcpy(dgp->put.data, ga2address(dq[pos].src) + dqoffset, size);
+                            dqoffset += size;
+                            if (dq[pos].size > dqoffset) check_cont = 1;
+                        } else if (type == CAS4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_val_compare_and_swap_4((uint32_t*)ga2address(dq[pos].src), dq[pos].old4, dq[pos].new4);
+                        } else if (type == CAS8) {
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_val_compare_and_swap_8((uint64_t*)ga2address(dq[pos].src), dq[pos].old8, dq[pos].new8);
+                        } else if (type == SWAP4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_swap_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                        } else if (type == SWAP8) {
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_swap_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                        } else if (type == ADD4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_fetch_and_add_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                        } else if (type == ADD8) {
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_fetch_and_add_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                        } else if (type == XOR4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_fetch_and_xor_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                        } else if (type == XOR8) {
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_fetch_and_xor_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                        } else if (type == OR4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_fetch_and_or_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                        } else if (type == OR8) {
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_fetch_and_or_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                        } else if (type == AND4) {
+                            dgp->put.len = 4;
+                            *(uint32_t*)dgp->put.data = sync_fetch_and_and_4((uint32_t*)ga2address(dq[pos].src), dq[pos].val4);
+                        } else { /* type == AND8 */
+                            dgp->put.len = 8;
+                            *(uint64_t*)dgp->put.data = sync_fetch_and_and_8((uint64_t*)ga2address(dq[pos].src), dq[pos].val8);
+                        }
+                        if (check_cont) {
+                            if (dq[pos].gateway == MY_GATEWAY) {
+                                ibuf_vc1_push_dg(dq[pos].inum, elem_id);
+                            } else {
+                                txbuf[MY_INUM].vc1.list[elem_id].dq_pos = -1;
+                                txbuf_vc1_push_dg(elem_id);
+                            }
+                        } else { /* check_cont == 0 */
+                            if (dq[pos].gateway == MY_GATEWAY) {
+                                dqwait[pos] = ibuf_vc1_push_dg(dq[pos].inum, elem_id);
+                                debug printf("rank %d - protocol Dq %d wait for ibuf vc1 ack_count %d\n", MY_RANK, pos, dqwait[pos]);
+                            } else {
+                                txbuf[MY_INUM].vc1.list[elem_id].dq_pos = pos;
+                                txbuf_vc1_push_dg(elem_id);
+                                debug printf("rank %d - protocol Dq %d wait for txbuf vc1 ack\n", MY_RANK, pos);
+                            }
+                            dq[pos].stat = DQSTAT_WAIT;
+                            dqexec = dqnext[pos];
+                            dqoffset = 0;
+                        }
+                    }
                 }
             }
         }
         
-        /*** Streaming Window ***/
+        /* Enqueue a new command */
+        if (is_dq_not_full()) {
+            if (MY_INUM > 0) pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+            for (i = 0; i < NODE_POP + 1; i++) {
+                if (rx_vc0_next_inum == NODE_POP)
+                    if (NUM_PROCS != NODE_POP)
+                        elem_id = rxbuf_vc0_pop_dg();
+                    else
+                        elem_id = -1;
+                else
+                    elem_id = ibuf_vc0_pop_dg(rx_vc0_next_inum);
+                if (elem_id >= 0) break;
+                rx_vc0_next_inum = (rx_vc0_next_inum < NODE_POP) ? rx_vc0_next_inum + 1 : 0;
+            }
+            if (MY_INUM > 0) pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+            
+            if (elem_id >= 0) {
+                if (rx_vc0_next_inum == NODE_POP)
+                    dgp = (dg_union*)rxbuf[MY_INUM].list[elem_id].dg;
+                else
+                    dgp = (dg_union*)ibuf[ibuf_pos(MY_INUM, rx_vc0_next_inum)].vc0.list[elem_id].dg;
+                pos = dq_push(dgp->copy.ptr, dgp->copy.rank, dgp->copy.s, dgp->copy.type, dgp->copy.dst, dgp->copy.src);
+                type = dq[pos].type;
+                debug printf("rank %d - protocol Exec dq[%d] dqhead = %d, dqexec = %d, dqtail =%d, dqflnum = %d, from = %d, cqp = 0x%016" PRIx64 " type = %d remote to X\n", MY_RANK, pos, dqhead, dqexec, dqtail, dqflnum, dgp->copy.rank, dgp->copy.ptr, type);
+                if (type == COPY) {
+                    dq[pos].size = dgp->copy.size;
+                } else if (type == CAS4) {
+                    dq[pos].old4 = dgp->cas4.oldval;
+                    dq[pos].new4 = dgp->cas4.newval;
+                } else if (type == CAS8) {
+                    dq[pos].old8 = dgp->cas8.oldval;
+                    dq[pos].new8 = dgp->cas8.newval;
+                } else if (type == SWAP4) {
+                    dq[pos].val4 = dgp->swap4.val;
+                } else if (type == SWAP8) {
+                    dq[pos].val8 = dgp->swap8.val;
+                } else if (type == ADD4) {
+                    dq[pos].val4 = dgp->add4.val;
+                } else if (type == ADD8) {
+                    dq[pos].val8 = dgp->add8.val;
+                } else if (type == XOR4) {
+                    dq[pos].val4 = dgp->xor4.val;
+                } else if (type == XOR8) {
+                    dq[pos].val8 = dgp->xor8.val;
+                } else if (type == OR4) {
+                    dq[pos].val4 = dgp->or4.val;
+                } else if (type == OR8) {
+                    dq[pos].val8 = dgp->or8.val;
+                } else if (type == AND4) {
+                    dq[pos].val4 = dgp->and4.val;
+                } else { /* type == AND8 */
+                    dq[pos].val8 = dgp->and8.val;
+                }
+                if (rx_vc0_next_inum == NODE_POP)
+                    rxbuf_push_free(MY_INUM, elem_id);
+                else
+                    ibuf_vc0_push_free(rx_vc0_next_inum, elem_id);
+                
+                rx_vc0_next_inum = (rx_vc0_next_inum < NODE_POP) ? rx_vc0_next_inum + 1 : 0;
+            }
+        }
         
-        for (i = dshead; i >= 0; i = ds[i].next) {
-            for (j = ds[i].swhead; j >= 0; j = ds[i].sw[j].next) {
-                if (ds[i].sw[j].count < 2) free_count = 0;
-                if (time >= ds[i].sw[j].time) {
-                    *dg_type(ds[i].dg) = dsid2type(TYPE_READ, i, j);
-                    *dg_len(ds[i].dg) = ds[i].sw[j].len;
-                    *dg_dst(ds[i].dg) = ds[i].sw[j].src;
-                    sendto(sock, ds[i].dg, DG_HEADER_SIZE, 0, (struct sockaddr *)&ds[i].addr, sock_addr_in_size);
-                    /* Set retransmit timer from 200K to 200M clock (around 100 usec to 100 msec) */
-                    ds[i].sw[j].time = time + ((uint64_t)(0x4000 + ((i & 0xff) << 6)) << ((ds[i].sw[j].count < 10) ? ds[i].sw[j].count + 4 : 10 + 4));
-                    ds[i].sw[j].count++;
+        /*** Command Queue ***/
+        
+        /* Execute a command */
+        p = cqxp & MASK_CQ;
+        if (cqxp < cqwp_tmp && (cq[p].order < cqcp_tmp || cq[p].rfence == 1)) {
+            if (cq[p].stat == CQSTAT_11) {
+                debug printf("rank %d - protocol Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+                type = cq[p].type;
+                if (type == COPY)
+                    memcpy(ga2address(cq[p].dst), ga2address(cq[p].src), cq[p].size);
+                else if (type == CAS4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_4((uint32_t*)ga2address(cq[p].src), cq[p].old4, cq[p].new4);
+                else if (type == CAS8)
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_8((uint64_t*)ga2address(cq[p].src), cq[p].old8, cq[p].new8);
+                else if (type == SWAP4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_swap_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+                else if (type == SWAP8)
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_swap_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+                else if (type == ADD4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_add_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+                else if (type == ADD8)
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_add_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+                else if (type == XOR4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+                else if (type == XOR8)
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+                else if (type == OR4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_or_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+                else if (type == OR8)
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_or_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+                else if (type == AND4)
+                    *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_and_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+                else /* type == AND8 */
+                    *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_and_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+                cq[p].stat = CQSTAT_DONE;
+                cqxp++;
+            } else if (cq[p].stat == CQSTAT_12) {
+                /* Enqueue a command directly to the local delegate queue */
+                if (is_dq_not_full()) {
+                    type = cq[p].type;
+                    pos = dq_push(cqxp, MY_RANK, cq[p].rfence, type, cq[p].dst, cq[p].src);
+                    debug printf("rank %d - protocol Exec cq 0x%016" PRIx64 " into dq[%d] type = %d local to remote\n", MY_RANK, cqxp, pos, cq[p].type);
+                    if (type == COPY) {
+                        dq[pos].size = cq[p].size;
+                    } else if (type == CAS4) {
+                        dq[pos].old4 = cq[p].old4;
+                        dq[pos].new4 = cq[p].new4;
+                    } else if (type == CAS8) {
+                        dq[pos].old8 = cq[p].old8;
+                        dq[pos].new8 = cq[p].new8;
+                    } else if (type == SWAP4 || type == ADD4 || type == XOR4 || type == OR4 || type == AND4) {
+                        dq[pos].val4 = cq[p].val4;
+                    } else { /* type == SWAP8 || type == ADD8 || type == XOR8 || type == OR8 || type == AND8 */
+                        dq[pos].val8 = cq[p].val8;
+                    }
+                    cq[p].stat = CQSTAT_WAIT;
+                    cqxp++;
+                }
+            } else { /* CQSTAT_2X */
+                /* Transmit a command datagram: ibuf and txbuf vc0 */
+                if (cq[p].gateway == MY_GATEWAY) {
+                    elem_id = ibuf_vc0_pop_free(cq[p].inum);
+                    if (elem_id >= 0) dgp = (dg_union*)ibuf[ibuf_pos(cq[p].inum, MY_INUM)].vc0.list[elem_id].dg;
+                } else {
+                    elem_id = txbuf_vc0_pop_free();
+                    if (elem_id >= 0) {
+                        dgp = (dg_union*)txbuf[MY_INUM].vc0.list[elem_id].dg;
+                        txbuf[MY_INUM].vc0.list[elem_id].send_to = ga2rank(cq[p].src);
+                    }
+                }
+                if (elem_id >= 0) {
+                    debug printf("rank %d - protocol Exec cq 0x%016" PRIx64 " type = %d remote to X\n", MY_RANK, cqxp, cq[p].type);
+                    type = cq[p].type;
+                    dgp->copy.task = TASKID;
+                    dgp->copy.c    = NORMAL;
+                    dgp->copy.vc   = 0;
+                    dgp->copy.rank = MY_RANK;
+                    dgp->copy.ptr  = cqxp;
+                    dgp->copy.s    = cq[p].rfence;
+                    dgp->copy.type = type;
+                    dgp->copy.dst  = cq[p].dst;
+                    dgp->copy.src  = cq[p].src;
+                    if (type == COPY) {
+                        dgp->copy.size = cq[p].size;
+                    } else if (type == CAS4) {
+                        dgp->cas4.oldval = cq[p].old4;
+                        dgp->cas4.newval = cq[p].new4;
+                    } else if (type == CAS8) {
+                        dgp->cas8.oldval = cq[p].old8;
+                        dgp->cas8.newval = cq[p].new8;
+                    } else if (type == SWAP4 || type == ADD4 || type == XOR4 || type == OR4 || type == AND4) {
+                        dgp->swap4.val = cq[p].val4;
+                    } else { /* type == SWAP8 || type == ADD8 || type == XOR8 || type == OR8 || type == AND8 */
+                        dgp->swap8.val = cq[p].val8;
+                    }
+                    cq[p].stat = CQSTAT_WAIT;
+                    cqxp++;
+                    if (cq[p].gateway == MY_GATEWAY)
+                        ibuf_vc0_push_dg(cq[p].inum, elem_id);
+                    else
+                        txbuf_vc0_push_dg(elem_id);
                 }
             }
         }
     }
     
-    close(sock);
+    if (MY_INUM == 0 && NUM_PROCS != NODE_POP) {
+        for (i = NODE_POP - 1; i >= 0; i--) close(pfds[i].fd);
+        finalize_retx_list();
+        finalize_rtt_pred();
+        finalize_txtime();
+        finalize_seq();
+        finalize_ser();
+    }
+    debug printf("rank %d - communication thread end\n", MY_RANK);
     return NULL;
 }
+
+/****************************/
+/* Infrastructure functions */
+/****************************/
 
 static pthread_t comm_thread_id;
 
 int iacpbludp_init_gma(void)
 {
-    txseq_table = (uint32_t*)malloc(NUM_PROCS * sizeof(uint32_t));
-    rxseq_table = (uint32_t*)malloc(NUM_PROCS * sizeof(uint32_t));
-    init_sequence();
+    int r;
     
-    comm_thread_ready = 0;
-    abort_comm_thread = 0;
-    sync_synchronize();
+    r = init_shmbuffer();
+    if (r) return r;
+    init_cq();
+    dq_reset();
+    
+    pthread_mutex_init(&mutex_comm_thread_ready, NULL);
+    pthread_cond_init(&cond_comm_thread_ready, NULL);
+    pthread_mutex_init(&mutex_comm_thread_start, NULL);
+    pthread_cond_init(&cond_comm_thread_start, NULL);
+    quit_comm_thread = 0;
+    pthread_mutex_init(&mutex_quit_comm_thread, NULL);
+    
     pthread_create(&comm_thread_id, NULL, comm_thread_func, NULL);
-    while (comm_thread_ready == 0) ;
+    
+    pthread_mutex_lock(&mutex_comm_thread_ready);
+    pthread_cond_wait(&cond_comm_thread_ready, &mutex_comm_thread_ready);
+    pthread_mutex_unlock(&mutex_comm_thread_ready);
+    acp_sync();
+    pthread_mutex_lock(&mutex_comm_thread_start);
+    pthread_cond_signal(&cond_comm_thread_start);
+    pthread_mutex_unlock(&mutex_comm_thread_start);
     
     return 0;
 }
 
 int iacpbludp_finalize_gma(void)
 {
-    abort_comm_thread = 1;
-    sync_synchronize();
+    pthread_mutex_lock(&mutex_quit_comm_thread);
+    quit_comm_thread = 1;
+    pthread_mutex_unlock(&mutex_quit_comm_thread);
+    
+    pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+    doorbell_ring(MY_INUM);
+    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    
     pthread_join(comm_thread_id, NULL);
     
-    free(txseq_table);
-    free(rxseq_table);
-    txseq_table = NULL;
-    rxseq_table = NULL;
+    pthread_mutex_destroy(&mutex_quit_comm_thread);
+    
+    pthread_cond_destroy(&cond_comm_thread_ready);
+    pthread_mutex_destroy(&mutex_comm_thread_ready);
+    
+    finalize_cq();
+    finalize_shmbuffer();
     
     return 0;
 }
 
 void iacpbludp_abort_gma(void)
 {
-    abort_comm_thread = 1;
-    sync_synchronize();
-    pthread_join(comm_thread_id, NULL);
+    quit_comm_thread = 1;
+    pthread_cancel(comm_thread_id);
+    pthread_mutex_destroy(&mutex_quit_comm_thread);
     
-    free(txseq_table);
-    free(rxseq_table);
-    txseq_table = NULL;
-    rxseq_table = NULL;
+    pthread_cond_destroy(&cond_comm_thread_ready);
+    pthread_mutex_destroy(&mutex_comm_thread_ready);
+    
+    finalize_cq();
+    finalize_shmbuffer();
     
     return;
 }

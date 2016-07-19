@@ -65,6 +65,76 @@ static pthread_cond_t cond_comm_thread_start;
 static pthread_mutex_t mutex_quit_comm_thread;
 static int quit_comm_thread;
 
+/*******************/
+/* Sequence number */
+/*******************/
+
+seq_entry_t* seq_table;
+
+static inline void init_seq(void)
+{
+    uint32_t rank;
+    uint64_t data, crc64;
+    int i, j;
+    
+    seq_table = (seq_entry_t*)malloc(sizeof(seq_entry_t) * NUM_PROCS * NODE_POP);
+    
+    /* Initialize sequence numbers for all ranks and all VCs */
+    for (rank = 0; rank < NUM_PROCS; rank++) {
+        data = ((uint64_t)TASKID << 32) | (uint64_t)rank;
+        crc64 = 0ULL;
+        for (i = 0; i < 64; i++){
+            crc64 = (crc64 << 1) ^ ((((crc64 >> 63) ^ data) & 1ULL) ? 0x42f0e1eba9ea3693ULL : 0ULL);
+            data >>= 1;
+        }
+        seq_table[rank].rxseq0 = crc64 & 0xffff;
+        seq_table[rank].rxseq1 = (crc64 >> 24) & 0xffff;
+        seq_table[rank].rxseq2 = (crc64 >> 48) & 0xffff;
+        seq_table[rank].rxseq1fwd = seq_table[rank].rxseq1;
+    }
+    
+    /* Fill the rest of seq_table */
+    for (i = 0; i < NODE_POP; i++) {
+        int k = i * NUM_PROCS;
+        rank = LMEM_TABLE[i];
+        for (j = 0; j < NUM_PROCS; j++) {
+            seq_table[j + k].txseq0 = seq_table[rank].rxseq0;
+            seq_table[j + k].txseq1 = seq_table[rank].rxseq1;
+            seq_table[j + k].txseq2 = seq_table[rank].rxseq2;
+            seq_table[j + k].full0 = 0;
+            seq_table[j + k].full1 = 0;
+            seq_table[j + k].full2 = 0;
+            if (i == 0) continue;
+            seq_table[j + k].rxseq0 = seq_table[j].rxseq0;
+            seq_table[j + k].rxseq1 = seq_table[j].rxseq1;
+            seq_table[j + k].rxseq2 = seq_table[j].rxseq2;
+            seq_table[j + k].rxseq1fwd = seq_table[j].rxseq1;
+        }
+    }
+    
+    return;
+}
+
+static inline void finalize_seq(void)
+{
+    if (seq_table != NULL) free(seq_table);
+    return;
+}
+
+static inline uint16_t inc_seq(uint16_t* ptr)
+{
+    uint16_t org = *ptr;
+    *ptr = (org < 0xffff) ? org + 1 : 0;
+    return org;
+}
+
+static inline int compare_seq(uint16_t seq1, uint16_t seq2)
+{
+    if (seq2 > seq1) return (seq2 - seq1 <  0x8000U) ? -1 :  1;
+    if (seq1 > seq2) return (seq1 - seq2 <= 0x8000U) ?  1 : -1;
+    return 0;
+}
+
 /************************/
 /* Shared memory buffer */
 /************************/
@@ -531,6 +601,7 @@ static inline void txbuf_vc0_push_dg(int elem_id)
 {
     if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc0.dg.mutex);
     txbuf[MY_INUM].vc0.list[elem_id].next = -1;
+    txbuf[MY_INUM].vc0.list[elem_id].count = 0;
     if (txbuf[MY_INUM].vc0.dg.tail < 0)
         txbuf[MY_INUM].vc0.dg.head = elem_id;
     else
@@ -545,6 +616,7 @@ static inline void txbuf_vc1_push_dg(int elem_id)
 {
     if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc1.dg.mutex);
     txbuf[MY_INUM].vc1.list[elem_id].next = -1;
+    txbuf[MY_INUM].vc1.list[elem_id].count = 0;
     if (txbuf[MY_INUM].vc1.dg.tail < 0)
         txbuf[MY_INUM].vc1.dg.head = elem_id;
     else
@@ -559,6 +631,7 @@ static inline void txbuf_vc2_push_dg(int elem_id)
 {
     if (MY_INUM > 0) pthread_mutex_lock(&txbuf[MY_INUM].vc2.dg.mutex);
     txbuf[MY_INUM].vc2.list[elem_id].next = -1;
+    txbuf[MY_INUM].vc2.list[elem_id].count = 0;
     if (txbuf[MY_INUM].vc2.dg.tail < 0)
         txbuf[MY_INUM].vc2.dg.head = elem_id;
     else
@@ -573,15 +646,21 @@ static inline void txbuf_vc2_push_dg(int elem_id)
 
 static inline int txbuf_vc0_pop_dg(int inum)
 {
-    int ret;
+    dg_union* dgp;
+    int ret, full;
     
     if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc0.dg.mutex);
     ret = txbuf[inum].vc0.dg.head;
-    if (ret >= 0)
-        if (txbuf[inum].vc0.list[ret].next < 0)
+    if (ret >= 0) {
+        dgp = (dg_union*)txbuf[inum].vc0.list[ret].dg;
+        if (seq_table[NUM_PROCS * inum + dgp->copy.rank].full0 && txbuf[inum].vc0.list[ret].count < 16) {
+            txbuf[inum].vc0.list[ret].count++;
+            ret = -1;
+        } else if (txbuf[inum].vc0.list[ret].next < 0)
             txbuf[inum].vc0.dg.head = txbuf[inum].vc0.dg.tail = -1;
         else
             txbuf[inum].vc0.dg.head = txbuf[inum].vc0.list[ret].next;
+    }
     if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc0.dg.mutex);
     
     return ret;
@@ -589,15 +668,21 @@ static inline int txbuf_vc0_pop_dg(int inum)
 
 static inline int txbuf_vc1_pop_dg(int inum)
 {
-    int ret;
+    dg_union* dgp;
+    int ret, full;
     
     if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc1.dg.mutex);
     ret = txbuf[inum].vc1.dg.head;
-    if (ret >= 0)
-        if (txbuf[inum].vc1.list[ret].next < 0)
+    if (ret >= 0) {
+        dgp = (dg_union*)txbuf[inum].vc1.list[ret].dg;
+        if (seq_table[NUM_PROCS * inum + dgp->copy.rank].full1 && txbuf[inum].vc1.list[ret].count < 16) {
+            txbuf[inum].vc1.list[ret].count++;
+            ret = -1;
+        } else if (txbuf[inum].vc1.list[ret].next < 0)
             txbuf[inum].vc1.dg.head = txbuf[inum].vc1.dg.tail = -1;
         else
             txbuf[inum].vc1.dg.head = txbuf[inum].vc1.list[ret].next;
+    }
     if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc1.dg.mutex);
     
     return ret;
@@ -605,15 +690,21 @@ static inline int txbuf_vc1_pop_dg(int inum)
 
 static inline int txbuf_vc2_pop_dg(int inum)
 {
-    int ret;
+    dg_union* dgp;
+    int ret, full;
     
     if (inum > 0) pthread_mutex_lock(&txbuf[inum].vc2.dg.mutex);
     ret = txbuf[inum].vc2.dg.head;
-    if (ret >= 0)
-        if (txbuf[inum].vc2.list[ret].next < 0)
+    if (ret >= 0) {
+        dgp = (dg_union*)txbuf[inum].vc2.list[ret].dg;
+        if (seq_table[NUM_PROCS * inum + dgp->copy.rank].full2 && txbuf[inum].vc2.list[ret].count < 16) {
+            txbuf[inum].vc2.list[ret].count++;
+            ret = -1;
+        } else if (txbuf[inum].vc2.list[ret].next < 0)
             txbuf[inum].vc2.dg.head = txbuf[inum].vc2.dg.tail = -1;
         else
             txbuf[inum].vc2.dg.head = txbuf[inum].vc2.list[ret].next;
+    }
     if (inum > 0) pthread_mutex_unlock(&txbuf[inum].vc2.dg.mutex);
     
     return ret;
@@ -1406,71 +1497,6 @@ static inline int update_ser(int inum, int vc, uint16_t ser)
     return ret;
 }
 
-/* Sequence number */
-
-seq_entry_t* seq_table;
-
-static inline void init_seq(void)
-{
-    uint32_t rank;
-    uint64_t data, crc64;
-    int i, j;
-    
-    seq_table = (seq_entry_t*)malloc(sizeof(seq_entry_t) * NUM_PROCS * NODE_POP);
-    
-    /* Initialize sequence numbers for all ranks and all VCs */
-    for (rank = 0; rank < NUM_PROCS; rank++) {
-        data = ((uint64_t)TASKID << 32) | (uint64_t)rank;
-        crc64 = 0ULL;
-        for (i = 0; i < 64; i++){
-            crc64 = (crc64 << 1) ^ ((((crc64 >> 63) ^ data) & 1ULL) ? 0x42f0e1eba9ea3693ULL : 0ULL);
-            data >>= 1;
-        }
-        seq_table[rank].rxseq0 = crc64 & 0xffff;
-        seq_table[rank].rxseq1 = (crc64 >> 24) & 0xffff;
-        seq_table[rank].rxseq2 = (crc64 >> 48) & 0xffff;
-        seq_table[rank].rxseq1fwd = seq_table[rank].rxseq1;
-    }
-    
-    /* Fill the rest of seq_table */
-    for (i = 0; i < NODE_POP; i++) {
-        int k = i * NUM_PROCS;
-        rank = LMEM_TABLE[i];
-        for (j = 0; j < NUM_PROCS; j++) {
-            seq_table[j + k].txseq0 = seq_table[rank].rxseq0;
-            seq_table[j + k].txseq1 = seq_table[rank].rxseq1;
-            seq_table[j + k].txseq2 = seq_table[rank].rxseq2;
-            if (i == 0) continue;
-            seq_table[j + k].rxseq0 = seq_table[j].rxseq0;
-            seq_table[j + k].rxseq1 = seq_table[j].rxseq1;
-            seq_table[j + k].rxseq2 = seq_table[j].rxseq2;
-            seq_table[j + k].rxseq1fwd = seq_table[j].rxseq1;
-        }
-    }
-    
-    return;
-}
-
-static inline void finalize_seq(void)
-{
-    if (seq_table != NULL) free(seq_table);
-    return;
-}
-
-static inline uint16_t inc_seq(uint16_t* ptr)
-{
-    uint16_t org = *ptr;
-    *ptr = (org < 0xffff) ? org + 1 : 0;
-    return org;
-}
-
-static inline int compare_seq(uint16_t seq1, uint16_t seq2)
-{
-    if (seq2 > seq1) return (seq2 - seq1 <  0x8000U) ? -1 :  1;
-    if (seq1 > seq2) return (seq1 - seq2 <= 0x8000U) ?  1 : -1;
-    return 0;
-}
-
 /* Transmit time table */
 
 static uint64_t* txtime_table;
@@ -1855,6 +1881,17 @@ static void* comm_thread_func(void *param)
                         ptr = next;
                     }
                     
+                    /* Update full flag */
+                    if (dgp->ack.c == ACK) {
+                        if (dgp->ack.vc == 0) seq_table[NUM_PROCS * inum + dgp->ack.rank].full0 = 0;
+                        if (dgp->ack.vc == 1) seq_table[NUM_PROCS * inum + dgp->ack.rank].full1 = 0;
+                        if (dgp->ack.vc == 2) seq_table[NUM_PROCS * inum + dgp->ack.rank].full2 = 0;
+                    } else if (dgp->full.c == FULL) {
+                        if (dgp->full.vc == 0) seq_table[NUM_PROCS * inum + dgp->full.rank].full0 = 1;
+                        if (dgp->full.vc == 1) seq_table[NUM_PROCS * inum + dgp->full.rank].full1 = 1;
+                        if (dgp->full.vc == 2) seq_table[NUM_PROCS * inum + dgp->full.rank].full2 = 1;
+                    }
+                    
                     /* Update round trip time */
                     if (update_ser(inum, dgp->ack.vc, dgp->ack.ser)) rtt_update(dgp->ack.rank, dgp->ack.vc, get_nsec() - txtime(inum, dgp->ack.vc, dgp->ack.ser));
                     rxbuf_push_free(inum, elem_id);
@@ -1880,6 +1917,7 @@ static void* comm_thread_func(void *param)
                     tx_bytes += dg_biased_size(len);
                     if (dgp->end.seq == dgc.seq2) {
                         if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc2.dg.num > (RXBUF_VC2_SIZE >> 1)) dgc.c = FULL;
                         if (rxbuf[inum].vc2.dg.num < RXBUF_VC2_SIZE) {
                             rxbuf[inum].list[elem_id].next = -1;
                             if (rxbuf[inum].vc2.dg.tail < 0)
@@ -1897,9 +1935,8 @@ static void* comm_thread_func(void *param)
                             continue;
                         }
                         if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
-                        dgc.c = FULL;
-                    } else
-                        dgc.c = NACK;
+                    }
+                    dgc.c = NACK;
                     rxbuf_push_free(inum, elem_id);
                     sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
                     debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
@@ -1925,6 +1962,7 @@ static void* comm_thread_func(void *param)
                     tx_bytes += dg_biased_size(len);
                     if (dgp->put.seq == seq_table[pos].rxseq1fwd) {
                         if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc1.dg.num > (RXBUF_VC1_SIZE >> 1)) dgc.c = FULL;
                         if (rxbuf[inum].vc1.dg.num < RXBUF_VC1_SIZE) {
                             rxbuf[inum].list[elem_id].next = -1;
                             if (rxbuf[inum].vc1.dg.tail < 0)
@@ -1940,9 +1978,8 @@ static void* comm_thread_func(void *param)
                             continue;
                         }
                         if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
-                        dgc.c = FULL;
-                    } else
-                        dgc.c = NACK;
+                    }
+                    dgc.c = NACK;
                     rxbuf_push_free(inum, elem_id);
                     sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
                     debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);
@@ -1968,6 +2005,7 @@ static void* comm_thread_func(void *param)
                     tx_bytes += dg_biased_size(len);
                     if (dgp->copy.seq == dgc.seq) {
                         if (inum > 0) pthread_mutex_lock(&doorbell[inum].mutex);
+                        if (rxbuf[inum].vc0.dg.num > (RXBUF_VC0_SIZE >> 1)) dgc.c = FULL;
                         if (rxbuf[inum].vc0.dg.num < RXBUF_VC0_SIZE) {
                             rxbuf[inum].list[elem_id].next = -1;
                             if (rxbuf[inum].vc0.dg.tail < 0)
@@ -1985,9 +2023,8 @@ static void* comm_thread_func(void *param)
                             continue;
                         }
                         if (inum > 0) pthread_mutex_unlock(&doorbell[inum].mutex);
-                        dgc.c = FULL;
-                    } else
-                        dgc.c = NACK;
+                    }
+                    dgc.c = NACK;
                     rxbuf_push_free(inum, elem_id);
                     sendto(sock, (void*)&dgc, (ssize_t)len, 0, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
                     debug printf("rank %d - transport Transmit control %d to = %d, vc = %d, ser = 0x%04x, seq0 = 0x%04x, seq1 = 0x%04x, seq2 = 0x%04x\n", MY_RANK, dgc.c, send_to, dgc.vc, dgc.ser, dgc.seq, dgc.seq1, dgc.seq2);

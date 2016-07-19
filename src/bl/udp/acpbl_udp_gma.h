@@ -124,6 +124,7 @@ typedef struct {
         } wait;
         struct {
             int next;
+            int count;
             uint32_t send_to;
             uint8_t dg[MAX_DG_SIZE_VC0];
         } list[TXBUF_VC0_SIZE];
@@ -145,6 +146,7 @@ typedef struct {
         } wait;
         struct {
             int next;
+            int count;
             int dq_pos;
             uint32_t send_to;
             uint8_t dg[MAX_DG_SIZE_VC1];
@@ -160,6 +162,7 @@ typedef struct {
         } wait;
         struct {
             int next;
+            int count;
             uint32_t send_to;
             uint8_t dg[MAX_DG_SIZE_VC2];
         } list[TXBUF_VC2_SIZE];
@@ -338,7 +341,7 @@ typedef struct {
 /*** Sequence number table ***/
 
 typedef struct {
-    uint16_t txseq0, txseq1, txseq2, rxseq0, rxseq1, rxseq1fwd, rxseq2;
+    uint16_t txseq0, txseq1, txseq2, rxseq0, rxseq1, rxseq1fwd, rxseq2, full0:1, full1:1, full2:1;
 } seq_entry_t;
 
 #pragma pack(pop)

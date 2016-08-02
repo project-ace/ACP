@@ -3034,6 +3034,7 @@ extern acp_list_it_t acp_increment_list_it(acp_list_it_t it);
 typedef struct {
     acp_ga_t ga;
     uint64_t num_ranks;
+    uint64_t num_slots;
 } acp_set_t;	/*!< Set data type. */
 
 typedef struct {
@@ -3072,29 +3073,7 @@ extern "C" {
  */
 extern void acp_assign_set(acp_set_t set1, acp_set_t set2);
 
-/**
- * @JP
- * @brief セット範囲代入
- *
- * セットにstartからend直前までの複数のキーをコピーする。
- * startとendは同じセットを指している必要がある。
- * 以前のキーは破棄される。
- *
- * @param set コピー先セット型データの参照
- * @param start コピーする複数のキーの先頭を指すイテレータ
- * @param end コピーする複数のキーの末尾の直後を指すイテレータ
- *
- * @EN
- * @brief Set assignment with range
- *
- * Copy set data from the point of "start" to "end".
- * 
- * @param set A reference of destination set data.
- * @param start A set type data iterator for pointing the starting address
- * @param end A set type data iterator for pointing the end address
- * @ENDL
- */
-extern void acp_assign_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+extern acp_set_it_t acp_begin_local_set(acp_set_t set);
 
 /**
  * @JP
@@ -3117,10 +3096,6 @@ extern void acp_assign_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t
  * @ENDL
  */
 extern acp_set_it_t acp_begin_set(acp_set_t set);
-
-extern int acp_bucket_set(acp_set_t set, const acp_ga_t key);
-extern int acp_bucket_count_set(acp_set_t set);
-extern int acp_bucket_size_set(acp_set_t set, int index);
 
 /**
  * @JP
@@ -3249,27 +3224,7 @@ ne.
  */
 extern acp_set_it_t acp_erase_set(acp_set_it_t it);
 
-/**
- * @JP
- * @brief セット範囲削除
- *
- * セットからstartからend直前までのデータを削除する。
- *
- * @param start 削除するデータの先頭を指すイテレータ
- * @param end 削除するデータの末尾の直後を指すサイズ
- * @retval acp_set_it_t 削除されたデータの直後を指すイテレータ
- *
- * @EN
- * @brief Deletion of the set data from "start" to "end"
- *
- * @param start The iterator of set data to erase
- * @param end The iterator of just behind of the deleting set data
- * @retval acp_set_it_t The iterator of just behind of the deleted set data
- * @ENDL
- */
-extern acp_set_it_t acp_erase_range_set(acp_set_it_t start, acp_set_it_t end);
-
-extern acp_set_ib_t acp_find_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+extern acp_set_it_t acp_find_set(acp_set_t set, const acp_element_t key);
 
 /**
  * @JP
@@ -3294,36 +3249,12 @@ extern acp_set_ib_t acp_find_set(acp_set_t set, const acp_ga_t key, size_t key_s
  * @retval "member it" An iterator for the iserted key
  * @ENDL
  */
-extern acp_set_ib_t acp_insert_set(acp_set_t set, const acp_ga_t key, size_t key_size);
+extern acp_set_ib_t acp_insert_set(acp_set_t set, const acp_element_t key);
 
-/**
- * @JP
- * @brief セット範囲挿入
- *
- * 他のセットから複数のキーを挿入する。
- * 既にキーが存在する場合は挿入されないが、戻り値は成功になる。
- *
- * @param set セット型データへの参照
- * @param start 挿入する複数のキーを先頭を指すイテレータ
- * @param end 挿入する複数のキーの末尾の直後を指すイテレータ
- * @retval "member success == 1" 成功
- * @retval "member success == 0" 失敗
- * @retval "member it" 挿入したキーを差すイテレータ
- *
- * @EN
- * @brief Insertion of the set data from "start" to "end"
- *
- * Copy deque data from the point of "start" to "end".
- *
- * @param set An iterator of the point for inserting data
- * @param start The iterator of head address of the data to insert
- * @param end The iterator of just behind address of the data to insert
- * @retval "member success == 1" Success
- * @retval "member success == 0" Fail
- * @retval "member it" An iterator for the iserted key
- * @ENDL
- */
-extern acp_set_ib_t acp_insert_range_set(acp_set_t set, acp_set_it_t start, acp_set_it_t end);
+extern void acp_merge_local_set(acp_set_t set1, acp_set_t set2);
+extern void acp_merge_set(acp_set_t set1, acp_set_t set2);
+extern void acp_move_local_set(acp_set_t set1, acp_set_t set2);
+extern void acp_move_set(acp_set_t set1, acp_set_t set2);
 
 /**
  * @JP
@@ -3361,48 +3292,6 @@ extern size_t acp_size_set(acp_set_t set);
  * @ENDL
  */
 extern void acp_swap_set(acp_set_t set1, acp_set_t set2);
-
-/**
- * @JP
- * @brief セットイテレータ前進
- *
- * セットイテレータを前進する。
- *
- * @param it セットデータのイテレータ
- * @param n イテレータを進める数、負の値も指定可能
- * @retval acp_set_it_t 前進したセットイテレータ
- *
- * @EN
- * @brief Advancement of an iterator for set type data
- *
- * @param it The iterator of set type data
- * @param n The number for advancing
- * @retval acp_set_it_t The advanced iterator of set type data 
- * @ENDL
- */
-extern acp_set_it_t acp_advance_set_it(acp_set_it_t it, int n);
-
-/**
- * @JP
- * @brief セット先頭イテレータ減算
- *
- * セット型イテレータを一つ減少させる。
- *
- * @param it セット型データのイテレータ
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 デクリメントしたイテレータ
- *
- * @EN
- * @brief Decrement an iterater of a set data
- *
- * Decrements an iterater of a set data.
- *
- * @param it An iterater reference of set type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval otherwise The previous iterator of the specified one.
- * @ENDL
- */
-extern acp_set_it_t acp_decrement_set_it(acp_set_it_t it);
 
 /**
  * @JP
@@ -3464,6 +3353,7 @@ extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
 typedef struct {
     acp_ga_t ga;
     uint64_t num_ranks;
+    uint64_t num_slots;
 } acp_map_t;	/*!< Map data type. */
 
 typedef struct {
@@ -3483,11 +3373,8 @@ extern "C" {
 #endif
 
 extern void acp_assign_map(acp_map_t map1, acp_map_t map2);
-extern void acp_assign_range_map(acp_map_t map, acp_map_it_t start, acp_map_it_t end);
+extern acp_map_it_t acp_begin_local_map(acp_map_t map);
 extern acp_map_it_t acp_begin_map(acp_map_t map);
-extern int acp_bucket_map(acp_map_t map, const acp_ga_t key, size_t key_size);
-extern int acp_bucket_count_map(acp_map_t map);
-extern int acp_bucket_size_map(acp_map_t map, int index);
 
 /**
  * @JP
@@ -3576,7 +3463,6 @@ extern int acp_empty_map(acp_map_t map);
  */
 extern acp_map_it_t acp_end_map(acp_map_t map);
 extern acp_map_it_t acp_erase_map(acp_map_it_t it);
-extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);
 
 /**
  * @JP
@@ -3602,7 +3488,7 @@ extern acp_map_it_t acp_erase_range_map(acp_map_it_t start, acp_map_it_t end);
  * @retval otherwise The item found in the map.
  * @ENDL
  */
-extern acp_map_it_t acp_find_map(acp_map_t map, const acp_ga_t key, size_t key_size);
+extern acp_map_it_t acp_find_map(acp_map_t map, const acp_element_t key);
 
 /**
  * @JP
@@ -3632,14 +3518,15 @@ extern acp_map_it_t acp_find_map(acp_map_t map, const acp_ga_t key, size_t key_s
  * @retval otherwise The item inserted to the map.
  * @ENDL
  */
-extern acp_map_ib_t acp_insert_map(acp_map_t map, const acp_ga_t key, size_t key_size, const acp_ga_t value, size_t value_size);
+extern acp_map_ib_t acp_insert_map(acp_map_t map, const acp_pair_t pair);
 
-extern acp_map_ib_t acp_insert_range_map(acp_map_t map, acp_map_it_t start, acp_map_it_t end);
+extern void acp_merge_local_map(acp_map_t map1, acp_map_t map2);
+extern void acp_merge_map(acp_map_t map1, acp_map_t map2);
+extern void acp_move_local_map(acp_map_t map1, acp_map_t map2);
+extern void acp_move_map(acp_map_t map1, acp_map_t map2);
 extern size_t acp_size_map(acp_map_t map);
 extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
 
-extern acp_map_it_t acp_advance_map_it(acp_map_it_t it, int n);
-extern acp_map_it_t acp_decrement_map_it(acp_map_it_t it);
 extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
 extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);
 

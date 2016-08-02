@@ -116,15 +116,25 @@ int main(int argc, char** argv)
         ranks[0] = 0;
         m = acp_create_map(1, (void*)ranks, 128, 0);
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
+        for (j = 0; j < r; j++) {
+            acp_pair_t pair;
+            pair.first.ga = dummy_ga + j;
+            pair.first.size = 32;
+            pair.second.ga = dummy_ga + j;
+            pair.second.size = 32;
+            acp_insert_map(m, pair);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
+        for (j = 0; j < r; j++) {
+            acp_element_t elem;
+            elem.ga = dummy_ga + *(unsigned int*)(dummy + j) % (REP*2);
+            elem.size = 32;
+            acp_find_map(m, elem);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
@@ -134,15 +144,25 @@ int main(int argc, char** argv)
         ranks[0] = 1;
         m = acp_create_map(1, (void*)ranks, 128, 1);
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
+        for (j = 0; j < r; j++) {
+            acp_pair_t pair;
+            pair.first.ga = dummy_ga + j;
+            pair.first.size = 32;
+            pair.second.ga = dummy_ga + j;
+            pair.second.size = 32;
+            acp_insert_map(m, pair);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
+        for (j = 0; j < r; j++) {
+            acp_element_t elem;
+            elem.ga = dummy_ga + *(unsigned int*)(dummy + j) % (REP*2);
+            elem.size = 32;
+            acp_find_map(m, elem);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
@@ -155,15 +175,25 @@ int main(int argc, char** argv)
         ranks[3] = 3;
         m = acp_create_map(4, (void*)ranks, 32, 1);
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_insert_map(m, dummy_ga + j, 32, dummy_ga + j, 32);
+        for (j = 0; j < r; j++) {
+            acp_pair_t pair;
+            pair.first.ga = dummy_ga + j;
+            pair.first.size = 32;
+            pair.second.ga = dummy_ga + j;
+            pair.second.size = 32;
+            acp_insert_map(m, pair);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         
         printf("# acp_find_map()\n              #repetitions      t[usec]\n");
         t0 = get_clock();
-        for (j = 0; j < r; j++)
-            acp_find_map(m, dummy_ga + *(unsigned int*)(dummy + j) % (REP*2), 32);
+        for (j = 0; j < r; j++) {
+            acp_element_t elem;
+            elem.ga = dummy_ga + *(unsigned int*)(dummy + j) % (REP*2);
+            elem.size = 32;
+            acp_find_map(m, elem);
+        }
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);

@@ -38,14 +38,15 @@ AC_PROG_LN_S
 
 # for mpiacp
 AC_ARG_WITH(mpi,
-[  --with-mpi             include MPI support [[default=no]]],
-if test "$withval" = "yes"
+[  --with-mpi             include MPI support [[default=yes]]],
+if test "$withval" = "no"
 then
-  try_mpi=yes
+  try_mpi=no
 fi,
-try_mpi=no)
+try_mpi=yes)
 
 AC_ARG_VAR(MPICC, path to MPI compiler wrapper)
+have_mpi="no"
 
 dnl Check for MPI apparatus?
 if test "$try_mpi" = "yes" ; then
@@ -58,32 +59,29 @@ if test "$try_mpi" = "yes" ; then
     HAVE_MPICC="yes"
   fi
   if test "x${HAVE_MPICC}" = "xyes" ; then
-    have_mpi="yes"
-    AC_PATH_PROG(MPICC,mpicc)
-#    AC_C_MPI
-  else
-    have_mpi="no"
+    AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
+    mpi_cppflags="`mpicc -showme:compile ||:`"
+    if test x"${mpi_cppflags}" = x ; then
+      incdir=
+      for i in `mpicc -show ||:`
+      do
+        incdir="${incdir} `echo $i | grep -e '^-I'`"
+      done
+      mpi_cppflags="${incdir}"
+    fi
+    if test x"${mpi_cppflags}" = x ; then 
+      AC_MSG_NOTICE([mpicc is found but cannot get MPI_CPPFLAGS])
+    else
+      AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")
+      have_mpi="yes"
+      AC_PATH_PROG(MPICC,mpicc)
+#      AC_C_MPI
+    fi
   fi
-else
-  have_mpi="no"
 fi
 
 AC_SUBST(have_mpi)
 AM_CONDITIONAL([HAVE_MPICC], [test "$have_mpi" = "yes"])
-
-AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
-if test "$have_mpi" = "yes" ; then
-  mpi_cppflags="`mpicc -showme:compile ||:`"
-  if test x"${mpi_cppflags}" = x ; then
-    incdir=
-    for i in `mpicc -show ||:`
-    do
-      incdir="${incdir} `echo $i | grep -e '^-I'`"
-    done
-    mpi_cppflags="${incdir}"
-  fi
-fi
-AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")
 
 dnl
 dnl Check for Python.

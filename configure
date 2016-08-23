@@ -657,10 +657,10 @@ PYTHON_EXEC_PREFIX
 PYTHON_PREFIX
 PYTHON_VERSION
 PYTHON
-MPI_CPPFLAGS
 HAVE_MPICC_FALSE
 HAVE_MPICC_TRUE
 have_mpi
+MPI_CPPFLAGS
 HAVE_MPICC
 MPICC
 CXXCPP
@@ -1458,7 +1458,7 @@ Optional Packages:
   --with-gnu-ld           assume the C compiler uses GNU ld [default=no]
   --with-sysroot=DIR Search for dependent libraries within DIR
                         (or the compiler's sysroot if not specified).
-  --with-mpi             include MPI support [default=no]
+  --with-mpi             include MPI support [default=yes]
   --with-ndev=NAME        the priority order of default network device [ib,
                           udp]
 
@@ -16369,16 +16369,17 @@ fi
 
 # Check whether --with-mpi was given.
 if test "${with_mpi+set}" = set; then :
-  withval=$with_mpi; if test "$withval" = "yes"
+  withval=$with_mpi; if test "$withval" = "no"
 then
-  try_mpi=yes
-fi
-else
   try_mpi=no
 fi
+else
+  try_mpi=yes
+fi
 
 
 
+have_mpi="no"
 
 if test "$try_mpi" = "yes" ; then
   if test x"${MPICC}" = x ; then
@@ -16425,8 +16426,24 @@ fi
     HAVE_MPICC="yes"
   fi
   if test "x${HAVE_MPICC}" = "xyes" ; then
-    have_mpi="yes"
-    # Extract the first word of "mpicc", so it can be a program name with args.
+
+    mpi_cppflags="`mpicc -showme:compile ||:`"
+    if test x"${mpi_cppflags}" = x ; then
+      incdir=
+      for i in `mpicc -show ||:`
+      do
+        incdir="${incdir} `echo $i | grep -e '^-I'`"
+      done
+      mpi_cppflags="${incdir}"
+    fi
+    if test x"${mpi_cppflags}" = x ; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: mpicc is found but cannot get MPI_CPPFLAGS" >&5
+$as_echo "$as_me: mpicc is found but cannot get MPI_CPPFLAGS" >&6;}
+    else
+      MPI_CPPFLAGS="$mpi_cppflags"
+
+      have_mpi="yes"
+      # Extract the first word of "mpicc", so it can be a program name with args.
 set dummy mpicc; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
@@ -16466,12 +16483,9 @@ $as_echo "no" >&6; }
 fi
 
 
-#    AC_C_MPI
-  else
-    have_mpi="no"
+#      AC_C_MPI
+    fi
   fi
-else
-  have_mpi="no"
 fi
 
 
@@ -16482,21 +16496,6 @@ else
   HAVE_MPICC_TRUE='#'
   HAVE_MPICC_FALSE=
 fi
-
-
-
-if test "$have_mpi" = "yes" ; then
-  mpi_cppflags="`mpicc -showme:compile ||:`"
-  if test x"${mpi_cppflags}" = x ; then
-    incdir=
-    for i in `mpicc -show ||:`
-    do
-      incdir="${incdir} `echo $i | grep -e '^-I'`"
-    done
-    mpi_cppflags="${incdir}"
-  fi
-fi
-MPI_CPPFLAGS="$mpi_cppflags"
 
 
 

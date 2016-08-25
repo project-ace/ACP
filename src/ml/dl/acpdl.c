@@ -3836,6 +3836,8 @@ acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int ran
         acp_complete(ACP_HANDLE_ALL);
         directory[rank] = ga;
     }
+    acp_copy(map.ga, buf_directory, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
     
     acp_free(buf);
     return map;

@@ -5145,60 +5145,88 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
     acp_ga_t ga_directory = it.map.ga + rank * 8;
     acp_copy(buf_directory, ga_directory, 8, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
-    acp_ga_t ga_list = *directory + slot * 32;
+    acp_ga_t ga_lock_var = *directory + slot * 32;
+    acp_ga_t ga_list = ga_lock_var + 8;
     
     do {
-        acp_cas8(buf_lock_var, ga_list, 0, 1, ACP_HANDLE_NULL);
-        acp_copy(buf_list, ga_list + 8, size_list, ACP_HANDLE_ALL);
+        acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+        acp_copy(buf_elem, ga_elem, size_elem, ACP_HANDLE_ALL);
         acp_complete(ACP_HANDLE_ALL);
     } while (*lock_var != 0);
+    acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
     
-    while (1) {
-        acp_copy(buf_elem, ga_elem, 32, ACP_HANDLE_NULL);
-        acp_complete(ACP_HANDLE_ALL);
-        
-        if (elem[0] != ga_list) {
-            ret.rank = rank;
-            ret.slot = slot;
-            ret.elem = elem[0];
-            break;
-        }
-        
-        if (slot < it.map.num_slots - 1) {
-            acp_copy(ga_list, buf_lock_var, 8, ACP_HANDLE_NULL);
-            acp_complete(ACP_HANDLE_ALL);
+    if (elem[0] != ga_list) {
+        ret.rank = rank;
+        ret.slot = slot;
+        ret.elem = elem[0];
+        return ret;
+    }
+    
+    while (rank + 1 < it.map.num_ranks) {
+        while (slot + 1 < it.map.num_slots) {
             slot++;
+            ga_lock_var += 32;
             ga_list += 32;
             do {
-                acp_cas8(buf_lock_var, ga_list, 0, 1, ACP_HANDLE_NULL);
-                acp_copy(buf_list, ga_list + 8, size_list, ACP_HANDLE_ALL);
+                acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
-            ga_elem = list[0];
-            continue;
+            acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            
+            if (list[0] != ga_list) {
+                ret.rank = rank;
+                ret.slot = slot;
+                ret.elem = list[0];
+                return ret;
+            }
         }
         
-        if (rank < it.map.num_ranks - 1) {
-            acp_copy(ga_list, buf_lock_var, 8, ACP_HANDLE_NULL);
+        rank++;
+        slot = 0;
+        ga_directory += 8;
+        acp_copy(buf_directory, ga_directory, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        ga_lock_var = *directory;
+        ga_list = ga_lock_var + 8;
+        
+        do {
+            acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+            acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
             acp_complete(ACP_HANDLE_ALL);
-            slot = 0;
-            rank++;
-            ga_directory += 8;
-            acp_copy(buf_directory, ga_directory, 8, ACP_HANDLE_NULL);
-            acp_complete(ACP_HANDLE_ALL);
-            ga_list = directory[0];
-            do {
-                acp_cas8(buf_lock_var, ga_list, 0, 1, ACP_HANDLE_NULL);
-                acp_copy(buf_list, ga_list + 8, size_list, ACP_HANDLE_ALL);
-                acp_complete(ACP_HANDLE_ALL);
-            } while (*lock_var != 0);
-            ga_elem = list[0];
-            continue;
+        } while (*lock_var != 0);
+        acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        
+        if (list[0] != ga_list) {
+            ret.rank = rank;
+            ret.slot = slot;
+            ret.elem = list[0];
+            return ret;
         }
-        break;
     }
-    acp_copy(ga_list, buf_lock_var, 8, ACP_HANDLE_NULL);
-    acp_complete(ACP_HANDLE_ALL);
+    
+    while (slot < it.map.num_slots - 1) {
+        slot++;
+        ga_lock_var += 32;
+        ga_list += 32;
+        do {
+            acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+            acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
+            acp_complete(ACP_HANDLE_ALL);
+        } while (*lock_var != 0);
+        acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        
+        if (list[0] != ga_list) {
+            ret.rank = rank;
+            ret.slot = slot;
+            ret.elem = list[0];
+            return ret;
+        }
+    }
     
     return ret;
 }

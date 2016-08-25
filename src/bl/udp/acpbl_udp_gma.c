@@ -439,23 +439,26 @@ static inline void ibuf_vc2_push_dg(int inum, int elem_id)
 
 static inline int ibuf_vc0_pop_dg(int inum)
 {
-    /* Need doorbell.[MY_INUM].mutex locked */
+    /* Need doorbell.[MY_INUM].mutex locked if MY_INUM > 0 */
     int pos, ret;
     pos = ibuf_pos(MY_INUM, inum);
+    if (MY_INUM == 0) pthread_mutex_lock(&doorbell[MY_INUM].mutex);
     ret = ibuf[pos].vc0.dg.head;
     if (ret >= 0)
         if (ibuf[pos].vc0.list[ret].next < 0)
             ibuf[pos].vc0.dg.head = ibuf[pos].vc0.dg.tail = -1;
         else
             ibuf[pos].vc0.dg.head = ibuf[pos].vc0.list[ret].next;
+    if (MY_INUM == 0) pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
     return ret;
 }
 
 static inline int ibuf_vc1_pop_dg(int inum)
 {
-    /* Need doorbell.[MY_INUM].mutex locked */
+    /* Need doorbell.[MY_INUM].mutex locked if MY_INUM > 0 */
     int pos, ret;
     pos = ibuf_pos(MY_INUM, inum);
+    if (MY_INUM == 0) pthread_mutex_lock(&doorbell[MY_INUM].mutex);
     ret = ibuf[pos].vc1.dg.head;
     if (ret >= 0) {
         if (ibuf[pos].vc1.list[ret].next < 0)
@@ -463,6 +466,7 @@ static inline int ibuf_vc1_pop_dg(int inum)
         else
             ibuf[pos].vc1.dg.head = ibuf[pos].vc1.list[ret].next;
     }
+    if (MY_INUM == 0) pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
     return ret;
 }
 
@@ -955,7 +959,7 @@ static inline int rxbuf_vc2_push_dg(int inum, int elem_id)
 
 static inline int rxbuf_vc0_pop_dg(void)
 {
-    /* Need doorbell.[MY_INUM].mutex locked */
+    /* Need doorbell.[MY_INUM].mutex locked if MY_INUM > 0 */
     int ret;
     
     ret = rxbuf[MY_INUM].vc0.dg.head;
@@ -972,7 +976,7 @@ static inline int rxbuf_vc0_pop_dg(void)
 
 static inline int rxbuf_vc1_pop_dg(void)
 {
-    /* Need doorbell.[MY_INUM].mutex locked */
+    /* Need doorbell.[MY_INUM].mutex locked if MY_INUM > 0 */
     int ret;
     
     ret = rxbuf[MY_INUM].vc1.dg.head;

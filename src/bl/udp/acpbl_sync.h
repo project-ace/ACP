@@ -191,6 +191,17 @@ static inline uint64_t get_clock(void)
     __asm__ volatile ("rdtsc" : "=a" (a), "=d" (d));
     return (d << 32) | a;
 }
+#elif defined(__arm__)
+static inline uint64_t get_clock(void)
+{
+    struct timespec now;
+#ifdef CLOCK_MONOTONIC_RAW
+    clock_gettime(CLOCK_MONOTONIC_RAW, &now);
+#else
+    clock_gettime(CLOCK_MONOTONIC, &now);
+#endif
+    return (uint64_t)((double)now.tv_sec * 1000000000.0) + (uint64_t)now.tv_nsec;
+}
 #else
 static inline uint64_t get_clock(void)
 {

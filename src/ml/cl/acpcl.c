@@ -18,6 +18,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <time.h>
 #include <acp.h>
 #include "acpbl.h"
 #include "acpbl_sync.h"

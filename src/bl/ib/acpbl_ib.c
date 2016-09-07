@@ -137,7 +137,7 @@ typedef struct resource_info{
 typedef struct reg_mem{
     uint32_t rank;
     char *addr;  /* the front of memory region */
-    uint64_t rkey;  /* memory registration key in IB */
+    uint32_t rkey;  /* memory registration key in IB */
     size_t size;  /* the size of memory region */
     uint64_t lock; /* flag utilization of RM */
     uint64_t valid; /* valid of tag of memory regeion  */
@@ -4462,9 +4462,9 @@ int iacp_init(void){
     qp_init_attr.send_cq = cq;
     qp_init_attr.recv_cq = cq;
     qp_init_attr.cap.max_send_wr = MAX_WR_SIZE;
-    qp_init_attr.cap.max_recv_wr = 1; /* use only first post recv */
+    qp_init_attr.cap.max_recv_wr = 0; /* use only first post recv */
     qp_init_attr.cap.max_send_sge = 1;
-    qp_init_attr.cap.max_recv_sge = 1;
+    qp_init_attr.cap.max_recv_sge = 0;
     
     /* local arays of queue pair number */
     local_qp_num = (uint32_t *)malloc(sizeof(uint32_t) * acp_numprocs);
@@ -4595,7 +4595,7 @@ int iacp_init(void){
         fprintf(stdout, "%d: QP state was change to INIT\n", acp_rank());
         fflush(stdout);
 #endif
-        
+#if 0
         /* let the client post RR to be prepared for incoming messages */
         /* prepare the scatter/gather entry */
         memset(&sge, 0, sizeof(sge));
@@ -4619,6 +4619,7 @@ int iacp_init(void){
             fprintf(stderr, "%d: failed to post RR\n", acp_rank());
             goto exit;
         }
+#endif
 #ifdef DEBUG
         fprintf(stdout, "%d: Post Receive Request\n", acp_rank());
         fflush(stdout);

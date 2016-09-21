@@ -3388,10 +3388,12 @@ static acp_map_ib_t iacp_insert_map(iacp_insert_map_input_t in)
         acp_complete(ACP_HANDLE_ALL);
     } while (*lock_var != 0);
     
-    acp_ga_t ga_elem = list[0];
-    while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+    acp_ga_t ga_next_elem = list[0];
+    while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+        acp_ga_t ga_elem = ga_next_elem;
         acp_copy(buf_elem, ga_elem, 32, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
+        ga_next_elem = elem[0];
         if (elem[3] == pair.first.size) {
             acp_copy(buf_elem_key, ga_elem + 32, pair.first.size, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
@@ -3405,7 +3407,6 @@ static acp_map_ib_t iacp_insert_map(iacp_insert_map_input_t in)
                 return ib;
             }
         }
-        ga_elem = elem[0];
     }
     
     ib.it.elem = acp_malloc(32 + pair.first.size + pair.second.size, acp_query_rank(ga_list));
@@ -3444,7 +3445,7 @@ static acp_map_ib_t iacp_insert_map(iacp_insert_map_input_t in)
     
     ib.it.rank = rank;
     ib.it.slot = slot;
-    ib.it.elem = ga_elem;
+    ib.it.elem = ga_next_elem;
     ib.success = 1;
     return ib;
 }
@@ -3509,7 +3510,6 @@ void acp_assign_map(acp_map_t map1, acp_map_t map2)
     uint64_t max_size_buf_elem = 0;
     acp_ga_t buf_elem = ACP_GA_NULL;
     
-    
     /*** for all elements of map2 ***/
     
     for (rank = 0; rank < map2.num_ranks; rank++) {
@@ -3523,16 +3523,17 @@ void acp_assign_map(acp_map_t map1, acp_map_t map2)
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
             
-            acp_ga_t ga_elem = list[0];
-            while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
                 acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
                 acp_pair_t pair;
                 pair.first.size  = elem2[3];
                 pair.second.size = elem2[2] - 8 - pair.first.size;
                 pair.first.ga  = ga_elem + 32;
                 pair.second.ga = ga_elem + 32 + pair.first.size;
-                ga_elem = elem2[0];
                 
                 /*** insert key-value pair ***/
                 
@@ -3554,10 +3555,10 @@ void acp_assign_map(acp_map_t map1, acp_map_t map2)
                 volatile uint8_t* elem_key;
                 
                 if (size_buf_elem > max_size_buf_elem) {
-                    if (max_size_buf_elem > 0) free(buf_elem);
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
                     buf_elem = acp_malloc(size_buf_elem, acp_rank());
                     if (buf_elem == ACP_GA_NULL) {
-                        free(buf);
+                        acp_free(buf);
                         return;
                     }
                     buf_new_key   = buf_elem + offset_new_key;
@@ -4106,10 +4107,12 @@ acp_map_it_t acp_find_map(acp_map_t map, const acp_element_t key)
     acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
-    acp_ga_t ga_elem = list[0];
-    while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+    acp_ga_t ga_next_elem = list[0];
+    while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+        acp_ga_t ga_elem = ga_next_elem;
         acp_copy(buf_elem, ga_elem, 32, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
+        ga_next_elem = elem[0];
         if (elem[3] == key.size) {
             acp_copy(buf_elem_key, ga_elem + 32, key.size, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
@@ -4125,7 +4128,6 @@ acp_map_it_t acp_find_map(acp_map_t map, const acp_element_t key)
                 return it;
             }
         }
-        ga_elem = elem[0];
     }
     
     acp_free(buf);
@@ -4222,10 +4224,12 @@ acp_map_ib_t acp_insert_map(acp_map_t map, const acp_pair_t pair)
     acp_copy(ga_lock_var, buf_lock_var, 8, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
-    acp_ga_t ga_elem = list[0];
-    while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+    acp_ga_t ga_next_elem = list[0];
+    while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+        acp_ga_t ga_elem = ga_next_elem;
         acp_copy(buf_elem, ga_elem, 32, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
+        ga_next_elem = elem[0];
         if (elem[3] == pair.first.size) {
             acp_copy(buf_elem_key, ga_elem + 32, pair.first.size, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
@@ -4240,7 +4244,6 @@ acp_map_ib_t acp_insert_map(acp_map_t map, const acp_pair_t pair)
                 return ib;
             }
         }
-        ga_elem = elem[0];
     }
     
     ib.it.elem = acp_malloc(32 + pair.first.size + pair.second.size, acp_query_rank(ga_list));
@@ -4281,7 +4284,7 @@ acp_map_ib_t acp_insert_map(acp_map_t map, const acp_pair_t pair)
     acp_free(buf);
     ib.it.rank = rank;
     ib.it.slot = slot;
-    ib.it.elem = ga_elem;
+    ib.it.elem = ga_next_elem;
     ib.success = 1;
     return ib;
 }
@@ -4340,16 +4343,17 @@ void acp_merge_local_map(acp_map_t map1, acp_map_t map2)
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
             
-            acp_ga_t ga_elem = list[0];
-            while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
                 acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
                 acp_pair_t pair;
                 pair.first.size  = elem2[3];
                 pair.second.size = elem2[2] - 8 - pair.first.size;
                 pair.first.ga  = ga_elem + 32;
                 pair.second.ga = ga_elem + 32 + pair.first.size;
-                ga_elem = elem2[0];
                 
                 /*** insert key-value pair ***/
                 
@@ -4371,10 +4375,10 @@ void acp_merge_local_map(acp_map_t map1, acp_map_t map2)
                 volatile uint8_t* elem_key;
                 
                 if (size_buf_elem > max_size_buf_elem) {
-                    if (max_size_buf_elem > 0) free(buf_elem);
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
                     buf_elem = acp_malloc(size_buf_elem, acp_rank());
                     if (buf_elem == ACP_GA_NULL) {
-                        free(buf);
+                        acp_free(buf);
                         return;
                     }
                     buf_new_key   = buf_elem + offset_new_key;
@@ -4497,16 +4501,17 @@ void acp_merge_map(acp_map_t map1, acp_map_t map2)
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
             
-            acp_ga_t ga_elem = list[0];
-            while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
                 acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
                 acp_pair_t pair;
                 pair.first.size  = elem2[3];
                 pair.second.size = elem2[2] - 8 - pair.first.size;
                 pair.first.ga  = ga_elem + 32;
                 pair.second.ga = ga_elem + 32 + pair.first.size;
-                ga_elem = elem2[0];
                 
                 /*** insert key-value pair ***/
                 
@@ -4528,10 +4533,10 @@ void acp_merge_map(acp_map_t map1, acp_map_t map2)
                 volatile uint8_t* elem_key;
                 
                 if (size_buf_elem > max_size_buf_elem) {
-                    if (max_size_buf_elem > 0) free(buf_elem);
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
                     buf_elem = acp_malloc(size_buf_elem, acp_rank());
                     if (buf_elem == ACP_GA_NULL) {
-                        free(buf);
+                        acp_free(buf);
                         return;
                     }
                     buf_new_key   = buf_elem + offset_new_key;
@@ -4656,16 +4661,17 @@ void acp_move_local_map(acp_map_t map1, acp_map_t map2)
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
             
-            acp_ga_t ga_elem = list[0];
-            while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
                 acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
                 acp_pair_t pair;
                 pair.first.size  = elem2[3];
                 pair.second.size = elem2[2] - 8 - pair.first.size;
                 pair.first.ga  = ga_elem + 32;
                 pair.second.ga = ga_elem + 32 + pair.first.size;
-                ga_elem = elem2[0];
                 
                 /*** insert key-value pair ***/
                 
@@ -4687,10 +4693,10 @@ void acp_move_local_map(acp_map_t map1, acp_map_t map2)
                 volatile uint8_t* elem_key;
                 
                 if (size_buf_elem > max_size_buf_elem) {
-                    if (max_size_buf_elem > 0) free(buf_elem);
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
                     buf_elem = acp_malloc(size_buf_elem, acp_rank());
                     if (buf_elem == ACP_GA_NULL) {
-                        free(buf);
+                        acp_free(buf);
                         return;
                     }
                     buf_new_key   = buf_elem + offset_new_key;
@@ -4823,16 +4829,17 @@ void acp_move_map(acp_map_t map1, acp_map_t map2)
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
             
-            acp_ga_t ga_elem = list[0];
-            while (ga_elem != ga_list && ga_elem != ACP_GA_NULL) {
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
                 acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
                 acp_pair_t pair;
                 pair.first.size  = elem2[3];
                 pair.second.size = elem2[2] - 8 - pair.first.size;
                 pair.first.ga  = ga_elem + 32;
                 pair.second.ga = ga_elem + 32 + pair.first.size;
-                ga_elem = elem2[0];
                 
                 /*** insert key-value pair ***/
                 
@@ -4854,12 +4861,13 @@ void acp_move_map(acp_map_t map1, acp_map_t map2)
                 volatile uint8_t* elem_key;
                 
                 if (size_buf_elem > max_size_buf_elem) {
-                    if (max_size_buf_elem > 0) free(buf_elem);
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
                     buf_elem = acp_malloc(size_buf_elem, acp_rank());
                     if (buf_elem == ACP_GA_NULL) {
-                        free(buf);
+                        acp_free(buf);
                         return;
                     }
+                    max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
@@ -5027,17 +5035,32 @@ void acp_swap_map(acp_map_t map1, acp_map_t map2)
             return;
         }
         for (slot = 0; slot < map2.num_slots; slot++) {
+            acp_ga_t ga_lock_var_old = ga_old + slot * 32;
+            acp_ga_t ga_list_old = ga_old + slot * 32 + 8;
+            acp_ga_t ga_lock_var_new = ga_new + slot * 32;
+            acp_ga_t ga_list_new = ga_new + slot * 32 + 8;
             do {
-                acp_cas8(buf_lock_var, ga_old + slot * 32, 0, 1, ACP_HANDLE_NULL);
-                acp_copy(buf_list, ga_old + slot * 32 + 8, size_list, ACP_HANDLE_ALL);
+                acp_cas8(buf_lock_var, ga_lock_var_old, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga_list_old, size_list, ACP_HANDLE_ALL);
                 acp_complete(ACP_HANDLE_ALL);
             } while (*lock_var != 0);
-            acp_copy(ga_new + slot * 32, buf_lock_var, 32, ACP_HANDLE_NULL);
-            acp_complete(ACP_HANDLE_ALL);
-            list[0] = ga_old + slot * 32 + 8;
-            list[1] = ga_old + slot * 32 + 8;
+            if (list[2] == 0) {
+                list[0] = ga_list_new;
+                list[1] = ga_list_new;
+                acp_copy(ga_lock_var_new, buf_lock_var, 32, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+            } else {
+                acp_copy(ga_lock_var_new, buf_lock_var, 32, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+                list[2] = ga_list_new;
+                acp_copy(list[0] + 8, buf_list + 16, 8, ACP_HANDLE_NULL);
+                acp_copy(list[1], buf_list + 16, 8, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+            }
+            list[0] = ga_list_old;
+            list[1] = ga_list_old;
             list[2] = 0;
-            acp_copy(ga_old + slot * 32, buf_lock_var, 32, ACP_HANDLE_NULL);
+            acp_copy(ga_lock_var_old, buf_lock_var, 32, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
         }
         directory[rank] = ga_new;

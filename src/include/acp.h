@@ -3372,9 +3372,11 @@ typedef struct {
 extern "C" {
 #endif
 
+extern void acp_assign_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_assign_map(acp_map_t map1, acp_map_t map2);
 extern acp_map_it_t acp_begin_local_map(acp_map_t map);
 extern acp_map_it_t acp_begin_map(acp_map_t map);
+extern void acp_clear_local_map(acp_map_t map);
 
 /**
  * @JP
@@ -3439,7 +3441,9 @@ extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, 
  */
 extern void acp_destroy_map(acp_map_t map);
 
+extern int acp_empty_local_map(acp_map_t map);
 extern int acp_empty_map(acp_map_t map);
+extern acp_map_it_t acp_end_local_map(acp_map_t map);
 
 /**
  * @JP
@@ -3524,6 +3528,7 @@ extern void acp_merge_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_merge_map(acp_map_t map1, acp_map_t map2);
 extern void acp_move_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_move_map(acp_map_t map1, acp_map_t map2);
+extern size_t acp_size_local_map(acp_map_t map);
 extern size_t acp_size_map(acp_map_t map);
 extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
 

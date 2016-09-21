@@ -3450,6 +3450,188 @@ static acp_map_ib_t iacp_insert_map(iacp_insert_map_input_t in)
     return ib;
 }
 
+void acp_assign_local_map(acp_map_t map1, acp_map_t map2)
+{
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory  = map1.num_ranks * 8;
+    uint64_t size_directory2 = map2.num_ranks * 8;
+    uint64_t size_lock_var   = 8;
+    uint64_t size_list       = 24;
+    uint64_t size_elem2      = 32;
+    uint64_t offset_directory  = 0;
+    uint64_t offset_directory2 = offset_directory  + size_directory;
+    uint64_t offset_lock_var   = offset_directory2 + size_directory2;
+    uint64_t offset_list       = offset_lock_var   + size_lock_var;
+    uint64_t offset_elem2      = offset_list       + size_list;
+    uint64_t size_buf          = offset_elem2      + size_elem2;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    acp_ga_t buf_directory  = buf + offset_directory;
+    acp_ga_t buf_directory2 = buf + offset_directory2;
+    acp_ga_t buf_lock_var   = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    acp_ga_t buf_elem2     = buf + offset_elem2;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
+    volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list       = (volatile uint64_t*)(ptr + offset_list);
+    volatile uint64_t* elem2      = (volatile uint64_t*)(ptr + offset_elem2);
+    
+    /*** clear map1 ***/
+    
+    acp_copy(buf_directory, map1.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int rank, slot;
+    
+    for (rank = 0; rank < map1.num_ranks; rank++) {
+        acp_ga_t ga = directory[rank];
+        for (slot = 0; slot < map1.num_slots; slot++) {
+            do {
+                acp_cas8(buf_lock_var, ga + slot * 32, 0, 1, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            acp_list_t list;
+            list.ga = ga + slot * 32 + 8;
+            acp_clear_list(list);
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+    }
+    
+    /*** local buffer variables ***/
+    
+    acp_copy(buf_directory2, map2.ga, size_directory2, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    uint64_t max_size_buf_elem = 0;
+    acp_ga_t buf_elem = ACP_GA_NULL;
+    
+    /*** for all elements of map2 ***/
+    
+    int my_rank = acp_rank();
+    
+    for (rank = 0; rank < map2.num_ranks; rank++) {
+        acp_ga_t ga = directory2[rank];
+        if (acp_query_rank(ga) != my_rank) continue;
+        for (slot = 0; slot < map2.num_slots; slot++) {
+            acp_ga_t ga_lock_var = ga + slot * 32;
+            acp_ga_t ga_list = ga + slot * 32 + 8;
+            do {
+                acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ga_list && ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
+                acp_copy(buf_elem2, ga_elem, 32, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem2[0];
+                acp_pair_t pair;
+                pair.first.size  = elem2[3];
+                pair.second.size = elem2[2] - 8 - pair.first.size;
+                pair.first.ga  = ga_elem + 32;
+                pair.second.ga = ga_elem + 32 + pair.first.size;
+                
+                /*** insert key-value pair ***/
+                
+                uint64_t size_elem      = 32;
+                uint64_t size_new_key   = pair.first.size;
+                uint64_t size_new_value = pair.second.size;
+                uint64_t size_elem_key  = pair.first.size;
+                uint64_t offset_elem      = 0;
+                uint64_t offset_new_key   = offset_elem      + size_elem;
+                uint64_t offset_new_value = offset_new_key   + size_new_key;
+                uint64_t offset_elem_key  = offset_new_value + size_new_value;
+                uint64_t size_buf_elem    = offset_elem_key  + size_elem_key;
+                acp_ga_t buf_new_key;
+                acp_ga_t buf_new_value;
+                acp_ga_t buf_elem_key;
+                volatile uint64_t* elem;
+                volatile uint8_t* new_key;
+                volatile uint8_t* new_value;
+                volatile uint8_t* elem_key;
+                
+                if (size_buf_elem > max_size_buf_elem) {
+                    if (max_size_buf_elem > 0) acp_free(buf_elem);
+                    buf_elem = acp_malloc(size_buf_elem, acp_rank());
+                    if (buf_elem == ACP_GA_NULL) {
+                        acp_free(buf);
+                        return;
+                    }
+                    buf_new_key   = buf_elem + offset_new_key;
+                    buf_new_value = buf_elem + offset_new_value;
+                    buf_elem_key  = buf_elem + offset_elem_key;
+                    ptr = acp_query_address(buf_elem);
+                    elem      = (volatile uint64_t*)(ptr + offset_elem);
+                    new_key   = (volatile uint8_t*)(ptr + offset_new_key);
+                    new_value = (volatile uint8_t*)(ptr + offset_new_value);
+                    elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
+                }
+                
+                int pattern = (acp_query_rank(pair.first.ga) == acp_rank() ? 2 : 0) + (acp_query_rank(pair.second.ga) == acp_rank() ? 1 : 0);
+                if (pattern == 0) {
+                    if (pair.second.ga == pair.first.ga + pair.first.size) {
+                        acp_copy(buf_new_key, pair.first.ga, pair.first.size + pair.second.size, ACP_HANDLE_NULL);
+                    } else {
+                        acp_copy(buf_new_key, pair.first.ga, pair.first.size, ACP_HANDLE_NULL);
+                        acp_copy(buf_new_value, pair.second.ga, pair.second.size, ACP_HANDLE_NULL);
+                    }
+                    acp_complete(ACP_HANDLE_ALL);
+                } else if (pattern == 1) {
+                    acp_copy(buf_new_key, pair.first.ga, pair.first.size, ACP_HANDLE_NULL);
+                    memcpy((void*)new_value, acp_query_address(pair.second.ga), pair.second.size);
+                    acp_complete(ACP_HANDLE_ALL);
+                } else if (pattern == 2) {
+                    acp_copy(buf_new_value, pair.second.ga, pair.second.size, ACP_HANDLE_NULL);
+                    memcpy((void*)new_key, acp_query_address(pair.first.ga), pair.first.size);
+                    acp_complete(ACP_HANDLE_ALL);
+                } else {
+                    if (pair.second.ga == pair.first.ga + pair.first.size) {
+                        memcpy((void*)new_key, acp_query_address(pair.first.ga), pair.first.size + pair.second.size);
+                    } else {
+                        memcpy((void*)new_key, acp_query_address(pair.first.ga), pair.first.size);
+                        memcpy((void*)new_value, acp_query_address(pair.second.ga), pair.second.size);
+                    }
+                }
+                
+                iacp_insert_map_input_t in;
+                
+                in.map = &map1;
+                in.buf_directory = &buf_directory;
+                in.buf_lock_var  = &buf_lock_var;
+                in.buf_list      = &buf_list;
+                in.buf_elem      = &buf_elem;
+                in.buf_new_key   = &buf_new_key;
+                in.buf_new_value = &buf_new_value;
+                in.buf_elem_key  = &buf_elem_key;
+                in.directory = directory;
+                in.lock_var  = lock_var;
+                in.list      = list;
+                in.elem      = elem;
+                in.new_key   = new_key;
+                in.new_value = new_value;
+                in.elem_key  = elem_key;
+                in.pair      = &pair;
+                
+                iacp_insert_map(in);
+            }
+            
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+    }
+    
+    if (buf_elem != ACP_GA_NULL) acp_free(buf_elem);
+    acp_free(buf);
+    return;
+}
+
 void acp_assign_map(acp_map_t map1, acp_map_t map2)
 {
     /*** local buffer variables ***/
@@ -3741,6 +3923,52 @@ acp_map_it_t acp_begin_map(acp_map_t map)
     return it;
 }
 
+void acp_clear_local_map(acp_map_t map)
+{
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = map.num_ranks * 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t size_buf         = offset_lock_var  + size_lock_var;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    
+    /*** clear map ***/
+    
+    acp_copy(buf_directory, map.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int my_rank = acp_rank();
+    int rank, slot;
+    
+    for (rank = 0; rank < map.num_ranks; rank++) {
+        acp_ga_t ga = directory[rank];
+        if (acp_query_rank(ga) != my_rank) continue;
+        for (slot = 0; slot < map.num_slots; slot++) {
+            do {
+                acp_cas8(buf_lock_var, ga + slot * 32, 0, 1, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            acp_list_t list;
+            list.ga = ga + slot * 32 + 8;
+            acp_clear_list(list);
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+    }
+    
+    acp_free(buf);
+    return;
+}
+
 void acp_clear_map(acp_map_t map)
 {
     /*** local buffer variables ***/
@@ -3880,6 +4108,58 @@ void acp_destroy_map(acp_map_t map)
     return;
 }
 
+int acp_empty_local_map(acp_map_t map)
+{
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = map.num_ranks * 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t size_list      = 24;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t offset_list      = offset_lock_var  + size_lock_var;
+    uint64_t size_buf         = offset_list      + size_list;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
+    
+    /*** seak slots ***/
+    
+    acp_copy(buf_directory, map.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int my_rank = acp_rank();
+    int rank, slot;
+    
+    for (rank = 0; rank < map.num_ranks; rank++) {
+        acp_ga_t ga = directory[rank];
+        if (acp_query_rank(ga) != my_rank) continue;
+        for (slot = 0; slot < map.num_slots; slot++) {
+            do {
+                acp_cas8(buf_lock_var, ga + slot * 32, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga + slot * 32 + 8, size_list, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            if (list[2] > 0) {
+                acp_free(buf);
+                return 0;
+            }
+        }
+    }
+    
+    acp_free(buf);
+    return 1;
+}
+
 int acp_empty_map(acp_map_t map)
 {
     /*** local buffer variables ***/
@@ -3928,6 +4208,63 @@ int acp_empty_map(acp_map_t map)
     
     acp_free(buf);
     return 1;
+}
+
+acp_map_it_t acp_end_local_map(acp_map_t map)
+{
+    acp_map_it_t it = acp_end_map(map);
+    
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = map.num_ranks * 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t size_list      = 24;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t offset_list      = offset_lock_var  + size_lock_var;
+    uint64_t size_buf         = offset_list      + size_list;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return it;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
+    
+    /*** search first element of next slot ***/
+    
+    acp_copy(buf_directory, map.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int my_rank = acp_rank();
+    int rank, slot;
+    
+    for (rank = 1; rank < map.num_ranks; rank++) {
+        acp_ga_t ga = directory[rank];
+        if (acp_query_rank(directory[rank - 1]) != my_rank) continue;
+        for (slot = 0; slot < map.num_slots; slot++) {
+            do {
+                acp_cas8(buf_lock_var, ga + slot * 32, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga + slot * 32 + 8, size_list, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            if (list[2] > 0) {
+                it.rank = rank;
+                it.slot = slot;
+                it.elem = list[0];
+                acp_free(buf);
+                return it;
+            }
+        }
+    }
+    
+    acp_free(buf);
+    return it;
 }
 
 acp_map_it_t acp_end_map(acp_map_t map)
@@ -4946,7 +5283,58 @@ void acp_move_map(acp_map_t map1, acp_map_t map2)
     return;
 }
 
-extern size_t acp_size_map(acp_map_t map)
+size_t acp_size_local_map(acp_map_t map)
+{
+    size_t ret = 0;
+    
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = map.num_ranks * 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t size_list      = 24;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t offset_list      = offset_lock_var  + size_lock_var;
+    uint64_t size_buf         = offset_list      + size_list;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return ret;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
+    
+    /*** count number of elements in slots ***/
+    
+    acp_copy(buf_directory, map.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int my_rank = acp_rank();
+    int rank, slot;
+    
+    for (rank = 0; rank < map.num_ranks; rank++) {
+        acp_ga_t ga = directory[rank];
+        if (acp_query_rank(ga) != my_rank) continue;
+        for (slot = 0; slot < map.num_slots; slot++) {
+            do {
+                acp_cas8(buf_lock_var, ga + slot * 32, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga + slot * 32 + 8, size_list, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            acp_copy(ga + slot * 32, buf_lock_var, 8, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            ret += list[2];
+        }
+    }
+    
+    acp_free(buf);
+    return ret;
+}
+
+size_t acp_size_map(acp_map_t map)
 {
     size_t ret = 0;
     

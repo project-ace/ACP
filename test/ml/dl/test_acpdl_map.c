@@ -135,8 +135,21 @@ int main(int argc, char** argv)
         print_int_map(tmpmap);
         
         printf("** find\n");
-        print_int_map(map);
-        for (i = 0; i < 16; i++) {
+        for (i = 4; i < 8; i++) {
+            printf("    key = '");
+            for (j = 0; j <= i; j++) {
+                uint8_t c = 'A' + j;
+                tmp_key[j] = c;
+                printf("%c", c);
+            }
+            printf("'\n");
+            pair.first.size = i + 1;
+            it = acp_find_map(map, pair.first);
+            printf("        it.rank = %d, it.slot = %d, it.elem = %016llx\n", it.rank, it.slot, it.elem);
+        }
+        
+        printf("** retreive\n");
+        for (i = 4; i < 8; i++) {
             printf("    key = '");
             for (j = 0; j <= i; j++) {
                 uint8_t c = 'A' + j;
@@ -145,7 +158,7 @@ int main(int argc, char** argv)
             }
             pair.first.size = i + 1;
             pair.second.size = 256;
-            size_t ret = acp_find_map(map, pair);
+            size_t ret = acp_retrieve_map(map, pair);
             printf("' => retrun %d\n", ret);
         }
         

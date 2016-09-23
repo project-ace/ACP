@@ -3226,9 +3226,9 @@ extern acp_set_it_t acp_end_set(acp_set_t set);
 ne.
  * @ENDL
  */
-extern acp_set_it_t acp_erase_set(acp_set_it_t it);
+extern int acp_erase_set(acp_set_t set, acp_element_t key);
 
-extern acp_set_it_t acp_find_set(acp_set_t set, const acp_element_t key);
+extern acp_set_it_t acp_find_set(acp_set_t set, acp_element_t key);
 
 /**
  * @JP
@@ -3253,7 +3253,7 @@ extern acp_set_it_t acp_find_set(acp_set_t set, const acp_element_t key);
  * @retval "member it" An iterator for the iserted key
  * @ENDL
  */
-extern acp_set_ib_t acp_insert_set(acp_set_t set, const acp_element_t key);
+extern int acp_insert_set(acp_set_t set, acp_element_t key);
 
 extern void acp_merge_local_set(acp_set_t set1, acp_set_t set2);
 extern void acp_merge_set(acp_set_t set1, acp_set_t set2);
@@ -3494,7 +3494,7 @@ extern int acp_erase_map(acp_map_t map, acp_element_t key);
  * @retval otherwise The item found in the map.
  * @ENDL
  */
-extern size_t acp_find_map(acp_map_t map, acp_pair_t pair);
+extern acp_map_it_t acp_find_map(acp_map_t map, acp_element_t key);
 
 /**
  * @JP
@@ -3533,6 +3533,7 @@ extern void acp_move_map(acp_map_t map1, acp_map_t map2);
 extern size_t acp_size_local_map(acp_map_t map);
 extern size_t acp_size_map(acp_map_t map);
 extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
+extern size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair);
 
 extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
 extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);

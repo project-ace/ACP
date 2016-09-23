@@ -127,12 +127,27 @@ int main(int argc, char** argv)
         print_int_map(map);
         print_int_map(tmpmap);
         
-        printf("** erase @ begin iterator + 1\n");
-        it = acp_begin_map(map);
-        it = acp_increment_map_it(it);
-        acp_erase_map(it);
+        printf("** erase 'ABCDEF'\n");
+        for (j = 0; j < 6; j++) tmp_key[j] = 'A' + j;
+        pair.first.size = 6;
+        acp_erase_map(map, pair.first);
         print_int_map(map);
         print_int_map(tmpmap);
+        
+        printf("** find\n");
+        print_int_map(map);
+        for (i = 0; i < 16; i++) {
+            printf("    key = '");
+            for (j = 0; j <= i; j++) {
+                uint8_t c = 'A' + j;
+                tmp_key[j] = c;
+                printf("%c", c);
+            }
+            pair.first.size = i + 1;
+            pair.second.size = 256;
+            size_t ret = acp_find_map(map, pair);
+            printf("' => retrun %d\n", ret);
+        }
         
         printf("** clear\n");
         acp_clear_map(tmpmap);
@@ -151,21 +166,6 @@ int main(int argc, char** argv)
         acp_swap_map(map, tmpmap);
         print_int_map(map);
         print_int_map(tmpmap);
-        
-        printf("** find\n");
-        print_int_map(map);
-        for (i = 0; i < 16; i++) {
-            printf("    key = '");
-            for (j = 0; j <= i; j++) {
-                uint8_t c = 'A' + j;
-                tmp_key[j] = c;
-                printf("%c", c);
-            }
-            printf("'\n");
-            pair.first.size = i + 1;
-            it = acp_find_map(map, pair.first);
-            printf("        it.rank = %d, it.slot = %d, it.elem = %016llx\n", it.rank, it.slot, it.elem);
-        }
         
         printf("** destroy\n");
         acp_destroy_map(tmpmap);

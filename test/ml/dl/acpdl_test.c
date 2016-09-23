@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <time.h>
 #include <acp.h>
 #include "acpbl_sync.h"
 
@@ -109,6 +108,7 @@ int main(int argc, char** argv)
             b += b ? 0 : 0x8000;
         }
         
+#if 0
         dummy_atkey = acp_register_memory((void*)dummy, sizeof(dummy), 0);
         dummy_ga = acp_query_ga(dummy_atkey, (void*)dummy);
         
@@ -198,6 +198,7 @@ int main(int argc, char** argv)
         t1 = get_clock();
         printf("%26d%13.3f\n", r, (t1 - t0)/MHZ/r);
         acp_destroy_map(m);
+#endif
         
         buf_atkey = acp_register_memory((void*)buf, sizeof(buf), 0);
         buf_ga = acp_query_ga(buf_atkey, (void*)buf);

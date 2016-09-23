@@ -3053,6 +3053,8 @@ typedef struct {
 extern "C" {
 #endif
 
+extern void acp_assign_local_set(acp_set_t set1, acp_set_t set2);
+
 /**
  * @JP
  * @brief セット代入
@@ -3160,6 +3162,7 @@ extern acp_set_t acp_create_set(int num_ranks, const int* ranks, int num_slots, 
  * @ENDL
  */
 extern void acp_destroy_set(acp_set_t set);
+extern int acp_empty_local_set(acp_set_t set);
 
 /**
  * @JP
@@ -3180,6 +3183,7 @@ extern void acp_destroy_set(acp_set_t set);
  * @ENDL
  */
 extern int acp_empty_set(acp_set_t set);
+extern acp_set_it_t acp_end_local_set(acp_set_t set);
 
 /**
  * @JP
@@ -3255,6 +3259,7 @@ extern void acp_merge_local_set(acp_set_t set1, acp_set_t set2);
 extern void acp_merge_set(acp_set_t set1, acp_set_t set2);
 extern void acp_move_local_set(acp_set_t set1, acp_set_t set2);
 extern void acp_move_set(acp_set_t set1, acp_set_t set2);
+extern size_t acp_size_local_set(acp_set_t set);
 
 /**
  * @JP
@@ -3346,9 +3351,6 @@ extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
  *
  * @{
  */
-
-/** Represents that no map type data does NOT exist. */
-/* #define ACP_MAP_NULL  0LLU */
 
 typedef struct {
     acp_ga_t ga;
@@ -3466,7 +3468,7 @@ extern acp_map_it_t acp_end_local_map(acp_map_t map);
  * @ENDL
  */
 extern acp_map_it_t acp_end_map(acp_map_t map);
-extern acp_map_it_t acp_erase_map(acp_map_it_t it);
+extern int acp_erase_map(acp_map_t map, acp_element_t key);
 
 /**
  * @JP
@@ -3492,7 +3494,7 @@ extern acp_map_it_t acp_erase_map(acp_map_it_t it);
  * @retval otherwise The item found in the map.
  * @ENDL
  */
-extern acp_map_it_t acp_find_map(acp_map_t map, const acp_element_t key);
+extern size_t acp_find_map(acp_map_t map, acp_pair_t pair);
 
 /**
  * @JP
@@ -3522,7 +3524,7 @@ extern acp_map_it_t acp_find_map(acp_map_t map, const acp_element_t key);
  * @retval otherwise The item inserted to the map.
  * @ENDL
  */
-extern acp_map_ib_t acp_insert_map(acp_map_t map, const acp_pair_t pair);
+extern int acp_insert_map(acp_map_t map, acp_pair_t pair);
 
 extern void acp_merge_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_merge_map(acp_map_t map1, acp_map_t map2);

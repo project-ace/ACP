@@ -3386,11 +3386,12 @@ static int iacp_insert_set(acp_set_t set, acp_element_t key, acp_ga_t buf_direct
     if (list[2] == 0) {
         elem[1] = ACP_GA_NULL;
         list[0] = ga_new_elem;
+        list[1] = ga_new_elem;
     } else {
         elem[1] = list[1];
-        acp_copy(list[1], buf_list + 8, 8, ACP_HANDLE_NULL);
+        list[1] = ga_new_elem;
+        acp_copy(elem[1], buf_list + 8, 8, ACP_HANDLE_NULL);
     }
-    list[1] = ga_new_elem;
     list[2]++;
     
     acp_copy(ga_new_elem, buf_elem, size_elem + size_new_key, ACP_HANDLE_NULL);
@@ -4499,11 +4500,12 @@ int acp_insert_set(acp_set_t set, acp_element_t key)
     if (list[2] == 0) {
         elem[1] = ACP_GA_NULL;
         list[0] = ga_new_elem;
+        list[1] = ga_new_elem;
     } else {
         elem[1] = list[1];
-        acp_copy(list[1], buf_list + 8, 8, ACP_HANDLE_NULL);
+        list[1] = ga_new_elem;
+        acp_copy(elem[1], buf_list + 8, 8, ACP_HANDLE_NULL);
     }
-    list[1] = ga_new_elem;
     list[2]++;
     
     acp_copy(ga_new_elem, buf_elem, size_elem + size_new_key, ACP_HANDLE_NULL);
@@ -5417,11 +5419,12 @@ static int iacp_insert_map(acp_map_t map, acp_pair_t pair, acp_ga_t buf_director
     if (list[2] == 0) {
         elem[1] = ACP_GA_NULL;
         list[0] = ga_new_elem;
+        list[1] = ga_new_elem;
     } else {
         elem[1] = list[1];
-        acp_copy(list[1], buf_list + 8, 8, ACP_HANDLE_NULL);
+        list[1] = ga_new_elem;
+        acp_copy(elem[1], buf_list + 8, 8, ACP_HANDLE_NULL);
     }
-    list[1] = ga_new_elem;
     list[2]++;
     
     acp_copy(ga_new_elem, buf_elem, size_elem + size_new_key + size_new_value, ACP_HANDLE_NULL);
@@ -6574,11 +6577,12 @@ int acp_insert_map(acp_map_t map, acp_pair_t pair)
     if (list[2] == 0) {
         elem[1] = ACP_GA_NULL;
         list[0] = ga_new_elem;
+        list[1] = ga_new_elem;
     } else {
         elem[1] = list[1];
-        acp_copy(list[1], buf_list + 8, 8, ACP_HANDLE_NULL);
+        list[1] = ga_new_elem;
+        acp_copy(elem[1], buf_list + 8, 8, ACP_HANDLE_NULL);
     }
-    list[1] = ga_new_elem;
     list[2]++;
     
     acp_copy(ga_new_elem, buf_elem, size_elem + size_new_key + size_new_value, ACP_HANDLE_NULL);

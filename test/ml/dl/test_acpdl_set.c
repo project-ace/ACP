@@ -117,10 +117,10 @@ int main(int argc, char** argv)
         print_int_set(set);
         print_int_set(tmpset);
         
-        printf("** erase 'ABCDEF'\n");
+        printf("** remove 'ABCDEF'\n");
         for (j = 0; j < 6; j++) tmp_key[j] = 'A' + j;
         key.size = 6;
-        acp_erase_set(set, key);
+        acp_remove_set(set, key);
         print_int_set(set);
         print_int_set(tmpset);
         

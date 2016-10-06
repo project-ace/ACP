@@ -3206,28 +3206,6 @@ extern acp_set_it_t acp_end_local_set(acp_set_t set);
  * @ENDL
  */
 extern acp_set_it_t acp_end_set(acp_set_t set);
-
-/**
- * @JP
- * @brief セット要素削除
- *
- * 指定した位置の要素をセット型データから削除する。
- *
- * @param it 削除する要素を指すセット型イテレータ
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 削除した要素の直後の要素を指すセット型イテレータ
- *
- * @EN
- * @brief Erase a set element
- *
- * @param it An iterator of set type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval oterhwise The iterator that points to the element which is immediately after the erased o
-ne.
- * @ENDL
- */
-extern int acp_erase_set(acp_set_t set, acp_element_t key);
-
 extern acp_set_it_t acp_find_set(acp_set_t set, acp_element_t key);
 
 /**
@@ -3259,6 +3237,26 @@ extern void acp_merge_local_set(acp_set_t set1, acp_set_t set2);
 extern void acp_merge_set(acp_set_t set1, acp_set_t set2);
 extern void acp_move_local_set(acp_set_t set1, acp_set_t set2);
 extern void acp_move_set(acp_set_t set1, acp_set_t set2);
+
+/**
+ * @JP
+ * @brief セット要素除去
+ *
+ * 指定した位置の要素をセット型データから削除する。
+ *
+ * @param it 削除する要素を指すセット型イテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 削除した要素の直後の要素を指すセット型イテレータ
+ *
+ * @EN
+ * @brief Erase a set element
+ *
+ * @param it An iterator of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the element which is immediately after the erased one.
+ * @ENDL
+ */
+extern void acp_remove_set(acp_set_t set, acp_element_t key);
 extern size_t acp_size_local_set(acp_set_t set);
 
 /**
@@ -3468,7 +3466,6 @@ extern acp_map_it_t acp_end_local_map(acp_map_t map);
  * @ENDL
  */
 extern acp_map_it_t acp_end_map(acp_map_t map);
-extern int acp_erase_map(acp_map_t map, acp_element_t key);
 
 /**
  * @JP
@@ -3530,10 +3527,11 @@ extern void acp_merge_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_merge_map(acp_map_t map1, acp_map_t map2);
 extern void acp_move_local_map(acp_map_t map1, acp_map_t map2);
 extern void acp_move_map(acp_map_t map1, acp_map_t map2);
+extern void acp_remove_map(acp_map_t map, acp_element_t key);
+extern size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair);
 extern size_t acp_size_local_map(acp_map_t map);
 extern size_t acp_size_map(acp_map_t map);
 extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
-extern size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair);
 
 extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
 extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);

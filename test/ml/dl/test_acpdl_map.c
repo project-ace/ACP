@@ -127,10 +127,10 @@ int main(int argc, char** argv)
         print_int_map(map);
         print_int_map(tmpmap);
         
-        printf("** erase 'ABCDEF'\n");
+        printf("** remove 'ABCDEF'\n");
         for (j = 0; j < 6; j++) tmp_key[j] = 'A' + j;
         pair.first.size = 6;
-        acp_erase_map(map, pair.first);
+        acp_remove_map(map, pair.first);
         print_int_map(map);
         print_int_map(tmpmap);
         

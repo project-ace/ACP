@@ -1082,9 +1082,9 @@ static inline int rxbuf_pop_free_vc1ack(int inum)
 /***********************/
 
 static cqe_t cq[WIDTH_CQ];
-static uint64_t cqwp, cqcp;
-static uint64_t cqxp;
+static uint64_t cqwp, cqxp, cqcp;
 static acp_ga_t cq_latest_src_rank, cq_latest_dst_rank;
+static pthread_mutex_t mutex_cq;
 
 /*
                 .
@@ -1105,6 +1105,7 @@ static void init_cq(void)
 {
     cqwp = cqxp = cqcp = 1;
     cq_latest_src_rank = cq_latest_dst_rank = -1;
+    pthread_mutex_init(&mutex_cq, NULL);
     return;
 }
 
@@ -1121,11 +1122,9 @@ static inline int cq_open_entry(acp_ga_t dst, acp_ga_t src, acp_handle_t order)
     dst_rank = ga2rank(dst);
     
     while (1) {
-        if (pthread_mutex_trylock(&doorbell[MY_INUM].mutex) == 0)
-            if (cqcp + WIDTH_CQ <= cqwp)
-                pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
-            else
-                break;
+        pthread_mutex_lock(&mutex_cq);
+        if (cqcp + WIDTH_CQ > cqwp) break;
+        pthread_mutex_unlock(&mutex_cq);
         sched_yield();
     }
     p = (int)(cqwp & MASK_CQ);
@@ -1163,8 +1162,20 @@ static inline int cq_open_entry(acp_ga_t dst, acp_ga_t src, acp_handle_t order)
 static inline acp_handle_t cq_close_entry(void)
 {
     uint64_t wp = cqwp++;
-    doorbell_ring(MY_INUM);
-    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    pthread_mutex_unlock(&mutex_cq);
+    if (MY_INUM > 0 || NUM_PROCS == NODE_POP) {
+        pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+        doorbell_ring(MY_INUM);
+        pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    }
+    return (acp_handle_t)wp;
+}
+
+static inline acp_handle_t cq_finish_entry(void)
+{
+    uint64_t wp = cqwp++;
+    cqcp = cqxp = cqwp;
+    pthread_mutex_unlock(&mutex_cq);
     return (acp_handle_t)wp;
 }
 
@@ -1172,22 +1183,13 @@ void acp_complete(acp_handle_t handle)
 {
     if (handle == ACP_HANDLE_NULL) return;
     while (1) {
-        if (pthread_mutex_trylock(&doorbell[MY_INUM].mutex) == 0) {
-            if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) {
-                if (cqcp <= cqwp - 1)
-                    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
-                else
-                    break;
-            } else {
-                if(cqcp <= handle)
-                    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
-                else
-                    break;
-            }
-        }
+        pthread_mutex_lock(&mutex_cq);
+        if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
+        if(cqcp > handle) break;
+        pthread_mutex_unlock(&mutex_cq);
         sched_yield();
     }
-    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    pthread_mutex_unlock(&mutex_cq);
     
     return;
 }
@@ -1197,19 +1199,26 @@ int acp_inquire(acp_handle_t handle)
     int ret = 0;
     
     if (handle == ACP_HANDLE_NULL) return ret;
-    pthread_mutex_lock(&doorbell[MY_INUM].mutex);
+    pthread_mutex_lock(&mutex_cq);
     if (handle == ACP_HANDLE_ALL || handle == ACP_HANDLE_CONT) handle = cqwp - 1;
     if (cqcp > handle) ret = 1;
-    pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
+    pthread_mutex_unlock(&mutex_cq);
     
     return ret;
 }
 
 acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order)
 {
+    debug printf("rank %d - main acp_copy(0x%016" PRIx64 ",  0x%016" PRIx64 ", %d, 0x%016" PRIx64 ");\n", MY_RANK, dst, src, size, order);
     int p = cq_open_entry(dst, src, order);
     cq[p].type = COPY;
     cq[p].size = size;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        memcpy(ga2address(cq[p].dst), ga2address(cq[p].src), cq[p].size);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1219,6 +1228,12 @@ acp_handle_t acp_cas4(acp_ga_t dst, acp_ga_t src, uint32_t oldval, uint32_t newv
     cq[p].type = CAS4;
     cq[p].old4 = oldval;
     cq[p].new4 = newval;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_4((uint32_t*)ga2address(cq[p].src), cq[p].old4, cq[p].new4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1228,6 +1243,12 @@ acp_handle_t acp_cas8(acp_ga_t dst, acp_ga_t src, uint64_t oldval, uint64_t newv
     cq[p].type = CAS8;
     cq[p].old8 = oldval;
     cq[p].new8 = newval;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_val_compare_and_swap_8((uint64_t*)ga2address(cq[p].src), cq[p].old8, cq[p].new8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1236,6 +1257,12 @@ acp_handle_t acp_swap4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t 
     int p = cq_open_entry(dst, src, order);
     cq[p].type = SWAP4;
     cq[p].val4 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_swap_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1244,6 +1271,12 @@ acp_handle_t acp_swap8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t 
     int p = cq_open_entry(dst, src, order);
     cq[p].type = SWAP8;
     cq[p].val8 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_swap_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1252,6 +1285,12 @@ acp_handle_t acp_add4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = ADD4;
     cq[p].val4 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_add_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1260,6 +1299,12 @@ acp_handle_t acp_add8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = ADD8;
     cq[p].val8 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_add_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1268,6 +1313,12 @@ acp_handle_t acp_xor4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = XOR4;
     cq[p].val4 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1276,6 +1327,12 @@ acp_handle_t acp_xor8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = XOR8;
     cq[p].val8 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_xor_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1284,6 +1341,12 @@ acp_handle_t acp_or4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t or
     int p = cq_open_entry(dst, src, order);
     cq[p].type = OR4;
     cq[p].val4 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_or_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1292,6 +1355,12 @@ acp_handle_t acp_or8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t or
     int p = cq_open_entry(dst, src, order);
     cq[p].type = OR8;
     cq[p].val8 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_or_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1300,6 +1369,12 @@ acp_handle_t acp_and4(acp_ga_t dst, acp_ga_t src, uint32_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = AND4;
     cq[p].val4 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint32_t*)ga2address(cq[p].dst) = sync_fetch_and_and_4((uint32_t*)ga2address(cq[p].src), cq[p].val4);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1308,6 +1383,12 @@ acp_handle_t acp_and8(acp_ga_t dst, acp_ga_t src, uint64_t value, acp_handle_t o
     int p = cq_open_entry(dst, src, order);
     cq[p].type = AND8;
     cq[p].val8 = value;
+    if (cq[p].stat == CQSTAT_11 && cq[p].order < cqcp) {
+        debug printf("rank %d - main Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
+        *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_and_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
+        cq[p].stat = CQSTAT_DONE;
+        if (cqxp == cqwp && cqcp == cqwp) return cq_finish_entry();
+    }
     return cq_close_entry();
 }
 
@@ -1338,7 +1419,7 @@ static int dqflhead, dqflnum;
        (active) | dqtail
 */
 
-static inline void dq_reset(void)
+static inline void init_dq(void)
 {
     int i;
     
@@ -1703,7 +1784,7 @@ static void* comm_thread_func(void *param)
     dg_union* dgp;
     dg_control_t dgc;
     uint32_t send_to;
-    uint64_t estimated_nsec = 0, current_nsec, tmp_nsec, cqcp_tmp, cqwp_tmp, count, size;
+    uint64_t estimated_nsec = 0, current_nsec, tmp_nsec, count, size;
     int i, j, check, check_clear, check_cont, check_not_full, check_quit, check_wait;
     int elem_id, inum, len, next, p, pos, prev, ptr, sock, tx_bytes, type, vc;
     int tx_vc0_next_inum = 0, tx_vc1_next_inum = 0, tx_vc2_next_inum = 0, rx_vc0_next_inum = 0, rx_vc1_next_inum = 0;
@@ -2204,7 +2285,7 @@ static void* comm_thread_func(void *param)
         
         /******** Protocol processing ********/
         
-        /*** Clearance to wait ***/
+        /*** Recieve VC2 and Complete commands ***/
         
         pthread_mutex_lock(&doorbell[MY_INUM].mutex);
         
@@ -2229,14 +2310,14 @@ static void* comm_thread_func(void *param)
         }
         
         /* Advance completion pointer */
+        pthread_mutex_lock(&mutex_cq);
         while(cqcp < cqxp) {
             p = cqcp & MASK_CQ;
             if (cq[p].stat != CQSTAT_DONE) break;
             cqcp++;
             debug printf("rank %d - protocol cqcp advance to 0x%016" PRIx64 " (cqwp 0x%016" PRIx64 ")\n", MY_RANK, cqcp, cqwp);
         }
-        cqcp_tmp = cqcp;
-        cqwp_tmp = cqwp;
+        pthread_mutex_unlock(&mutex_cq);
         
         /* Check empty */
         if (MY_INUM > 0 && (check_clear = is_dq_empty())) {
@@ -2255,7 +2336,9 @@ static void* comm_thread_func(void *param)
             }
             
             /* Check command queue */
-            if (cqcp_tmp < cqwp_tmp) check_clear = 0;
+            pthread_mutex_lock(&mutex_cq);
+            if (cqcp < cqwp) check_clear = 0;
+            pthread_mutex_unlock(&mutex_cq);
             
             /* Wait and redo if it is clear */
             if (check_clear) {
@@ -2266,7 +2349,7 @@ static void* comm_thread_func(void *param)
         }
         pthread_mutex_unlock(&doorbell[MY_INUM].mutex);
         
-        /*** Execute PUT ***/
+        /*** Receive VC1 and Execute PUT ***/
         
         /* Receive a datagram: ibuf and rxbuf vc1 */
         if (NUM_PROCS != NODE_POP) check_not_full = rxbuf_vc1ack_is_not_full(MY_INUM);
@@ -2380,11 +2463,12 @@ static void* comm_thread_func(void *param)
         }
         
         if (is_dq_not_empty()) {
-            /* Execute a command */
+            /* Process a command */
             pos = dqexec;
             if (dq[pos].stat == DQSTAT_FENCE && check_wait == 0) dq[pos].stat = DQSTAT_ACTIVE;
             if (dq[pos].stat == DQSTAT_ACTIVE) {
                 if (dq[pos].inum == MY_INUM && dq[pos].gateway == MY_GATEWAY) {
+                    /* Execute a command directly at remote */
                     type = dq[pos].type;
                     if (type == COPY) {
                         memcpy(ga2address(dq[pos].dst), ga2address(dq[pos].src), dq[pos].size);
@@ -2520,7 +2604,7 @@ static void* comm_thread_func(void *param)
             }
         }
         
-        /* Enqueue a new command */
+        /* Receive VC0 and Enqueue a new command */
         if (is_dq_not_full()) {
             if (MY_INUM > 0) pthread_mutex_lock(&doorbell[MY_INUM].mutex);
             for (i = 0; i < NODE_POP + 1; i++) {
@@ -2584,10 +2668,12 @@ static void* comm_thread_func(void *param)
         
         /*** Command Queue ***/
         
-        /* Execute a command */
+        /* Send a command */
+        pthread_mutex_lock(&mutex_cq);
         p = cqxp & MASK_CQ;
-        if (cqxp < cqwp_tmp && (cq[p].order < cqcp_tmp || cq[p].rfence == 1)) {
+        if (cqxp < cqwp && (cq[p].order < cqcp || cq[p].rfence == 1)) {
             if (cq[p].stat == CQSTAT_11) {
+                /* Execute a command directly at local */
                 debug printf("rank %d - protocol Exec cq 0x%016" PRIx64 " type = %d order = 0x%016" PRIx64 " local to local\n", MY_RANK, cqxp, cq[p].type, cq[p].order);
                 type = cq[p].type;
                 if (type == COPY)
@@ -2618,6 +2704,7 @@ static void* comm_thread_func(void *param)
                     *(uint64_t*)ga2address(cq[p].dst) = sync_fetch_and_and_8((uint64_t*)ga2address(cq[p].src), cq[p].val8);
                 cq[p].stat = CQSTAT_DONE;
                 cqxp++;
+                pthread_mutex_unlock(&mutex_cq);
             } else if (cq[p].stat == CQSTAT_12) {
                 /* Enqueue a command directly to the local delegate queue */
                 if (is_dq_not_full()) {
@@ -2640,7 +2727,8 @@ static void* comm_thread_func(void *param)
                     cq[p].stat = CQSTAT_WAIT;
                     cqxp++;
                 }
-            } else { /* CQSTAT_2X */
+                pthread_mutex_unlock(&mutex_cq);
+            } else if (cq[p].stat == CQSTAT_2X) {
                 /* Transmit a command datagram: ibuf and txbuf vc0 */
                 if (cq[p].gateway == MY_GATEWAY) {
                     elem_id = ibuf_vc0_pop_free(cq[p].inum);
@@ -2679,12 +2767,19 @@ static void* comm_thread_func(void *param)
                     }
                     cq[p].stat = CQSTAT_WAIT;
                     cqxp++;
+                    pthread_mutex_unlock(&mutex_cq);
                     if (cq[p].gateway == MY_GATEWAY)
                         ibuf_vc0_push_dg(cq[p].inum, elem_id);
                     else
                         txbuf_vc0_push_dg(elem_id);
-                }
+                } else
+                    pthread_mutex_unlock(&mutex_cq);
+            } else {
+                if (cq[p].stat == CQSTAT_DONE) cqxp++;
+                pthread_mutex_unlock(&mutex_cq);
             }
+        } else {
+            pthread_mutex_unlock(&mutex_cq);
         }
     }
     
@@ -2713,7 +2808,7 @@ int iacpbludp_init_gma(void)
     r = init_shmbuffer();
     if (r) return r;
     init_cq();
-    dq_reset();
+    init_dq();
     
     pthread_mutex_init(&mutex_comm_thread_ready, NULL);
     pthread_cond_init(&cond_comm_thread_ready, NULL);

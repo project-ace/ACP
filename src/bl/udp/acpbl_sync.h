@@ -208,8 +208,10 @@ static inline uint64_t get_clock(void)
     struct timespec now;
 #ifdef CLOCK_MONOTONIC_RAW
     clock_gettime(CLOCK_MONOTONIC_RAW, &now);
-#else
+#elif defined(CLOCK_MONOTONIC)
     clock_gettime(CLOCK_MONOTONIC, &now);
+#else
+    clock_gettime(1, &now);
 #endif
     return (uint64_t)((double)now.tv_sec * 1000000000.0) + (uint64_t)now.tv_nsec - (uint64_t)epoch.tv_nsec;
 }

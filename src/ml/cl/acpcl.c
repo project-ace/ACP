@@ -27,7 +27,6 @@
 /** macros **/
 
 /* default parameters */
-#define ACPCI_DEFAULT_STARTER_MEMSZ_CL 1024
 #define ACPCI_DEFAULT_EAGER_LIMIT 2048
 #define ACPCI_DEFAULT_CRB_ENTRYNUM 8
 #define ACPCI_DEFAULT_REQNUM 8
@@ -195,7 +194,7 @@ static char *crbreqmsg;      /* buffer used for sending connection request  */
 static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
 
 /** global variables **/
-size_t iacp_starter_memory_size_cl = ACPCI_DEFAULT_STARTER_MEMSZ_CL;
+extern size_t iacp_starter_memory_size_cl;
 int iacpci_eager_limit = ACPCI_DEFAULT_EAGER_LIMIT;
 int iacpci_crb_entrynum = ACPCI_DEFAULT_CRB_ENTRYNUM;
 int iacpci_reqnum = ACPCI_DEFAULT_REQNUM;

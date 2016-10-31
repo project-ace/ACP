@@ -31,8 +31,8 @@
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
 
-size_t iacp_starter_memory_size_dl = 64 ;
-size_t iacp_starter_memory_size_cl = 64 ;
+size_t iacp_starter_memory_size_dl = 64 * 1024 * 1024;
+size_t iacp_starter_memory_size_cl = 1024;
 
 int iacpbludp_init_gmm(void);
 int iacpbludp_finalize_gmm(void);

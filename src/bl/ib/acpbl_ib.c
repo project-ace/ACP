@@ -43,6 +43,9 @@
 #endif /* MPIACP */
 /* H.Honda Dec.31 2015 end   */
 
+size_t iacp_starter_memory_size_dl = 64 * 1024 * 1024;
+size_t iacp_starter_memory_size_cl = 1024;
+
 #define alm8_add_func(alm_add) if (alm8_add != 0) {alm8_add = 8 - alm8_add;}
 
 /* define sizes */

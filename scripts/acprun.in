@@ -13,26 +13,20 @@
 import copy,os,re,shlex,socket,subprocess,sys
 
 ENVNETWORK       = "@NETDEV@"
-REMOTESHELL      = "ssh"
+REMOTESHELL        = "ssh"
 
 VERSION          = "@VERSION@"
-STARTER_MEMSIZE  = 10240
-PORTID_START     = 44256
-TASKID           = 100
-LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
-STR_ENVNETWORK   = "ACP_ENVNET"
-STR_ENVMYRANK    = "ACP_MYRANK"
-STR_ENVLPORT     = "ACP_LPORT"
-STR_ENVRPORT     = "ACP_RPORT"
-STR_ENVRHOST     = "ACP_RHOST"
-STR_ENVNPROCS    = "ACP_NUMPROCS"
-STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
-STR_ENVTASKID    = "ACP_TASKID"
+STARTER_MEMSIZE    = 10240
+STARTER_MEMSIZE_CL = 10240
+STARTER_MEMSIZE_DL = 10240
+PORTID_START       = 44256
+TASKID             = 100
+LST_ENVNETWORK     = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
 
-FLG_DEBUG        = False # or True
-DEBUGLEVEL       = 1000  # change to >200
+FLG_DEBUG          = False # or True
+DEBUGLEVEL         = 1000  # change to >200
 ####
-EXECUTE_COMMAND  = True  ## False
+EXECUTE_COMMAND    = True  ## False
 ####
 
 OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
@@ -45,6 +39,16 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-startermemsize",       "STARTERMEM", "BLKVAL" ],
            [ "--acp-smemsize",        "STARTERMEM", "EQVAL"  ],
            [ "--acp-startermemsize",  "STARTERMEM", "EQVAL"  ],
+           #
+           [ "-smemsize-cl",            "STARTERMEM_CL", "BLKVAL" ],
+           [ "-startermemsize-cl",      "STARTERMEM_CL", "BLKVAL" ],
+           [ "--acp-smemsize-cl",       "STARTERMEM_CL", "EQVAL"  ],
+           [ "--acp-startermemsize-cl", "STARTERMEM_CL", "EQVAL"  ],
+           #
+           [ "-smemsize-dl",            "STARTERMEM_DL", "BLKVAL" ],
+           [ "-startermemsize-dl",      "STARTERMEM_DL", "BLKVAL" ],
+           [ "--acp-smemsize-dl",       "STARTERMEM_DL", "EQVAL"  ],
+           [ "--acp-startermemsize-dl", "STARTERMEM_DL", "EQVAL"  ],
            #
            [ "-machinefile",          "NODEFILE",   "BLKVAL" ],
            [ "-nodefile",             "NODEFILE",   "BLKVAL" ],
@@ -124,6 +128,8 @@ class Acprun:
         self.ver_python      = int( sys.version_info[ 0 ] )
         self.subver_python   = int( sys.version_info[ 1 ] )
         self.starter_memsize = STARTER_MEMSIZE
+        self.starter_memsize_cl = STARTER_MEMSIZE_CL
+        self.starter_memsize_dl = STARTER_MEMSIZE_DL
         self.flg_multrun     = False
         self.nprocs          = 1
         self.lst_taskid      = [ TASKID ]
@@ -160,13 +166,15 @@ class Acprun:
     #########################################################
     def print_help( self ):
         print( "%s [opts] command args" % self.myname)
-        print( "Opts: -np NPROCS                          or --acp-nprocs=NPROCS                      (default: 1)" )
-        print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
-        print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
-        print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
-        print( "    : -envnet ENVNETWORK                  or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
-        print( "    : -ssh/-rsh REMOTESHELL               or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
-        print( "    : -multrun                            or --acp-multrun                            (default: False)" )
+        print( "Opts: -np NPROCS                             or --acp-nprocs=NPROCS                      (default: 1)" )
+        print( "    : -nodefile NODEFILENAME                 or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
+        print( "    : -host HOST1,HOST2,...                  or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
+        print( "    : -startermemsize    STARTER_MEMORY_SIZE    or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
+        print( "    : -startermemsize-cl STARTER_MEMORY_SIZE(Comm.Lib.) or --acp-startermemsize-cl=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE_CL )
+        print( "    : -startermemsize-dl STARTER_MEMORY_SIZE(Data Lib.) or --acp-startermemsize-dl=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE_DL )
+        print( "    : -envnet ENVNETWORK                     or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -ssh/-rsh REMOTESHELL                  or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
+        print( "    : -multrun                               or --acp-multrun                            (default: False)" )
         print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
         print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
         print( "    : -debug                              or --acp-debug                              (default: debug is False)" )
@@ -239,6 +247,20 @@ class Acprun:
                         self.starter_memsize = int( optval )
                     if self.starter_memsize <= 0:
                         raise ErrorInvalidOptionArgument( "Argument: startermemsize <= 0" )
+                elif flgopt == "STARTERMEM_CL":
+                    if   flgval == "BLKVAL":
+                        self.starter_memsize_cl = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.starter_memsize_cl = int( optval )
+                    if self.starter_memsize_cl <= 0:
+                        raise ErrorInvalidOptionArgument( "Argument: startermemsize_cl <= 0" )
+                elif flgopt == "STARTERMEM_DL":
+                    if   flgval == "BLKVAL":
+                        self.starter_memsize_dl = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.starter_memsize_dl = int( optval )
+                    if self.starter_memsize_dl <= 0:
+                        raise ErrorInvalidOptionArgument( "Argument: startermemsize_dl <= 0" )
                 elif flgopt == "NODEFILE":
                     self.flg_localmode       = False
                     if   flgval == "BLKVAL":
@@ -317,6 +339,8 @@ class Acprun:
             if self.debuglevel > 200:
                 print( " %s: opt: nprocs         = %s" % (self.myname, self.nprocs) )
                 print( " %s: opt: smem size      = %s" % (self.myname, self.starter_memsize) )
+                print( " %s: opt: smem size (cl) = %s" % (self.myname, self.starter_memsize_cl) )
+                print( " %s: opt: smem size (dl) = %s" % (self.myname, self.starter_memsize_dl) )
                 print( " %s: opt: nodefile       = %s" % (self.myname, self.nodefile) )
                 print( " %s: opt: nodes          = %s" % (self.myname, self.nodes) )
                 print( " %s: opt: network env    = %s" % (self.myname, self.flg_envnetwork) )
@@ -496,14 +520,11 @@ class Acprun:
             lcomm = lcomm + " " + self.comm_args[ ip ]
         for ip in range( self.nprocs ):
             ipp  = self.offsetrank + ip
-            comm = "cd %s ; %s=%d %s=%d %s=%d %s=%d %s=%d %s=%s %s=%d %s" % \
-                   ( self.cwd, STR_ENVMYRANK, ipp,                          \
-                               STR_ENVNPROCS, self.lst_nprocs_acp[ ipp ],   \
-                               STR_ENVTASKID, self.lst_taskid[ ipp ],       \
-                               STR_ENVLPORT,  self.lst_lport [ ipp ],       \
-                               STR_ENVRPORT,  self.lst_rport [ ipp ],       \
-                               STR_ENVRHOST,  self.lst_rhostip[ ipp ],      \
-                               STR_ENVSMSIZE, self.starter_memsize, lcomm )
+            comm = "cd %s ; %s --myrank %d --nprocs %d --taskid %d --port-local %d --port-remote %d --host-remote %s --size-smem %s --size-smem-cl %s --size-smem-dl %s" % \
+                   ( self.cwd, lcomm, \
+                     ipp,                    self.lst_nprocs_acp[ ipp ], self.lst_taskid[ ipp ],  \
+                     self.lst_lport [ ipp ], self.lst_rport [ ipp ],     self.lst_rhostip[ ipp ], \
+                     self.starter_memsize,   self.starter_memsize_cl,    self.starter_memsize_dl )
             if (self.flg_localmode):
                 comm = "sh -c" + " \"" + comm + "\""
             else:

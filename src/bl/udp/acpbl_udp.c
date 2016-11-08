@@ -31,6 +31,7 @@
 #include "acpbl_udp.h"
 #include "acpbl_udp_gmm.h"
 #include "acpbl_udp_gma.h"
+#include "acpbl_input.h"
 /* H.Honda Nov.16 2015 begin */
 #ifdef MPIACP
 #include "mpi.h"
@@ -388,136 +389,30 @@ static int iacp_init(void)
 
 int acp_init(int* argc, char*** argv)
 {
-/* H.Honda Nov.16 2015 begin */
-    ///int myrank, nprocs ;
-    int      rank, offset_rank,   nprocs,   rank_runtime, size_smem, myrank_runtime, nprocs_runtime ;
-    int64_t  rank64, offset_rank64, nprocs64, rank_runtime64, size_smem64 ;
-    uint64_t lport64, rport64, taskid64 ;
-    uint32_t taskid ;
-    uint16_t lport, rport ;
-    char     rhost[ BUFSIZ ] ;
-    ///fprintf( stderr, "zero: np, me: %d, %d\n", nprocs_runtime, myrank_runtime ) ;
+    acpbl_input_t *ait ;
 ///
-#ifdef MPIACP
-    if ( (*argc >= 4) &&
-         (strcmp( (*argv)[ 1 ], "--acp-multrun" ) == 0)) {
-        char buf[ BUFSIZ ] ;
-        char *filename = strdup( (*argv)[ 2 ] ) ;
-        offset_rank = atoi( (*argv)[ 3 ] ) ;
+    ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
+    iacp_connection_information( argc, argv, ait ) ;
 ///
-        MPI_Comm_rank( MPI_COMM_WORLD, &myrank_runtime ) ;
-        MPI_Comm_size( MPI_COMM_WORLD, &nprocs_runtime ) ;
-        ///fprintf( stderr, "first: np, me, offset: %d, %d, %d\n", nprocs_runtime, myrank_runtime, offset_rank ) ;
+    MY_RANK                     = ( uint32_t ) ait->n_inputs[ IR_MYRANK    ] ;
+    NUM_PROCS                   = ( uint32_t ) ait->n_inputs[ IR_NPROCS    ] ;
+    TASKID                      = ( uint32_t ) ait->n_inputs[ IR_TASKID    ] ;
+    my_port                     = ( uint16_t ) ait->n_inputs[ IR_LPORT     ] ;
+    parent_port                 = ( uint16_t ) ait->n_inputs[ IR_RPORT     ] ;
+    parent_addr                 = ( uint32_t ) ait->n_inputs[ IR_RHOST     ] ;
+    SMEM_SIZE                   = ( int      ) ait->n_inputs[ IR_SZSMEM_BL ] ;
+    iacp_starter_memory_size_cl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_CL ] ;
+    iacp_starter_memory_size_dl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_DL ] ;
 ///
-        {
-            int  i ;
-            FILE *fp = fopen( filename, "r" ) ;
-            if ( fp == (FILE *)NULL ) {
-               fprintf( stderr, "File: %s :open error:\n", filename ) ;
-               exit( 1 ) ;
-            }
-            i = 0 ;
-            while( fgets( buf, BUFSIZ, fp ) != NULL ) {
-                ///fprintf ( stderr, "%4d%4d : buf %s\n", offset_rank, myrank_runtime, buf ) ;
-                if ( i >= (myrank_runtime + offset_rank)) {
-                    break ;
-                }
-                i++ ;
-            }
-            free( filename ) ;
-        }
-        sscanf( buf, "%ld %ld %lu %lu %s %lu %ld",  &rank64, &nprocs64, &lport64, &rport64, rhost, &taskid64, &size_smem64 ) ;
-        ///fprintf ( stderr, "read: %s => read: %d%d: %4d%4d%10lu%10lu %s %10lu%10ld\n", buf, myrank_runtime, offset_rank, rank64, nprocs64, lport64, rport64, rhost, taskid64, size_smem64 ) ;
-        rank                = ( int ) rank64 ;
-        nprocs              = ( int ) nprocs64 ;
-        lport               = ( uint16_t ) lport64 ;
-        rport               = ( uint16_t ) rport64 ;
-        taskid              = ( uint32_t ) taskid64 ;
-        size_smem           = ( int ) size_smem64 ;
-        ///fprintf ( stderr, "rank: %6d%6d:%6d%6d:%7u%7u %10u%10ld   %s\n", myrank_runtime, offset_rank, rank, nprocs, lport, rport, taskid, size_smem, rhost ) ;
+///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
+///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
+///            MY_RANK, NUM_PROCS, TASKID, my_port, parent_port, parent_addr, SMEM_SIZE, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
 ///
-        MY_RANK     = offset_rank + myrank_runtime ;
-        NUM_PROCS   = nprocs ;
-        TASKID      = taskid ;
-        SMEM_SIZE   = size_smem ;
-        my_port     = lport ;
-        parent_port = rport ;
-        parent_addr = inet_addr( rhost );
-        if ( parent_addr == 0xffffffff ) {
-            struct hostent *host;
-            if ((host = gethostbyname( rhost )) == NULL) return -1;
-            parent_addr = *(uint32_t *)host->h_addr_list[0];
-        }
-///
-        (*argv)[3] = (*argv)[0];
-        (*argc) -= 3 ;
-        (*argv) += 3 ;
-///
-    } else {
-#endif /* MPIACP */
-    if (( *argc >= 8) &&
-               (strcmp( (*argv)[ 1 ], "--acp-options" ) == 0)) {
-        MY_RANK     = strtol((*argv)[2], NULL, 0);
-        NUM_PROCS   = strtol((*argv)[3], NULL, 0);
-        TASKID      = strtol((*argv)[4], NULL, 0);
-        SMEM_SIZE   = strtol((*argv)[5], NULL, 0);
-        my_port     = strtol((*argv)[6], NULL, 0);
-        parent_port = strtol((*argv)[7], NULL, 0);
-        parent_addr = inet_addr((*argv)[8]);
-        if (parent_addr == 0xffffffff) {
-            struct hostent *host;
-            if ((host = gethostbyname((*argv)[8])) == NULL) return -1;
-            parent_addr = *(uint32_t *)host->h_addr_list[0];
-        }
-///
-        (*argv)[8] = (*argv)[0];
-        (*argc) -= 8 ;
-        (*argv) += 8 ;
-///
-    } else {
-        MY_RANK     = strtol(getenv("ACP_MYRANK"),          NULL ,0);
-        NUM_PROCS   = strtol(getenv("ACP_NUMPROCS"),        NULL, 0);
-        TASKID      = strtol(getenv("ACP_TASKID"),          NULL, 0);
-        SMEM_SIZE   = strtol(getenv("ACP_STARTER_MEMSIZE"), NULL, 0);
-        my_port     = strtol(getenv("ACP_LPORT"),           NULL, 0);
-        parent_port = strtol(getenv("ACP_RPORT"),           NULL, 0);
-        parent_addr = inet_addr(getenv("ACP_RHOST"));
-        if (parent_addr == 0xffffffff) {
-            struct hostent *host;
-            if ((host = gethostbyname(getenv("ACP_RHOST"))) == NULL) return -1;
-            parent_addr = *(uint32_t *)host->h_addr_list[0];
-        }
-    }
-#ifdef MPIACP
-    }
-#endif /* MPIACP */
-///
-///    fprintf ( stderr, "final: %d: %10d%10u%10d%10u%10u%20x\n", MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr ) ;
-/* H.Honda Nov.16 2015 end   */
- 
-/* original version
- *  if (*argc < 8) return -1;
- *  MY_RANK     = strtol((*argv)[1], NULL, 0);
- *  NUM_PROCS   = strtol((*argv)[2], NULL, 0);
- *  TASKID      = strtol((*argv)[3], NULL, 0);
- *  SMEM_SIZE   = strtol((*argv)[4], NULL, 0);
- *  my_port     = strtol((*argv)[5], NULL, 0);
- *  parent_port = strtol((*argv)[6], NULL, 0);
- *  parent_addr = inet_addr((*argv)[7]);
- *  if (parent_addr == 0xffffffff) {
- *      struct hostent *host;
- *      if ((host = gethostbyname((*argv)[7])) == NULL) return -1;
- *      parent_addr = *(uint32_t *)host->h_addr_list[0];
- *  }
- *  
- *  (*argv)[7] = (*argv)[0];
- *  *argc -= 7;
- *  *argv += 7;
- */
     debug printf("rank %d - args: procs %d, taskid 0x%x, sseg_size %d, port 0x%x, pport 0x%x, paddr 0x%x\n",
                  MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr);
- 
-    return iacp_init();
+///
+    free( ait ) ;
+    return iacp_init() ;
 }
 
 static int iacp_finalize(void)

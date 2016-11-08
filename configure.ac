@@ -122,6 +122,7 @@ else
 fi
 
 AC_CHECK_LIB([pthread], [pthread_create])
+AC_CHECK_LIB([rt], [rt_create])            # ???
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h inttypes.h netdb.h netinet/in.h stdint.h stdlib.h string.h sys/socket.h unistd.h])

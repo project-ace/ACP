@@ -16945,7 +16945,7 @@ if test "x$ac_cv_lib_pthread_pthread_create" = xyes; then :
 #define HAVE_LIBPTHREAD 1
 _ACEOF
 
-  LIBS="-lpthread $LIBS"
+  LIBS="-lpthread -lrt $LIBS"
 
 fi
 

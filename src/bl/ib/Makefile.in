@@ -149,10 +149,11 @@ libacpbl_ib_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_ib_la_LDFLAGS) $(LDFLAGS) -o \
 	$@
 libacpbl_ib_mpi_la_DEPENDENCIES =
-am__libacpbl_ib_mpi_la_SOURCES_DIST = acpbl_ib.c acpbl_input.c acpbl.h acpbl_sync.h acpbl_input.h
+am__libacpbl_ib_mpi_la_SOURCES_DIST = acpbl_ib.c acpbl.h acpbl_sync.h \
+	acpbl_input.c acpbl_input.h
 @HAVE_MPICC_TRUE@am_libacpbl_ib_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_ib_mpi_la-acpbl_ib.lo \
-@HAVE_MPICC_TRUE@	libacpbl_input_mpi_la-acpbl_input.lo
+@HAVE_MPICC_TRUE@	libacpbl_ib_mpi_la-acpbl_input.lo
 libacpbl_ib_mpi_la_OBJECTS = $(am_libacpbl_ib_mpi_la_OBJECTS)
 @HAVE_MPICC_TRUE@am_libacpbl_ib_mpi_la_rpath = -rpath $(libdir)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -359,10 +360,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_ib.la $(am__append_1)
-libacpbl_ib_la_SOURCES = acpbl_ib.c acpbl_input.c acpbl.h acpbl_sync.h acpbl_input.h
+libacpbl_ib_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h
 libacpbl_ib_la_LDFLAGS = -version-info $(libacpbl_ib_version)
 libacpbl_ib_la_LIBADD = -lpthread -libverbs
-@HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_SOURCES = acpbl_ib.c acpbl_input.c acpbl.h acpbl_sync.h acpbl_input.h
+@HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h
 @HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
 @HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_LIBADD = -lpthread -libverbs
 all: all-am
@@ -449,7 +450,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_ib.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_input.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_ib_mpi_la-acpbl_ib.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_input_mpi_la-acpbl_input.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_ib_mpi_la-acpbl_input.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -479,12 +480,12 @@ libacpbl_ib_mpi_la-acpbl_ib.lo: acpbl_ib.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_ib_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_ib_mpi_la-acpbl_ib.lo `test -f 'acpbl_ib.c' || echo '$(srcdir)/'`acpbl_ib.c
 
-libacpbl_input_mpi_la-acpbl_input.lo: acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_input_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_input_mpi_la-acpbl_input.lo -MD -MP -MF $(DEPDIR)/libacpbl_input_mpi_la-acpbl_input.Tpo -c -o libacpbl_input_mpi_la-acpbl_input.lo `test -f 'acpbl_input.c' || echo '$(srcdir)/'`acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_input_mpi_la-acpbl_input.Tpo $(DEPDIR)/libacpbl_input_mpi_la-acpbl_input.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_input.c' object='libacpbl_input_mpi_la-acpbl_input.lo' libtool=yes @AMDEPBACKSLASH@
+libacpbl_ib_mpi_la-acpbl_input.lo: acpbl_input.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_ib_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_ib_mpi_la-acpbl_input.lo -MD -MP -MF $(DEPDIR)/libacpbl_ib_mpi_la-acpbl_input.Tpo -c -o libacpbl_ib_mpi_la-acpbl_input.lo `test -f 'acpbl_input.c' || echo '$(srcdir)/'`acpbl_input.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_ib_mpi_la-acpbl_input.Tpo $(DEPDIR)/libacpbl_ib_mpi_la-acpbl_input.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_input.c' object='libacpbl_ib_mpi_la-acpbl_input.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_input_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_input_mpi_la-acpbl_input.lo `test -f 'acpbl_input.c' || echo '$(srcdir)/'`acpbl_input.c
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_ib_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_ib_mpi_la-acpbl_input.lo `test -f 'acpbl_input.c' || echo '$(srcdir)/'`acpbl_input.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

@@ -150,8 +150,8 @@ libacpbl_udp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_udp_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
 libacpbl_udp_mpi_la_DEPENDENCIES =
-am__libacpbl_udp_mpi_la_SOURCES_DIST = acpbl_udp.c acpbl_udp_gmm.c acpbl_input.c \
-	acpbl_udp_gma.c acpbl.h acpbl_sync.h acpbl_udp.h \
+am__libacpbl_udp_mpi_la_SOURCES_DIST = acpbl_udp.c acpbl_udp_gmm.c \
+	acpbl_udp_gma.c acpbl_input.c acpbl.h acpbl_sync.h acpbl_udp.h \
 	acpbl_udp_gmm.h acpbl_udp_gma.h acpbl_input.h
 @HAVE_MPICC_TRUE@am_libacpbl_udp_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_udp.lo \
@@ -369,12 +369,12 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_udp.la $(am__append_1)
 libacpbl_udp_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c acpbl_input.c \
-	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h  acpbl_input.h
+	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h acpbl_input.h
 
 libacpbl_udp_la_LDFLAGS = -version-info $(libacpbl_udp_version)
 libacpbl_udp_la_LIBADD = -lpthread
 @HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c acpbl_input.c \
-@HAVE_MPICC_TRUE@	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h       acpbl_input.h
+@HAVE_MPICC_TRUE@	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h acpbl_input.h
 
 @HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
 @HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_LDFLAGS = -version-info $(libacpbl_udp_version)
@@ -460,14 +460,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_input.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_gmm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_input.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp_gmm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

@@ -74,6 +74,7 @@ static struct option const long_options[] = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef GNU_SOURCE
 static int iacp_print_usage( char *comm, FILE *fout )
 {
     fprintf( fout, "Usage:\n" ) ;
@@ -99,14 +100,41 @@ static int iacp_print_usage( char *comm, FILE *fout )
     return 0 ;
 }
 
+#else
+static int iacp_print_usage( char *comm, FILE *fout )
+{
+    fprintf( fout, "Usage:\n" ) ;
+    fprintf( fout, "Normal ACP connections:\n" ) ;
+    fprintf( fout, "    %s\n", comm ) ;
+    fprintf( fout, "     -i  myrank\n" ) ;
+    fprintf( fout, "     -n  nprocs\n" ) ;
+    fprintf( fout, "     -l  local_port\n" ) ;
+    fprintf( fout, "     -h  remote_host\n" ) ;
+    fprintf( fout, "     -r  remote_port\n" ) ;
+    fprintf( fout, "     -t  taskid\n" ) ;
+    fprintf( fout, "   [ -s  starter_memory_size ( user region  ) ]\n" ) ;
+    fprintf( fout, "   [ -c  starter_memory_size ( comm.library ) ]\n" ) ;
+    fprintf( fout, "   [ -d  starter_memory_size ( data library ) ]\n" ) ;
+    fprintf( fout, "Multiple MPI connections (ACP+MPI):\n" ) ;
+    fprintf( fout, "    %s\n", comm ) ;
+    fprintf( fout, "     -m  port_filename\n" ) ;
+    fprintf( fout, "     -o  rank_offset\n" ) ;
+    fprintf( fout, "     -t  taskid\n" ) ;
+    fprintf( fout, "   [ -s  starter_memory_size ( user  region  ) ]\n" ) ;
+    fprintf( fout, "   [ -c  starter_memory_size ( comm. library ) ]\n" ) ;
+    fprintf( fout, "   [ -d  starter_memory_size ( data  library ) ]\n" ) ;
+    return 0 ;
+}
+
+#endif
+
 static int iacp_print_error_argument( int ir, void *curr, FILE *fout )
 {
     if ( default_opts[ ir ].flg_num ) {
         fprintf( fout, "Error argument value: %lu, ( %lu <= val < %lu ).\n",
-            ( uint64_t )( uint64_t * ) curr,
-              default_opts[ ir ].min, default_opts[ ir ].max ) ;
+            *(( uint64_t * ) curr), default_opts[ ir ].min, default_opts[ ir ].max ) ;
     } else {
-        fprintf( fout, "Error argument value: %s.\n", ( char *) curr ) ;
+        fprintf( fout, "Error argument value: %s.\n", ( char * ) curr ) ;
     }
     return 0 ;
 }
@@ -153,7 +181,7 @@ static int iacp_read_multirun_file( acpbl_input_t *ait )
 
 int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
 {
-    int i, opt, option_index ;
+    int  i, opt, option_index ;
 
     for ( i = 0 ; i < _NIR_ ; i++ ) {
         ait->flg_set[ i ]  = 0 ;
@@ -163,11 +191,11 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-///#ifndef GNU_SOURCE
-///    while ( (opt = getopt( *argc, *argv, "i:n:s:c:d:l:r:t:h:m:o:" )) != -1 ) {
-///#else
+#ifndef GNU_SOURCE
+    while ( (opt = getopt( *argc, *argv, short_options)) != -1 ) {
+#else
     while ( (opt = getopt_long( *argc, *argv, short_options, long_options, &option_index )) != -1 ) {
-///#endif
+#endif
         for ( i = 0 ; i < _NIR_ ; i++ ) {
             if ( opt == long_options[ i ].val ) {
                 ait->flg_set[ i ] = 1 ;
@@ -190,6 +218,10 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
         exit( EXIT_FAILURE ) ;
 flg_found: ;
     }
+    for ( i = 0 ; i < (*argc) ; i++ ) {
+        (*argv)[ 1 + i ] = (*argv)[ optind + i ] ;
+    }
+    (*argc) -= optind - 1 ;
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////

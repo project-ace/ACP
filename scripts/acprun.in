@@ -520,7 +520,7 @@ class Acprun:
             lcomm = lcomm + " " + self.comm_args[ ip ]
         for ip in range( self.nprocs ):
             ipp  = self.offsetrank + ip
-            comm = "cd %s ; %s -i %d -n %d -t %d -l %d -r %d -h %s -s %s -c %s -d %s" % \
+            comm = "cd %s ; %s --acp-myrank %d --acp-nprocs %d --acp-taskid %d --acp-port-local %d --acp-port-remote %d --acp-host-remote %s --acp-size-smem %s --acp-size-smem-cl %s --acp-size-smem-dl %s" % \
                    ( self.cwd, lcomm, \
                      ipp,                    self.lst_nprocs_acp[ ipp ], self.lst_taskid[ ipp ],  \
                      self.lst_lport [ ipp ], self.lst_rport [ ipp ],     self.lst_rhostip[ ipp ], \

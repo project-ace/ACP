@@ -394,19 +394,19 @@ int acp_init(int* argc, char*** argv)
     ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
     iacp_connection_information( argc, argv, ait ) ;
 ///
-    MY_RANK                     = ( uint32_t ) ait->n_inputs[ IR_MYRANK    ] ;
-    NUM_PROCS                   = ( uint32_t ) ait->n_inputs[ IR_NPROCS    ] ;
-    TASKID                      = ( uint32_t ) ait->n_inputs[ IR_TASKID    ] ;
-    my_port                     = ( uint16_t ) ait->n_inputs[ IR_LPORT     ] ;
-    parent_port                 = ( uint16_t ) ait->n_inputs[ IR_RPORT     ] ;
-    parent_addr                 = ( uint32_t ) ait->n_inputs[ IR_RHOST     ] ;
-    SMEM_SIZE                   = ( int      ) ait->n_inputs[ IR_SZSMEM_BL ] ;
-    iacp_starter_memory_size_cl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_CL ] ;
-    iacp_starter_memory_size_dl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_DL ] ;
+    MY_RANK                     = ( uint32_t ) ait->u_inputs[ IR_MYRANK    ] ;
+    NUM_PROCS                   = ( uint32_t ) ait->u_inputs[ IR_NPROCS    ] ;
+    TASKID                      = ( uint32_t ) ait->u_inputs[ IR_TASKID    ] ;
+    my_port                     = ( uint16_t ) ait->u_inputs[ IR_LPORT     ] ;
+    parent_port                 = ( uint16_t ) ait->u_inputs[ IR_RPORT     ] ;
+    parent_addr                 = ( uint32_t ) ait->u_inputs[ IR_RHOST     ] ;
+    SMEM_SIZE                   = ( int      ) ait->u_inputs[ IR_SZSMEM_BL ] ;
+    iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
+    iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
 ///
 ///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
-///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
-///            MY_RANK, NUM_PROCS, TASKID, my_port, parent_port, parent_addr, SMEM_SIZE, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
+    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
+            MY_RANK, NUM_PROCS, TASKID, my_port, parent_port, parent_addr, SMEM_SIZE, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
 ///
     debug printf("rank %d - args: procs %d, taskid 0x%x, sseg_size %d, port 0x%x, pport 0x%x, paddr 0x%x\n",
                  MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr);

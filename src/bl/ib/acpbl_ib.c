@@ -4842,15 +4842,15 @@ int acp_init(int *argc, char ***argv)
     ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
 ///
     iacp_connection_information( argc, argv, ait ) ;
-    acp_myrank                  = ( int      ) ait->n_inputs[ IR_MYRANK    ] ;
-    acp_numprocs                = ( int      ) ait->n_inputs[ IR_NPROCS    ] ;
-    acp_taskid                  = ( uint32_t ) ait->n_inputs[ IR_TASKID    ] ;
-    my_port                     = ( uint16_t ) ait->n_inputs[ IR_LPORT     ] ;
-    dst_port                    = ( uint16_t ) ait->n_inputs[ IR_RPORT     ] ;
-    dst_addr                    = ( uint32_t ) ait->n_inputs[ IR_RHOST     ] ;
-    acp_smsize                  = ( size_t   ) ait->n_inputs[ IR_SZSMEM_BL ] ;
-    iacp_starter_memory_size_cl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_CL ] ;
-    iacp_starter_memory_size_dl = ( size_t   ) ait->n_inputs[ IR_SZSMEM_DL ] ;
+    acp_myrank                  = ( int      ) ait->u_inputs[ IR_MYRANK    ] ;
+    acp_numprocs                = ( int      ) ait->u_inputs[ IR_NPROCS    ] ;
+    acp_taskid                  = ( uint32_t ) ait->u_inputs[ IR_TASKID    ] ;
+    my_port                     = ( uint16_t ) ait->u_inputs[ IR_LPORT     ] ;
+    dst_port                    = ( uint16_t ) ait->u_inputs[ IR_RPORT     ] ;
+    dst_addr                    = ( uint32_t ) ait->u_inputs[ IR_RHOST     ] ;
+    acp_smsize                  = ( size_t   ) ait->u_inputs[ IR_SZSMEM_BL ] ;
+    iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
+    iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
 ///
 ///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
 ///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",

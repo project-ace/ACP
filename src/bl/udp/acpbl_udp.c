@@ -405,8 +405,8 @@ int acp_init(int* argc, char*** argv)
     iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
 ///
 ///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
-    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
-            MY_RANK, NUM_PROCS, TASKID, my_port, parent_port, parent_addr, SMEM_SIZE, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
+///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
+///            MY_RANK, NUM_PROCS, TASKID, my_port, parent_port, parent_addr, SMEM_SIZE, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
 ///
     debug printf("rank %d - args: procs %d, taskid 0x%x, sseg_size %d, port 0x%x, pport 0x%x, paddr 0x%x\n",
                  MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr);

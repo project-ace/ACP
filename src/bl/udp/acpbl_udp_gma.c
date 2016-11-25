@@ -2462,7 +2462,7 @@ static void* comm_thread_func(void *param)
             }
         }
         
-        if (is_dq_not_empty()) {
+        if (is_dq_not_empty() && dqexec >= 0) {
             /* Process a command */
             pos = dqexec;
             if (dq[pos].stat == DQSTAT_FENCE && check_wait == 0) dq[pos].stat = DQSTAT_ACTIVE;

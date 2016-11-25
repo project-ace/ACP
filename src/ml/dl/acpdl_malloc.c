@@ -528,7 +528,6 @@ acp_ga_t acp_malloc(size_t size, int rank)
         
         /* merge free blocks and rewind if the succeding block is a free block */
         if ((succ_size & 7) == BLOCK_FREE) {
-            tmp[0] = ptr + (succ_size - BLOCK_FREE);
             tmp[1] = this_size + (succ_size - BLOCK_FREE);
             acp_copy(ptr - (this_size - BLOCK_FREE) + 16, local_heap + 8, 8, ACP_HANDLE_NULL);
             acp_copy(ptr + (succ_size - BLOCK_FREE) + 8, local_heap + 8, 8, ACP_HANDLE_NULL);

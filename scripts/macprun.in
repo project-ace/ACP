@@ -16,7 +16,9 @@ ENVNETWORK       = "@NETDEV@"
 REMOTESHELL      = "ssh"
 
 VERSION          = "@VERSION@"
-STARTER_MEMSIZE  = 10240
+STARTER_MEMSIZE  = 1024
+STARTER_MEMSIZE_CL = 1024
+STARTER_MEMSIZE_DL = 1024
 PORTID_START     = 44256
 TASKID           = 100
 LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
@@ -50,6 +52,16 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-startermemsize",       "STARTERMEM", "BLKVAL" ],
            [ "--acp-smemsize",        "STARTERMEM", "EQVAL"  ],
            [ "--acp-startermemsize",  "STARTERMEM", "EQVAL"  ],
+           #
+           [ "-smemsize-cl",             "STARTERMEM_CL", "BLKVAL" ],
+           [ "-startermemsize-cl",       "STARTERMEM_CL", "BLKVAL" ],
+           [ "--acp-smemsize-cl",        "STARTERMEM_CL", "EQVAL"  ],
+           [ "--acp-startermemsize-cl",  "STARTERMEM_CL", "EQVAL"  ],
+           #
+           [ "-smemsize-dl",             "STARTERMEM_DL", "BLKVAL" ],
+           [ "-startermemsize-dl",       "STARTERMEM_DL", "BLKVAL" ],
+           [ "--acp-smemsize-dl",        "STARTERMEM_DL", "EQVAL"  ],
+           [ "--acp-startermemsize-dl",  "STARTERMEM_DL", "EQVAL"  ],
            #
            [ "-machinefile",          "NODEFILE",   "BLKVAL" ],
            [ "-nodefile",             "NODEFILE",   "BLKVAL" ],
@@ -110,6 +122,8 @@ class MAcprun:
         self.ver_python      = int( sys.version_info[ 0 ] )
         self.subver_python   = int( sys.version_info[ 1 ] )
         self.starter_memsize = STARTER_MEMSIZE
+        self.starter_memsize_cl = STARTER_MEMSIZE_CL
+        self.starter_memsize_dl = STARTER_MEMSIZE_DL
         self.nprocs_total    = 0
         self.nprocs_acp      = 0
         self.nprocs_mpi      = 0
@@ -154,6 +168,8 @@ class MAcprun:
         print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
         print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
         print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
+        print( "    : -startermemsize-cl STARTER_MEMORY_SIZE_CL or --acp-startermemsize-cl=STARTER_MEMORY_SIZE_CL (default: %d Bytes) " % STARTER_MEMSIZE_CL )
+        print( "    : -startermemsize-dl STARTER_MEMORY_SIZE_DL or --acp-startermemsize-dl=STARTER_MEMORY_SIZE_DL (default: %d Bytes) " % STARTER_MEMSIZE_DL )
         print( "    : -net/-ndev/-envnet ENVNETWORK       or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
         print( "    : --acp-version" )
         print( "    : --acp-help" )
@@ -230,6 +246,20 @@ class MAcprun:
                         self.starter_memsize = int( optval )
                     if self.starter_memsize < 0:
                         raise ErrorInvalidOptionArgument( "Argument: startermemsize < 0" )
+                elif flgopt == "STARTERMEM_CL":
+                    if   flgval == "BLKVAL":
+                        self.starter_memsize_cl = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.starter_memsize_cl = int( optval )
+                    if self.starter_memsize_cl < 0:
+                        raise ErrorInvalidOptionArgument( "Argument: startermemsize_cl < 0" )
+                elif flgopt == "STARTERMEM_DL":
+                    if   flgval == "BLKVAL":
+                        self.starter_memsize_dl = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.starter_memsize_dl = int( optval )
+                    if self.starter_memsize_dl < 0:
+                        raise ErrorInvalidOptionArgument( "Argument: startermemsize_dl < 0" )
                 elif flgopt == "NODEFILE":
                     self.flg_localmode       = False
                     if   flgval == "BLKVAL":
@@ -275,11 +305,13 @@ class MAcprun:
         if self.flg_debug_mode:
             if self.flg_debug_level > 200:
                 print( "In " + sys._getframe().f_code.co_name + "():" )
-                print("opt: ", "NPROCS= ", self.nprocs_total)
-                print("opt: ", "SMEMSZ= ", self.starter_memsize)
-                print("opt: ", " NODES= ", self.nodes)
-                print("opt: ", "ENVNET= ", self.flg_envnetwork)
-                print("opt: ", "COMARG= ", self.comm_args)
+                print("opt: ", "NPROCS   = ", self.nprocs_total)
+                print("opt: ", "SMEMSZ   = ", self.starter_memsize)
+                print("opt: ", "SMEMSZ_CL= ", self.starter_memsize_cl)
+                print("opt: ", "SMEMSZ_DL= ", self.starter_memsize_dl)
+                print("opt: ", " NODES   = ", self.nodes)
+                print("opt: ", "ENVNET   = ", self.flg_envnetwork)
+                print("opt: ", "COMARG   = ", self.comm_args)
 #
     #########################################################
     def set_taskid( self ):
@@ -511,10 +543,10 @@ class MAcprun:
         # portfile
         oport = open( self.portfile, "w" )
         for ip in range( self.nprocs_total ):
-            str = "%10d%10d%20s%20s%20s%10d%10d    %s %s\n" % \
-                 ( ip, self.nprocs_total, \
-                   self.lst_lport[ ip ],  self.lst_rport[ ip ], self.lst_rhostip[ ip ], \
-                   self.lst_taskid[ ip ], self.starter_memsize, self.lst_lhost[ ip ], self.lst_lhostip[ ip ] )
+            str = "%10s %10s %20s %20s %20s    %20s %20s %20s   %s %s %s\n" % \
+                 ( ip, self.nprocs_total, self.lst_lport[ ip ], self.lst_rport[ ip ], self.lst_rhostip[ ip ], \
+                   self.starter_memsize, self.starter_memsize_cl, self.starter_memsize_dl, \
+                   self.lst_taskid[ ip ], self.lst_lhostip[ ip ], self.lst_lhost[ ip ] )
             oport.write( str )
         oport.close()
         #
@@ -553,24 +585,22 @@ class MAcprun:
             if ( basename_comm == STR_COMM_ACPRUN ):
                 if ( self.flg_localmode ):
                     self.comms_runtime.append(
-                                "%s -multrun -np %d -portfile %s -offsetrank %d %s" % \
-                                ( self.runtimes[ i ], self.nprocs[ i ], \
-                                  self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+                                "%s --acp-multirun --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                ( self.runtimes[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
                 else:
                     self.comms_runtime.append(
-                                "%s -multrun -machinefile %s -np %d -portfile %s -offsetrank %d %s" % \
-                                ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
-                                  self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+                                "%s --acp-multirun --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                ( self.runtimes[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
             else:
                 if ( self.flg_localmode ):
                     self.comms_runtime.append(
-                                "%s -np %d %s --acp-multrun %s %d" % \
+                                "%s -np %d %s --acp-portfile %s --acp-offsetrank %d" % \
                                 ( self.runtimes[ i ], self.nprocs[ i ], \
                                   self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
                 else:
                     self.comms_runtime.append(
-                                "%s -machinefile %s -np %d %s --acp-multrun %s %d" % \
-                                ( self.runtimes[ i ], self.nodefiles[ i ], self.nprocs[ i ], \
+                                "%s -np %d -machinefile %s %s --acp-portfile %s --acp-offsetrank %d" % \
+                                ( self.runtimes[ i ], self.nprocs[ i ], self.nodefiles[ i ], \
                                   self.commands[ i ], self.portfile, self.offsets_rank[ i ] ) )
             if ( i != (self.num_runtime-1) ):
                 self.comms_runtime[ i ] += " &"

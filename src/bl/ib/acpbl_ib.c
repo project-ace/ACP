@@ -4852,9 +4852,9 @@ int acp_init(int *argc, char ***argv)
     iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
     iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
 ///
-///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
-///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",
-///            acp_myrank, acp_numprocs, acp_taskid, my_port, dst_port, dst_addr, acp_smsize, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
+    ///fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
+    ///fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",
+    ///        acp_myrank, acp_numprocs, acp_taskid, my_port, dst_port, dst_addr, acp_smsize, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
 ///
 #ifdef DEBUG
     fprintf(stdout, 
@@ -4864,6 +4864,7 @@ int acp_init(int *argc, char ***argv)
     fflush(stdout);
 #endif
     
+    ///exit ( 1 ) ;
     rc = iacp_init();
     
     /* if acp_init successes, $executed_acp_init flag is set to true */

@@ -70,12 +70,8 @@ static int print_usage( char *comm, FILE *fout )
     fprintf( fout, "   [ --acp-size-smem-dl    starter_memory_size ( data library ) ]\n" ) ;
     fprintf( fout, "Multiple MPI connections (ACP+MPI):\n" ) ;
     fprintf( fout, "    %s\n", comm ) ;
-    fprintf( fout, "     --acp-multirun        port_filename\n" ) ;
-    fprintf( fout, "     --acp-multirun-offset rank_offset\n" ) ;
-    fprintf( fout, "     --acp-taskid          taskid\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem       starter_memory_size ( user  region  ) ]\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem-cl    starter_memory_size ( comm. library ) ]\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem-dl    starter_memory_size ( data  library ) ]\n" ) ;
+    fprintf( fout, "     --acp-portfile        port_filename\n" ) ;
+    fprintf( fout, "     --acp-offsetrank      rank_offset\n" ) ;
     return 0 ;
 }
 
@@ -99,15 +95,17 @@ static int print_error_argument( int ir, void *curr, FILE *fout )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef MPIACP
-static int read_multirun_file( acpbl_input_t *ait )
+static int read_portfile( acpbl_input_t *ait )
 {
     int  myrank_runtime, nprocs_runtime ;
     char buf[ BUFSIZ ] ;
-    char *filename = ait->s_inputs[ IR_MULTIRUN ] ;;
+    char *filename = ait->s_inputs[ IR_PORTFILE ] ;
 
     ///
     MPI_Comm_rank( MPI_COMM_WORLD, &myrank_runtime ) ;
     MPI_Comm_size( MPI_COMM_WORLD, &nprocs_runtime ) ;
+
+///    fprintf( stdout, "%4d, %4d: %s, %lu\n", myrank_runtime, nprocs_runtime, ait->s_inputs[ IR_PORTFILE ], ait->u_inputs[ IR_OFFSETRANK ] ) ;
 
     ///
     {   
@@ -119,14 +117,20 @@ static int read_multirun_file( acpbl_input_t *ait )
         } 
         i = 0 ;
         while( fgets( buf, BUFSIZ, fp ) != NULL ) {
-            if ( i >= (myrank_runtime + ait->u_inputs[ IR_MULTIRUN_OFFSET ]) ) {
+            if ( i >= (myrank_runtime + ait->u_inputs[ IR_OFFSETRANK ]) ) {
                 break ;
             }
             i++ ;
         }
     }
-    sscanf( buf, "%lu %lu %lu %lu %s",
-            &(ait->u_inputs[ IR_MYRANK ]), &(ait->u_inputs[ IR_NPROCS ]), &(ait->u_inputs[ IR_LPORT ]), &(ait->u_inputs[ IR_RPORT ]), ait->s_inputs[ IR_RHOST ] ) ;
+    sscanf( buf, "%lu %lu %lu %lu %s %lu %lu %lu",
+            &(ait->u_inputs[ IR_MYRANK ]), &(ait->u_inputs[ IR_NPROCS ]), &(ait->u_inputs[ IR_LPORT ]), &(ait->u_inputs[ IR_RPORT ]),
+            ait->s_inputs[ IR_RHOST ],
+            &(ait->u_inputs[ IR_SZSMEM_BL ]), &(ait->u_inputs[ IR_SZSMEM_CL ]), &(ait->u_inputs[ IR_SZSMEM_DL ]) ) ;
+///    fprintf( stdout, "%32lu %32lu %32lu %32lu %s %32lu %32lu %32lu\n", 
+///            ait->u_inputs[ IR_MYRANK ], ait->u_inputs[ IR_NPROCS ], ait->u_inputs[ IR_LPORT ], ait->u_inputs[ IR_RPORT ],
+///            ait->s_inputs[ IR_RHOST ],
+///            ait->u_inputs[ IR_SZSMEM_BL ], ait->u_inputs[ IR_SZSMEM_CL ], ait->u_inputs[ IR_SZSMEM_DL ] );
     return 0 ;
 }
 #endif /* MPIACP */
@@ -181,6 +185,7 @@ static int copy_arg( char *opt, char *optarg, int ir_default_opts, acpbl_input_t
             print_error_argument( ir, ait->s_inputs[ ir ], stderr ) ;
         }
     }
+    ait->flg_set[ ir ] = 1 ;
     return 0 ;
 }
 
@@ -246,14 +251,18 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
 ///        fprintf( stderr, "\"%s\" ", ait->argv[ i ] ) ;
 ///    }
 ///    fprintf( stderr, "\n" ) ;
+///
+///    for ( i = 0 ; i < _NIR_ ; i++ ) {
+///        fprintf( stdout, "flg: %4d -> %4d\n", i, ait->flg_set[ i ] ) ;
+///    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef MPIACP
-    if ( ait->flg_set[ IR_MULTIRUN ] ) {
+    if ( ait->flg_set[ IR_PORTFILE ] ) {
         ///////////////////////////////
-        read_multirun_file( ait ) ;
+        read_portfile( ait ) ;
         ///////////////////////////////
     } else {
 #endif /* MPIACP */

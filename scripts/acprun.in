@@ -74,10 +74,8 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "--acp-ssh",             "RSH",        "EQVAL"  ],
            [ "--acp-remoteshell",     "RSH",        "EQVAL"  ],
            #
-           [ "-mult",                 "MULTRUN",    "NONE"   ],
-           [ "-multrun",              "MULTRUN",    "NONE"   ],
-           [ "--acp-mult",            "MULTRUN",    "NONE"   ],
-           [ "--acp-multrun",         "MULTRUN",    "NONE"   ],
+           [ "-multirun",             "MULTIRUN",   "NONE"   ],
+           [ "--acp-multirun",        "MULTIRUN",   "NONE"   ],
            #
            [ "-portfile",             "PORTFILE",   "BLKVAL" ],
            [ "--acp-portfile",        "PORTFILE",   "EQVAL"  ],
@@ -130,7 +128,7 @@ class Acprun:
         self.starter_memsize = STARTER_MEMSIZE
         self.starter_memsize_cl = STARTER_MEMSIZE_CL
         self.starter_memsize_dl = STARTER_MEMSIZE_DL
-        self.flg_multrun     = False
+        self.flg_multirun    = False
         self.nprocs          = 1
         self.lst_taskid      = [ TASKID ]
         self.nodefile        = ""
@@ -174,9 +172,9 @@ class Acprun:
         print( "    : -startermemsize-dl STARTER_MEMORY_SIZE(Data Lib.) or --acp-startermemsize-dl=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE_DL )
         print( "    : -envnet ENVNETWORK                     or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
         print( "    : -ssh/-rsh REMOTESHELL                  or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
-        print( "    : -multrun                               or --acp-multrun                            (default: False)" )
-        print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multrun option)" )
-        print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multrun option)" )
+        print( "    : -multirun                               or --acp-multirun                            (default: False)" )
+        print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multirun option)" )
+        print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multirun option)" )
         print( "    : -debug                              or --acp-debug                              (default: debug is False)" )
         print( "    : -v/-version                         or --acp-version" )
         print( "    : -h/-help                            or --acp-help" )
@@ -293,8 +291,8 @@ class Acprun:
                         self.flg_envnetwork  = optval
                     if self.flg_envnetwork  == "":
                         raise ErrorInvalidOptionArgument( "Argument: ENVNET value is null" )
-                elif flgopt == "MULTRUN":
-                    self.flg_multrun         = True
+                elif flgopt == "MULTIRUN":
+                    self.flg_multirun         = True
                 elif flgopt == "PORTFILE":
                     if   flgval == "BLKVAL":
                         self.portfile        = optarg
@@ -348,7 +346,7 @@ class Acprun:
                 print( " %s: opt: remote shell   = %s" % (self.myname, self.remoteshell) )
                 print( " %s: opt: flg_debug      = %s" % (self.myname, self.flg_debug) )
                 print( " %s: opt: debuglevel     = %s" % (self.myname, self.debuglevel) )
-                if ( self.flg_multrun ):
+                if ( self.flg_multirun ):
                     print( " %s: opt: portfile   = %s" % (self.myname, self.portfile) )
                     print( " %s: opt: offsetrank = %s" % (self.myname, self.offsetrank) )
 #
@@ -489,27 +487,38 @@ class Acprun:
         for i in range( len( rlines ) ):
             lines.append( rlines[ i ].rstrip().split() )
         #
-        self.lst_nprocs_acp = []
-        self.lst_taskid     = []
-        self.lst_lport      = []
-        self.lst_rport      = []
-        self.lst_rhostip    = []
-        self.lst_lhostip    = []
+        self.lst_myrank_acp         = []
+        self.lst_nprocs_acp         = []
+        self.lst_lport              = []
+        self.lst_rport              = []
+        self.lst_rhostip            = []
+        self.lst_starter_memsize    = []
+        self.lst_starter_memsize_cl = []
+        self.lst_starter_memsize_dl = []
+        self.lst_taskid             = []
+        self.lst_lhostip            = []
         for i in range( len( lines ) ):
-            self.lst_nprocs_acp.append( int( lines[ i ][ 1 ] ) )
-            self.lst_taskid.append(     int( lines[ i ][ 5 ] ) )
-            self.lst_lport.append(      int( lines[ i ][ 2 ] ) )
-            self.lst_rport.append(      int( lines[ i ][ 3 ] ) )
-            self.lst_rhostip.append(         lines[ i ][ 4 ]   )
-            self.lst_lhostip.append(         lines[ i ][ 8 ]   )
+            self.lst_myrank_acp.append(         int( lines[ i ][ 0 ] ) )
+            self.lst_nprocs_acp.append(         int( lines[ i ][ 1 ] ) )
+            self.lst_lport.append(              int( lines[ i ][ 2 ] ) )
+            self.lst_rport.append(              int( lines[ i ][ 3 ] ) )
+            self.lst_rhostip.append(                 lines[ i ][ 4 ]   )
+            self.lst_starter_memsize.append(    int( lines[ i ][ 5 ] ) )
+            self.lst_starter_memsize_cl.append( int( lines[ i ][ 6 ] ) )
+            self.lst_starter_memsize_dl.append( int( lines[ i ][ 7 ] ) )
+            self.lst_taskid.append(             int( lines[ i ][ 8 ] ) )
+            self.lst_lhostip.append(                 lines[ i ][ 9 ]   )
         if self.flg_debug:
             if self.debuglevel > 200:
-                print( " %s: lst_nprocs: %s"  % (self.myname, self.lst_nprocs_acp) )
-                print( " %s: lst_taskid: %s"  % (self.myname, self.lst_taskid) )
-                print( " %s: lst_lport: %s"   % (self.myname, self.lst_lport) )
-                print( " %s: lst_rport: %s"   % (self.myname, self.lst_rport) )
-                print( " %s: lst_rhostip: %s" % (self.myname, self.lst_rhostip) )
-                print( " %s: lst_lhostip: %s" % (self.myname, self.lst_lhostip) )
+                print( " %s: lst_nprocs            : %s" % (self.myname, self.lst_nprocs_acp        ) )
+                print( " %s: lst_taskid            : %s" % (self.myname, self.lst_taskid            ) )
+                print( " %s: lst_lport             : %s" % (self.myname, self.lst_lport             ) )
+                print( " %s: lst_rport             : %s" % (self.myname, self.lst_rport             ) )
+                print( " %s: lst_rhostip           : %s" % (self.myname, self.lst_rhostip           ) )
+                print( " %s: lst_starter_memsize   : %s" % (self.myname, self.lst_starter_memsize   ) )
+                print( " %s: lst_starter_memsize_cl: %s" % (self.myname, self.lst_starter_memsize_cl) )
+                print( " %s: lst_starter_memsize_dl: %s" % (self.myname, self.lst_starter_memsize_dl) )
+                print( " %s: lst_lhostip           : %s" % (self.myname, self.lst_lhostip           ) )
 
     #########################################################
     def gen_ssh_commands( self ):
@@ -520,12 +529,16 @@ class Acprun:
             lcomm = lcomm + " " + self.comm_args[ ip ]
         for ip in range( self.nprocs ):
             ipp  = self.offsetrank + ip
+            if ( self.flg_multirun ):
+                ipp  = self.offsetrank + self.lst_myrank_acp[ ip ]
             comm = "cd %s ; %s --acp-myrank %d --acp-nprocs %d --acp-taskid %d --acp-port-local %d --acp-port-remote %d --acp-host-remote %s --acp-size-smem %s --acp-size-smem-cl %s --acp-size-smem-dl %s" % \
                    ( self.cwd, lcomm, \
                      ipp,                    self.lst_nprocs_acp[ ipp ], self.lst_taskid[ ipp ],  \
                      self.lst_lport [ ipp ], self.lst_rport [ ipp ],     self.lst_rhostip[ ipp ], \
                      self.starter_memsize,   self.starter_memsize_cl,    self.starter_memsize_dl )
-            if (self.flg_localmode):
+            if ( self.flg_debug ):
+                comm = comm + " --acp-debug"
+            if ( self.flg_localmode ):
                 comm = "sh -c" + " \"" + comm + "\""
             else:
                 #comm = "ssh " + self.lst_lhost[ ipp ] + " \"" + comm + "\" > zjobs" + sprintf( "%04d.out", ipp ) + " 2>&1"
@@ -542,7 +555,7 @@ class Acprun:
             subprocess.Popen( comm )                             # background
         comm = shlex.split( self.comms_ssh[ self.nprocs-1 ] )
         subprocess.call( comm )                                  # foreground
-        #if ( self.flg_multrun ):
+        #if ( self.flg_multirun ):
         #    subprocess.Popen( comm )                             # foreground
         #else:
         #    subprocess.call( comm )                              # foreground
@@ -564,7 +577,7 @@ if ( len( acprun.nodefile ) > 0 ):
     if (not os.path.isfile( acprun.nodefile )):
         sys.exit( "Error: %s: could not open file : %s" % acprun.myname, acprun.nodefile )
 #
-if ( acprun.flg_multrun ):
+if ( acprun.flg_multirun ):
     # Called from macprun
     acprun.read_ports_ipaddresses_from_file()
 else:
@@ -583,7 +596,7 @@ if acprun.flg_debug:
     for i in range( len( acprun.comms_ssh )-1 ):
         print( " " + acprun.myname + ": " + acprun.comms_ssh[ i ] + " &" )
     print( " " + acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )
-    #if ( acprun.flg_multrun ):
+    #if ( acprun.flg_multirun ):
     #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] + " &" )
     #else:
     #    print( acprun.myname + ": " + acprun.comms_ssh[ len(acprun.comms_ssh)-1 ] )

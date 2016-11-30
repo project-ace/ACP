@@ -4076,7 +4076,7 @@ int iacp_init(void){
     int flags; /* flag of modify queue pair */
     
     /* allocate the starter memory adn register memory */
-    int syssize;
+    size_t syssize;
     /* ajusting variable for alignment 8 bytes */
     int alm8_add; 
     /* enable address resuse, as soon as possible */

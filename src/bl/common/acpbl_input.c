@@ -57,7 +57,7 @@ typedef struct {
 static int print_usage( char *comm, FILE *fout )
 {
     fprintf( fout, "Usage:\n" ) ;
-    fprintf( fout, "Normal ACP connections:\n" ) ;
+    fprintf( fout, "ACP connections by options:\n" ) ;
     fprintf( fout, "    %s\n", comm ) ;
     fprintf( fout, "     --acp-myrank          myrank\n" ) ;
     fprintf( fout, "     --acp-nprocs          nprocs\n" ) ;
@@ -68,7 +68,8 @@ static int print_usage( char *comm, FILE *fout )
     fprintf( fout, "   [ --acp-size-smem       starter_memory_size ( user region  ) ]\n" ) ;
     fprintf( fout, "   [ --acp-size-smem-cl    starter_memory_size ( comm.library ) ]\n" ) ;
     fprintf( fout, "   [ --acp-size-smem-dl    starter_memory_size ( data library ) ]\n" ) ;
-    fprintf( fout, "Multiple MPI connections (ACP+MPI):\n" ) ;
+    fprintf( fout, "ACP connections by portfile,\n" ) ;
+    fprintf( fout, "used for Multiple MPI connections (ACP+MPI):\n" ) ;
     fprintf( fout, "    %s\n", comm ) ;
     fprintf( fout, "     --acp-portfile        port_filename\n" ) ;
     fprintf( fout, "     --acp-offsetrank      rank_offset\n" ) ;

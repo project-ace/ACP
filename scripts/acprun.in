@@ -164,23 +164,23 @@ class Acprun:
     #########################################################
     def print_help( self ):
         print( "%s [opts] command args" % self.myname)
-        print( "Opts: -np NPROCS                             or --acp-nprocs=NPROCS                      (default: 1)" )
-        print( "    : -nodefile NODEFILENAME                 or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
-        print( "    : -host HOST1,HOST2,...                  or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
-        print( "    : -startermemsize    STARTER_MEMORY_SIZE    or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
+        print( "Opts: -np NPROCS                                        or --acp-nprocs=NPROCS                      (default: 1)" )
+        print( "    : -nodefile NODEFILENAME                            or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
+        print( "    : -host HOST1,HOST2,...                             or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
+        print( "    : -startermemsize    STARTER_MEMORY_SIZE            or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
         print( "    : -startermemsize-cl STARTER_MEMORY_SIZE(Comm.Lib.) or --acp-startermemsize-cl=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE_CL )
         print( "    : -startermemsize-dl STARTER_MEMORY_SIZE(Data Lib.) or --acp-startermemsize-dl=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE_DL )
-        print( "    : -envnet ENVNETWORK                     or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
-        print( "    : -ssh/-rsh REMOTESHELL                  or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
-        print( "    : -multirun                               or --acp-multirun                            (default: False)" )
-        print( "    : -portfile PORTFILE                  or --acp-portfile=PORTFILE                  (default: meaningful with -multirun option)" )
-        print( "    : -offsetrank OFFSET_OF_RANK          or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multirun option)" )
-        print( "    : -debug                              or --acp-debug                              (default: debug is False)" )
-        print( "    : -v/-version                         or --acp-version" )
-        print( "    : -h/-help                            or --acp-help" )
+        print( "    : -envnet ENVNETWORK                                or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -ssh/-rsh REMOTESHELL                             or --acp-remoteshell=REMOTESHELL            (default: %s. )" % REMOTESHELL )
+        print( "    : -multirun                                         or --acp-multirun                           (default: False)" )
+        print( "    : -portfile PORTFILE                                or --acp-portfile=PORTFILE                  (default: meaningful with -multirun option)" )
+        print( "    : -offsetrank OFFSET_OF_RANK                        or --acp-portfile=OFFSET_OF_RANK            (default: meaningful with -multirun option)" )
+        print( "    : -debug                                            or --acp-debug                              (default: debug is False)" )
+        print( "    : -v/-version                                       or --acp-version" )
+        print( "    : -h/-help                                          or --acp-help" )
         print( "Memo: 1. Other --acp-* options are errors." )
         print( "    : 2. All options for %s have to be before inputfile." % self.myname )
-        print( "    : 3. If -multrun option is used, ports and ipaddresses are determined from node and port files." )
+        print( "    : 3. If -multirun option is used, ports and ipaddresses are determined from node and port files." )
         sys.exit( "" )
 
     #########################################################
@@ -536,8 +536,8 @@ class Acprun:
                      ipp,                    self.lst_nprocs_acp[ ipp ], self.lst_taskid[ ipp ],  \
                      self.lst_lport [ ipp ], self.lst_rport [ ipp ],     self.lst_rhostip[ ipp ], \
                      self.starter_memsize,   self.starter_memsize_cl,    self.starter_memsize_dl )
-            if ( self.flg_debug ):
-                comm = comm + " --acp-debug"
+            #if ( self.flg_debug ):
+            #    comm = comm + " --acp-debug"
             if ( self.flg_localmode ):
                 comm = "sh -c" + " \"" + comm + "\""
             else:

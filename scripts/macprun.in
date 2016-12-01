@@ -585,12 +585,12 @@ class MAcprun:
             if ( basename_comm == STR_COMM_ACPRUN ):
                 if ( self.flg_localmode ):
                     self.comms_runtime.append(
-                                "%s --acp-multirun --acp-portfile=%s --acp-offsetrank=%d %s" % \
-                                ( self.runtimes[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+                                "%s --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                ( self.runtimes[ i ], self.nprocs[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
                 else:
                     self.comms_runtime.append(
-                                "%s --acp-multirun --acp-portfile=%s --acp-offsetrank=%d %s" % \
-                                ( self.runtimes[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
+                                "%s --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                ( self.runtimes[ i ], self.nprocs[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
             else:
                 if ( self.flg_localmode ):
                     self.comms_runtime.append(

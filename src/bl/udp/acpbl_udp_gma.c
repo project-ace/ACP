@@ -2387,17 +2387,18 @@ static void* comm_thread_func(void *param)
         /* Sweep txbuf vc1 ack */
         if (NUM_PROCS != NODE_POP) {
             while ((elem_id = txbuf_vc1_pop_ack()) >= 0) {
-                pos = txbuf[MY_INUM].vc1.list[elem_id].dq_pos;
-                /* if (dq[pos].stat != DQSTAT_WAIT) exception */
-                if (dq[pos].rank != MY_RANK) {
-                    dq[pos].stat = DQSTAT_NOTIFY;
-                    dq[pos].inum = INUM_TABLE[dq[pos].rank];
-                    dq[pos].gateway = GTWY_TABLE[dq[pos].rank];
-                } else { /* dq[pos].rank == MY_RANK */
-                    /* Notify completion directly to the corresponding CQ entry */
-                    p = dq[pos].ptr & MASK_CQ;
-                    cq[p].stat = CQSTAT_DONE;
-                    dq_free(pos);
+                if ((pos = txbuf[MY_INUM].vc1.list[elem_id].dq_pos) >= 0) {
+                    /* if (dq[pos].stat != DQSTAT_WAIT) exception */
+                    if (dq[pos].rank != MY_RANK) {
+                        dq[pos].stat = DQSTAT_NOTIFY;
+                        dq[pos].inum = INUM_TABLE[dq[pos].rank];
+                        dq[pos].gateway = GTWY_TABLE[dq[pos].rank];
+                    } else { /* dq[pos].rank == MY_RANK */
+                        /* Notify completion directly to the corresponding CQ entry */
+                        p = dq[pos].ptr & MASK_CQ;
+                        cq[p].stat = CQSTAT_DONE;
+                        dq_free(pos);
+                    }
                 }
                 txbuf_vc1_push_free(elem_id);
                 debug printf("rank %d - protocol dq[%d] got ack from txbuf vc1 ack\n", MY_RANK, pos);

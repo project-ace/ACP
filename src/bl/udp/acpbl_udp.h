@@ -26,6 +26,7 @@ extern uint32_t iacpbludp_my_inner_number;
 extern uint32_t iacpbludp_my_gateway;
 extern uint32_t iacpbludp_node_pop;
 extern uint32_t iacpbludp_taskid;
+extern uint32_t iacpbludp_eth_speed;
 
 extern uint32_t* iacpbludp_rank_table;
 extern uint16_t* iacpbludp_port_table;

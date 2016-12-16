@@ -17,7 +17,8 @@
 #define IR_SZSMEM_BL        8
 #define IR_SZSMEM_CL        9
 #define IR_SZSMEM_DL       10
-#define _NIR_              11
+#define IR_ETHSPEED        11
+#define _NIR_              12
 
 #endif ///__INSIDE_ACPBL_INPUT_H__
 
@@ -42,6 +43,7 @@ static acpbl_default_option_t default_opts[] = {
     { "szsmem",       UINT,                 10240,     0.0e0,            NULL,                     0,           10000000000, -0.1e0, 0.1e0 }, ///  8, IR_SZSMEM_BL
     { "szsmemcl",     UINT,                 10240,     0.0e0,            NULL,                     0,           10000000000, -0.1e0, 0.1e0 }, ///  9, IR_SZSMEM_CL
     { "szsmemdl",     UINT,                 10240,     0.0e0,            NULL,                     0,           10000000000, -0.1e0, 0.1e0 }, /// 10, IR_SZSMEM_DL
+    { "ethspeed",     UINT,                  1000,     0.0e0,            NULL,                     1,              10000000, -0.1e0, 0.1e0 }, /// 11, IR_ETHSPEED
     { NULL,     0xffffffff, 0xffffffffffffffffLLU,     0.0e0,            NULL, 0xffffffffffffffffLLU, 0xffffffffffffffffLLU, -0.1e0, 0.1e0 }
 } ;
 
@@ -60,6 +62,7 @@ static acpbl_option_t long_options[] = {
     { "--acp-size-smem",       _required_argument_, NULL, IR_SZSMEM_BL  }, /// 8
     { "--acp-size-smem-cl",    _required_argument_, NULL, IR_SZSMEM_CL  }, /// 9
     { "--acp-size-smem-dl",    _required_argument_, NULL, IR_SZSMEM_DL  }, /// 10
+    { "--acp-ethernet-speed",  _required_argument_, NULL, IR_ETHSPEED   }, /// 11
     { 0,                     0,                 0,    0                  }
 } ;
 

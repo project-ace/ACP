@@ -48,14 +48,14 @@
 #endif
 
 /* virtual channel buffer size for intra-node communication */
-#define IBUF_VC0_SIZE   4
-#define IBUF_VC1_SIZE   4
-#define IBUF_VC2_SIZE   4
+#define IBUF_VC0_SIZE   8
+#define IBUF_VC1_SIZE   8
+#define IBUF_VC2_SIZE   8
 
 /* virtual channel buffer size for inter-node transmit */
-#define TXBUF_VC0_SIZE  ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
-#define TXBUF_VC1_SIZE  ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
-#define TXBUF_VC2_SIZE  ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
+#define TXBUF_VC0_SIZE  128 // ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
+#define TXBUF_VC1_SIZE  128 // ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
+#define TXBUF_VC2_SIZE  128 // ((NETWORK_BANDWIDTH * NETWORK_RTT) / ((DATAGRAM_BIAS + MAX_DG_SIZE) << 3) + 1)
 
 /* virtual channel buffer size for inter-node receive */
 #define RXBUF_VC0_SIZE      256

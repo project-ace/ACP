@@ -54,6 +54,7 @@ uint32_t iacpbludp_my_inner_number;
 uint32_t iacpbludp_my_gateway;
 uint32_t iacpbludp_node_pop;
 uint32_t iacpbludp_taskid;
+uint32_t iacpbludp_eth_speed;
 
 uint32_t* iacpbludp_rank_table;
 uint16_t* iacpbludp_port_table;
@@ -403,6 +404,7 @@ int acp_init(int* argc, char*** argv)
     SMEM_SIZE                   = ( int      ) ait->u_inputs[ IR_SZSMEM_BL ] ;
     iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
     iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
+    iacpbludp_eth_speed         = ( uint32_t ) ait->u_inputs[ IR_ETHSPEED  ] ;
 ///
 ///    fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
 ///    fprintf( stdout, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",

@@ -4027,7 +4027,7 @@ int acp_empty_local_set(acp_set_t set)
     uint64_t size_buf         = offset_list      + size_list;
     
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return 1;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
@@ -4081,7 +4081,7 @@ int acp_empty_set(acp_set_t set)
     uint64_t size_buf         = offset_list      + size_list;
     
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return 1;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
@@ -6076,7 +6076,7 @@ int acp_empty_local_map(acp_map_t map)
     uint64_t size_buf         = offset_list      + size_list;
     
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return 1;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
@@ -6130,7 +6130,7 @@ int acp_empty_map(acp_map_t map)
     uint64_t size_buf         = offset_list      + size_list;
     
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return 1;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;

@@ -1,4 +1,4 @@
-.TH "GMM" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "GMM" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -29,35 +29,35 @@ GMM \- ACP Basic Layer Global Memory Management
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_query_starter_ga\fP (int rank)"
 .br
-.RI "\fIQuery for the global address of the starter memory\&. \fP"
+.RI "Query for the global address of the starter memory\&. "
 .ti -1c
 .RI "\fBacp_atkey_t\fP \fBacp_register_memory\fP (void *addr, size_t size, int color)"
 .br
-.RI "\fIMemory registration\&. \fP"
+.RI "Memory registration\&. "
 .ti -1c
 .RI "int \fBacp_unregister_memory\fP (\fBacp_atkey_t\fP atkey)"
 .br
-.RI "\fIMemory unregistration\&. \fP"
+.RI "Memory unregistration\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_query_ga\fP (\fBacp_atkey_t\fP atkey, void *addr)"
 .br
-.RI "\fIQuery for the global address\&. \fP"
+.RI "Query for the global address\&. "
 .ti -1c
 .RI "void * \fBacp_query_address\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the logical address\&. \fP"
+.RI "Query for the logical address\&. "
 .ti -1c
 .RI "int \fBacp_query_rank\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the rank of the global address\&. \fP"
+.RI "Query for the rank of the global address\&. "
 .ti -1c
 .RI "int \fBacp_query_color\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the color of the global address\&. \fP"
+.RI "Query for the color of the global address\&. "
 .ti -1c
 .RI "int \fBacp_colors\fP (void)"
 .br
-.RI "\fIQuery for the maximum number of colors\&. \fP"
+.RI "Query for the maximum number of colors\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 

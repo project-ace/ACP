@@ -1,4 +1,4 @@
-.TH "map" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "map" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -20,83 +20,180 @@ map \- ACP Middle Layer Dara Library Map
 
 .in +1c
 .ti -1c
+.RI "void \fBacp_assign_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.RI "Map local assignment\&. "
+.ti -1c
 .RI "void \fBacp_assign_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
+.RI "Map assignment\&. "
 .ti -1c
-.RI "void \fBacp_assign_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "\fBacp_map_it_t\fP \fBacp_begin_local_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the local iterator of the head of map data\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_begin_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the iterator of the head of map data\&. "
 .ti -1c
-.RI "int \fBacp_bucket_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_clear_local_map\fP (\fBacp_map_t\fP map)"
 .br
-.ti -1c
-.RI "int \fBacp_bucket_count_map\fP (\fBacp_map_t\fP map)"
-.br
-.ti -1c
-.RI "int \fBacp_bucket_size_map\fP (\fBacp_map_t\fP map, int index)"
-.br
+.RI "Delete elements of lists in a map type data\&. "
 .ti -1c
 .RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIDelete elements of lists in a map type data\&. \fP"
+.RI "Delete elements of lists in a map type data\&. "
 .ti -1c
 .RI "\fBacp_map_t\fP \fBacp_create_map\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
 .br
-.RI "\fIMap creation\&. \fP"
+.RI "Map creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIMap destruction\&. \fP"
+.RI "Map destruction\&. "
+.ti -1c
+.RI "int \fBacp_empty_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Query for the local map is empty or not\&. "
 .ti -1c
 .RI "int \fBacp_empty_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the map is empty or not\&. "
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_end_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Loacl map end iterator\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_end_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIMap end iterator\&. \fP"
+.RI "Map end iterator\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_erase_map\fP (\fBacp_map_it_t\fP it)"
+.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
 .br
+.RI "Map finding\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_erase_range_map\fP (\fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "int \fBacp_insert_map\fP (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
 .br
+.RI "Map creation\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_merge_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.RI "\fIMap finding\&. \fP"
+.RI "map type data local merge "
 .ti -1c
-.RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size, const \fBacp_ga_t\fP value, size_t value_size)"
+.RI "void \fBacp_merge_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.RI "\fIMap creation\&. \fP"
+.RI "map type data merge "
 .ti -1c
-.RI "\fBacp_map_ib_t\fP \fBacp_insert_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "void \fBacp_move_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
+.RI "Move the local keys\&. "
+.ti -1c
+.RI "void \fBacp_move_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.RI "Move the keys\&. "
+.ti -1c
+.RI "void \fBacp_remove_map\fP (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
+.br
+.RI "Erase the key of map\&. "
+.ti -1c
+.RI "size_t \fBacp_retrieve_map\fP (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
+.br
+.RI "Retrieve the map\&. "
+.ti -1c
+.RI "size_t \fBacp_size_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Query of the number ot local keys in the map\&. "
 .ti -1c
 .RI "size_t \fBacp_size_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the number of elements of map\&. "
 .ti -1c
 .RI "void \fBacp_swap_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_advance_map_it\fP (\fBacp_map_it_t\fP it, int n)"
-.br
-.ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_decrement_map_it\fP (\fBacp_map_it_t\fP it)"
-.br
+.RI "Swap map type data\&. "
 .ti -1c
 .RI "\fBacp_pair_t\fP \fBacp_dereference_map_it\fP (\fBacp_map_it_t\fP it)"
 .br
+.RI "Query for the element referenced by 'it'\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_increment_map_it\fP (\fBacp_map_it_t\fP it)"
 .br
+.RI "Increment an iterater of a map data\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 
 ACP Middle Layer Data Library Map 
 .SH "Function Documentation"
 .PP 
+.SS "void acp_assign_local_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+Map local assignment\&. Among the elements of map2, copy the elements that are allocated in the caller process\&. Elements of the destination map (map1) are destroyed\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of destination map data\&. 
+.br
+\fImap2\fP A reference of source map data\&. 
+.RE
+.PP
+
+.SS "void acp_assign_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+Map assignment\&. Copy elements of map2 to map1\&. Elements of the destination map (map1) are destroyed\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of destination map data\&. 
+.br
+\fImap2\fP A reference of source map data\&. 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_begin_local_map (\fBacp_map_t\fP map)"
+
+.PP
+Query for the local iterator of the head of map data\&. Among the elements of map, query for the first element of the ones that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI\fBacp_map_it_t\fP\fP An iterator of the head of map data 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_begin_map (\fBacp_map_t\fP map)"
+
+.PP
+Query for the iterator of the head of map data\&. Query for the iterator that points to the first element of map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI\fBacp_map_it_t\fP\fP An iterator of the head of map data 
+.RE
+.PP
+
+.SS "void acp_clear_local_map (\fBacp_map_t\fP map)"
+
+.PP
+Delete elements of lists in a map type data\&. Among the elements of map, delete all of the ones that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+
 .SS "void acp_clear_map (\fBacp_map_t\fP map)"
 
 .PP
@@ -132,6 +229,22 @@ Map creation\&. Creates a map type data on any set of processes\&.
 .RE
 .PP
 
+.SS "\fBacp_pair_t\fP acp_dereference_map_it (\fBacp_map_it_t\fP it)"
+
+.PP
+Query for the element referenced by 'it'\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP Iterator of a map\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIThe\fP element referenced by it 
+.RE
+.PP
+
 .SS "void acp_destroy_map (\fBacp_map_t\fP map)"
 
 .PP
@@ -140,6 +253,58 @@ Map destruction\&. Destroys a map type data\&.
 \fBParameters:\fP
 .RS 4
 \fImap\fP A reference of map data\&. 
+.RE
+.PP
+
+.SS "int acp_empty_local_map (\fBacp_map_t\fP map)"
+
+.PP
+Query for the local map is empty or not\&. Query if, in the map, the number of elements that are allocated in the caller process is zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Empty 
+.br
+\fI0\fP Not empty 
+.RE
+.PP
+
+.SS "int acp_empty_map (\fBacp_map_t\fP map)"
+
+.PP
+Query for the map is empty or not\&. Query for the emptiness of map\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Empty 
+.br
+\fI0\fP Not empty 
+.RE
+.PP
+
+.SS "\fBacp_map_it_t\fP acp_end_local_map (\fBacp_map_t\fP map)"
+
+.PP
+Loacl map end iterator\&. Among the elements of map, query for the iterator just after the last element of the elements that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of map data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIiterator\fP The iterator just after the tail element of a map\&. 
 .RE
 .PP
 
@@ -161,7 +326,7 @@ Map end iterator\&. Query for the iterator just after the tail element of a map\
 .RE
 .PP
 
-.SS "\fBacp_map_it_t\fP acp_find_map (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.SS "\fBacp_map_it_t\fP acp_find_map (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
 
 .PP
 Map finding\&. Find a key-value pair according to a key in a map\&.
@@ -171,8 +336,6 @@ Map finding\&. Find a key-value pair according to a key in a map\&.
 \fImap\fP A reference of a map type data\&. 
 .br
 \fIkey\fP Global address of the key to search\&. 
-.br
-\fIsize_key\fP Size of the key\&. 
 .RE
 .PP
 \fBReturn values:\fP
@@ -183,7 +346,25 @@ Map finding\&. Find a key-value pair according to a key in a map\&.
 .RE
 .PP
 
-.SS "\fBacp_map_ib_t\fP acp_insert_map (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size, const \fBacp_ga_t\fP value, size_t value_size)"
+.SS "\fBacp_map_it_t\fP acp_increment_map_it (\fBacp_map_it_t\fP it)"
+
+.PP
+Increment an iterater of a map data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP A reference of map type iterator\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The next iterator of the specified one\&. 
+.RE
+.PP
+
+.SS "int acp_insert_map (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
 
 .PP
 Map creation\&. Inserts a key-value pair to a map\&.
@@ -192,20 +373,144 @@ Map creation\&. Inserts a key-value pair to a map\&.
 .RS 4
 \fImap\fP A reference of a map type data\&. 
 .br
-\fIkey\fP Global address of the key of the key-value pair\&. 
-.br
-\fIsize_key\fP Size of the key\&. 
-.br
-\fIvalue\fP Global address of the value of the key-value pair\&. 
-.br
-\fIsize_value\fP Size of the value\&. 
+\fIpair\fP 
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
-\fImember success == 0\fP Fail or the same key-value pair is already in the map\&. 
+\fI1\fP Success 
 .br
-\fIotherwise\fP The item inserted to the map\&. 
+\fI0\fP Fail 
+.RE
+.PP
+
+.SS "void acp_merge_local_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+map type data local merge Among the keys of map2, merge the keys that are allocated in the caller process to map1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of destination map data\&. 
+.br
+\fImap2\fP A reference of source map data\&. 
+.RE
+.PP
+
+.SS "void acp_merge_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+map type data merge Merge map2 to map1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of destination map data\&. 
+.br
+\fImap2\fP A reference of source map data\&. 
+.RE
+.PP
+
+.SS "void acp_move_local_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+Move the local keys\&. Among the keys of map2, move the keys that are allocated in the caller process to map1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of the destination map type data 
+.br
+\fImap2\fP A reference of the source map type data 
+.RE
+.PP
+
+.SS "void acp_move_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+Move the keys\&. Move the keys of map2 to map1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of the destination map type data 
+.br
+\fImap2\fP A reference of the source map type data 
+.RE
+.PP
+
+.SS "void acp_remove_map (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
+
+.PP
+Erase the key of map\&. Delete the key of map that matches with key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP map 
+.br
+\fIkey\fP key 
+.RE
+.PP
+
+.SS "size_t acp_retrieve_map (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
+
+.PP
+Retrieve the map\&. From map, retrieve the element that matches with the specified key in pair\&. The value of the element is copied in the second member of the pair\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A referenc of the map data 
+.br
+\fIpair\fP Pair of the key and the buffer for retrieving value\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP Size of the data retrieved to the buffer in the pair\&. 
+.br
+\fI0\fP No matching key\&. 
+.RE
+.PP
+
+.SS "size_t acp_size_local_map (\fBacp_map_t\fP map)"
+
+.PP
+Query of the number ot local keys in the map\&. Among the elements of map, query for the number of elements that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A referenc of the map data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP Numbers of elements 
+.RE
+.PP
+
+.SS "size_t acp_size_map (\fBacp_map_t\fP map)"
+
+.PP
+Query for the number of elements of map\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A referenc of the map data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP Number of elements\&. 
+.RE
+.PP
+
+.SS "void acp_swap_map (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+
+.PP
+Swap map type data\&. Swap keys between map1 and map2\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap1\fP A reference of map data to be swapped\&. 
+.br
+\fImap2\fP Another reference of map data to be swapped\&. 
 .RE
 .PP
 

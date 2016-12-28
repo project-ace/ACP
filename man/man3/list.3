@@ -1,4 +1,4 @@
-.TH "list" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "list" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -19,123 +19,123 @@ list \- ACP Middle Layer Dara Library List
 .ti -1c
 .RI "void \fBacp_assign_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
 .br
-.RI "\fIList type data assignment\&. \fP"
+.RI "List type data assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_range_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIList assignment with range\&. \fP"
+.RI "List assignment with range\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for the head iterator of a list\&. \fP"
+.RI "Query for the head iterator of a list\&. "
 .ti -1c
 .RI "void \fBacp_clear_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIList elimination\&. \fP"
+.RI "List elimination\&. "
 .ti -1c
 .RI "\fBacp_list_t\fP \fBacp_create_list\fP (int rank)"
 .br
-.RI "\fIList creation\&. \fP"
+.RI "List creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIList destruction\&. \fP"
+.RI "List destruction\&. "
 .ti -1c
 .RI "int \fBacp_empty_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for list empty\&. \fP"
+.RI "Query for list empty\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_end_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for the tail iterator of a list\&. \fP"
+.RI "Query for the tail iterator of a list\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIErase a list element\&. \fP"
+.RI "Erase a list element\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_erase_range_list\fP (\fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIDeletion of the list data from 'start' to 'end'\&. \fP"
+.RI "Deletion of the list data from 'start' to 'end'\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_it_t\fP it, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInsert a list element\&. \fP"
+.RI "Insert a list element\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_insert_range_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIInsertion of the list data from 'start' to 'end'\&. \fP"
+.RI "Insertion of the list data from 'start' to 'end'\&. "
 .ti -1c
 .RI "void \fBacp_merge_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2, int(*comp)(const \fBacp_element_t\fP elem1, const \fBacp_element_t\fP elem2))"
 .br
-.RI "\fIList type data merge\&. \fP"
+.RI "List type data merge\&. "
 .ti -1c
 .RI "void \fBacp_pop_back_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIData deletion at the end of the list data\&. \fP"
+.RI "Data deletion at the end of the list data\&. "
 .ti -1c
 .RI "void \fBacp_pop_front_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIData deletion at the head of the list data\&. \fP"
+.RI "Data deletion at the head of the list data\&. "
 .ti -1c
 .RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInserts a list element at the tail of the list\&. \fP"
+.RI "Inserts a list element at the tail of the list\&. "
 .ti -1c
 .RI "void \fBacp_push_front_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInsert a list element at the head of the list\&. \fP"
+.RI "Insert a list element at the head of the list\&. "
 .ti -1c
 .RI "void \fBacp_remove_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem)"
 .br
-.RI "\fIErase a list\&. \fP"
+.RI "Erase a list\&. "
 .ti -1c
 .RI "void \fBacp_reverse_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIReconnect elements of a list in reverse sequence\&. \fP"
+.RI "Reconnect elements of a list in reverse sequence\&. "
 .ti -1c
 .RI "size_t \fBacp_size_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery of the data size in the list\&. \fP"
+.RI "Query of the data size in the list\&. "
 .ti -1c
 .RI "void \fBacp_sort_list\fP (\fBacp_list_t\fP list, int(*comp)(const \fBacp_element_t\fP elem1, const \fBacp_element_t\fP elem2))"
 .br
-.RI "\fISorting List type data\&. \fP"
+.RI "Sorting List type data\&. "
 .ti -1c
 .RI "void \fBacp_splice_list\fP (\fBacp_list_it_t\fP it1, \fBacp_list_it_t\fP it2)"
 .br
-.RI "\fISplice list type data\&. \fP"
+.RI "Splice list type data\&. "
 .ti -1c
 .RI "void \fBacp_splice_range_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fISpilice list with range\&. \fP"
+.RI "Spilice list with range\&. "
 .ti -1c
 .RI "void \fBacp_swap_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
 .br
-.RI "\fISwap list type data\&. \fP"
+.RI "Swap list type data\&. "
 .ti -1c
 .RI "void \fBacp_unique_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIUnique list type data\&. \fP"
+.RI "Unique list type data\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_advance_list_it\fP (\fBacp_list_it_t\fP it, int n)"
 .br
-.RI "\fIAdvancement of an iterator for list type data\&. \fP"
+.RI "Advancement of an iterator for list type data\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_decrement_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIDecrement an iterater of a list data\&. \fP"
+.RI "Decrement an iterater of a list data\&. "
 .ti -1c
 .RI "\fBacp_element_t\fP \fBacp_dereference_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIQuery of the global address of a reference of list tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of list tyep iterator\&. "
 .ti -1c
 .RI "int \fBacp_distance_list_it\fP (\fBacp_list_it_t\fP first, \fBacp_list_it_t\fP last)"
 .br
-.RI "\fIQuery of the distance of two iterators of list type data between 'first' and 'last'\&. \fP"
+.RI "Query of the distance of two iterators of list type data between 'first' and 'last'\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_increment_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIIncrement an iterater of a list data\&. \fP"
+.RI "Increment an iterater of a list data\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 
@@ -242,7 +242,7 @@ Decrement an iterater of a list data\&. Decrements an iterater of a list data\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIlist\fP A reference of list type data\&. 
+\fIit\fP A reference of list type data\&. 
 .RE
 .PP
 \fBReturn values:\fP
@@ -377,7 +377,7 @@ Increment an iterater of a list data\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIlist\fP A reference of list type data\&. 
+\fIit\fP A reference of list type iterator\&. 
 .RE
 .PP
 \fBReturn values:\fP
@@ -397,9 +397,7 @@ Insert a list element\&. Copy an element to the specified process and inserts it
 .RS 4
 \fIit\fP An iterater of list type data\&. 
 .br
-\fIga\fP The global address of the data to be added\&. 
-.br
-\fIsize\fP Size of the data to be added\&. 
+\fIelem\fP The global address of the data to be added\&. 
 .br
 \fIrank\fP Rank of the process in which the element is copied\&. 
 .RE

@@ -1,3 +1,11 @@
+2016-12-14  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 2.1.0
+	* New interfaces: Added functions of the following data structures:
+	Set, Map and Workspace
+	* fix: Implementations are refined to achieve better performance.
+
+
 2016-06-03  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 2.0.0

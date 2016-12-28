@@ -68,6 +68,7 @@ static int print_usage( char *comm, FILE *fout )
     fprintf( fout, "   [ --acp-size-smem       starter_memory_size ( user region  ) ]\n" ) ;
     fprintf( fout, "   [ --acp-size-smem-cl    starter_memory_size ( comm.library ) ]\n" ) ;
     fprintf( fout, "   [ --acp-size-smem-dl    starter_memory_size ( data library ) ]\n" ) ;
+    fprintf( fout, "   [ --acp-ethernet-speed  ethernet_speed                       ]\n" ) ;
     fprintf( fout, "ACP connections by portfile,\n" ) ;
     fprintf( fout, "used for Multiple MPI connections (ACP+MPI):\n" ) ;
     fprintf( fout, "    %s\n", comm ) ;
@@ -237,9 +238,12 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
     int  i ;
     for ( i = 0 ; i < _NIR_ ; i++ ) {
         ait->flg_set [ i ] = 0 ;
-        ait->u_inputs[ i ] = 0 ;
-        ait->d_inputs[ i ] = 0 ;
+        ait->u_inputs[ i ] = default_opts[ i ].u_default ;
+        ait->d_inputs[ i ] = default_opts[ i ].d_default ;
         ait->s_inputs[ i ] = ( char * )malloc( BUFSIZ ) ;
+        if ( ait->s_inputs[ i ] && default_opts[ i ].s_default && ( strlen( default_opts[ i ].s_default ) < BUFSIZ ) ) {
+            strcpy( ait->s_inputs[ i ], default_opts[ i ].s_default ) ;
+        }
     }
 
     mygetopt_long_only( argc, argv, ait ) ;
@@ -285,8 +289,8 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
     }
     ///
 
-    for ( i = 0 ; i < _NIR_ ; i++ ) {
-        free( ait->s_inputs[ i ] ) ;
-    }
+    ///for ( i = 0 ; i < _NIR_ ; i++ ) {
+    ///    free( ait->s_inputs[ i ] ) ;
+    ///}
     return 0 ;
 }

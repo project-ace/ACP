@@ -28,7 +28,7 @@
 #ifdef __INSIDE_ACPBL_INPUT_C__
 
 static acpbl_default_option_t default_opts[] = {
-    /// *name                 type,             u_default, d_default,      s_default,                 u_min,                  u_max, d_min, d_max
+    /// *name         type,             u_default, d_default,      s_default,                 u_min,                  u_max, d_min,  d_max
     ///
     { "portfile",   STRING, 0xffffffffffffffffLLU,     0.0e0,     "portfile", 0xffffffffffffffffLLU,  0xffffffffffffffffLLU, -0.1e0, 0.1e0 }, ///  0, IR_PORTFILE 0
     { "offsetrank",   UINT,                     0,     0.0e0,            NULL,                     0,              10000000, -0.1e0, 0.1e0 }, ///  1, IR_OFFSETRANK
@@ -48,7 +48,7 @@ static acpbl_default_option_t default_opts[] = {
 } ;
 
 static acpbl_option_t long_options[] = {
-    /// *name                 has_arg,             *flag,        val
+    /// *name                  has_arg,            *flag, val
     { "--acp-portfile",        _required_argument_, NULL, IR_PORTFILE   }, /// 0
     { "--acp-offsetrank",      _required_argument_, NULL, IR_OFFSETRANK }, /// 1
     ///
@@ -63,7 +63,7 @@ static acpbl_option_t long_options[] = {
     { "--acp-size-smem-cl",    _required_argument_, NULL, IR_SZSMEM_CL  }, /// 9
     { "--acp-size-smem-dl",    _required_argument_, NULL, IR_SZSMEM_DL  }, /// 10
     { "--acp-ethernet-speed",  _required_argument_, NULL, IR_ETHSPEED   }, /// 11
-    { 0,                     0,                 0,    0                  }
+    { 0,                       0,                   0,    0             }
 } ;
 
 #endif ///__INSIDE_ACPBL_INPUT_C__

@@ -194,52 +194,70 @@
 
    @subsubsection vector Vector
 
-   The vector interface provides functions to manipulate dynamic array. 
-   Each element of a vector can be manipulated by an iterator. An iterator is 
-   valid only at the process that retrieved it. Iterators will be invalid after 
-   modification of the vector by: __acp_assign_vector__, __acp_assign_range_vector__, 
-   __acp_clear_vector__, __acp_destroy_vector__, __acp_erase_vector__, 
-   __acp_erase_range_vector__, __acp_insert_vector__, __acp_insert_range_vector__
-   and __acp_swap_vector__.
+   The vector interface provides functions to manipulate dynamic
+   array. The type of for referencing vectors is __acp_vector_t__, and
+   the type of the iterator of vectors is __acp_vector_it_t__. Vectors can
+   be created via the constructor function, __acp_create_vector__. As an
+   argument, this function accepts the rank to place the instance of
+   the vector.
 
    @subsubsection deque Deque
 
-   The deque interface provides functions for establishing the data 
-   structure and functions of doule-ended queues.Each element of a deque can
-   be manipulated by an iterator. An iterator is valid only at the process that 
-   retrieved it. Iterators will be invalid after modification of the deque by: 
-   __acp_assign_deque__, __acp_assign_range_deque__, __acp_clear_deque__, 
-   __acp_destroy_deque__, __acp_erase_deque__, __acp_erase_range_deque__, 
-   __acp_insert_deque__, __acp_insert_range_deque__ and __acp_swap_deque__. 
+   The deque interface provides the data structure and algorithms of
+   double ended queue. The type of for referencing deques is
+   __acp_deque_t__, and the type of the iterator of deques is
+   __acp_deque_it_t__. Deques can be created via the constructor
+   function, __acp_create_deque__. As an argument, this function
+   accepts the rank to place the instance of the deque.
 
    @subsubsection list List
 
-   The list interface provides functions for establishing the data structure and 
-   algorithms of bidirectional linked list. Each element of a list can be manipulated by 
-   an iterator. An iterator is valid only at the process that retrieved it. Iterators will 
-   be invalid after modification of the list by: __acp_assign_list__, 
-   __acp assign_range_list__, __acp_clear_list__, __acp_destroy_list__, 
-   __acp_erase_list__, __acp_erase_range_list__, __acp_insert_list__, 
-   __acp_insert_range_list__, __acp_merge_list__, __acp_remove_list__, 
-   __acp_reverse_list__, __acp_splice_list__, __acp_swap_list__ 
-   and __acp_unique_list__.
+   The list interface provides the data structure and algorithms of
+   bidirectional linked list. The type for referencing lists is
+   __acp_list_t__, and the type for the iterator of lists is
+   __acp_list_it_t__. Lists are created via the constructor function,
+   __acp_create_list__. This function prepares an empty list. As an
+   argument, it accepts the rank to place the control structure of the
+   list. Elements can be added to a list via functions, such as
+   __acp_push_back_list__ and __acp_insert_list__. Each of these
+   functions also accepts the rank to allocate the instance of the
+   element, as an argument. Therefore, the control structure and the
+   elements of a list can be placed on different processes.
 
    @subsubsection map Map
 
-   The map interface provides the data structure and algorithms of associative arrays. 
-   The type for referencing maps is __acp_map_t__, the type for the iterator of maps is
-   __acp_map_it_t__, and the type for returning result of finding element in a map is 
-   __acp_map_ib_t__. Maps are created via the constructor function, acp_create_map. 
-   This function prepares an empty map distributed among a group of processes. 
-   As an argument, it accepts the number of processes, the array of ranks of the processes 
-   in the group, the number of slots and the rank to place the control structure of the map. 
-   Elements can be added to a map via the function __acp_insert_map__. 
-   In addition to the map to insert, this function accepts the key and the value of the element, 
-   as an argument. Each of the key and the value are specified by a pair of the address 
-   and the size in byte. The rank to place the element to be inserted is decided according to 
-   the hash value calculated from the key. __acp_find_map__ searches the key in a map. 
-   It returns the value true or false according to the result, and the iterator of the 
-   element with the key if it has been found.
+   The map interface provides the data structure and algorithms of
+   associative arrays.  The type for referencing maps is
+   __acp_map_t__, the type for the iterator of maps is
+   __acp_map_it_t__, and the type for returning result of finding
+   element in a map is __acp_map_ib_t__. Maps are created via the
+   constructor function, acp_create_map.  This function prepares an
+   empty map distributed among a group of processes.  As an argument,
+   it accepts the number of processes, the array of ranks of the
+   processes in the group, the number of slots and the rank to place
+   the control structure of the map.  Elements can be added to a map
+   via the function __acp_insert_map__.  In addition to the map to
+   insert, this function accepts the key and the value of the element,
+   as an argument. Each of the key and the value are specified by a
+   pair of the address and the size in byte. The rank to place the
+   element to be inserted is decided according to the hash value
+   calculated from the key. __acp_find_map__ searches the key in a
+   map.  It returns the value true or false according to the result,
+   and the iterator of the element with the key if it has been found.
+
+   @subsubsection workspace Workspace
+
+   Workspace is a temporal memory space that is shared among all of
+   processes. Creation and destruction of a workspace is done
+   collectively via functions __acp_create_ws__ and
+   __acp_destroy_ws__. The type of the handle for referencing
+   workspaces is __acp_ws_t__. Once created, each process can perform
+   read/write accesses to the workspace via functions __acp_read_ws__
+   and __acp_write_ws__ that are similar to POSIX pread/pwrite. Size
+   of the workspace is specified at its creation. Initial value of the
+   workspace is undefined. Distribution of the temporal memory
+   workspace among processes can be controlled by parameters specified
+   via the function __acp_setparams_ws__.
 
    @subsubsection malloc Malloc
 
@@ -327,18 +345,20 @@
    shell$ make all install
    </tt>
 
-   If you need special access to install, then you can execute "make all" as a user with write
-   permissions in the build tree, and a separate "make install" as a user with write permissions
-   to the install tree.
+   If you need special access to install, then you can execute "make
+   all" as a user with write permissions in the build tree, and a
+   separate "make install" as a user with write permissions to the
+   install tree.
    
    See INSTALL for more details.
 
    @subsection compilation Compilation
 
-   ACP provides "wrapper" compilers that should be used for compiling ACP applications:
+   ACP provides "wrapper" compilers that should be used for compiling 
+   ACP applications:
    \arg C:	\c acpcc, \c acpgcc
    \arg C++:	\c acpc++, \c acpcxx
-   \arg Fortran:	\c acpgc (not provided yet)
+   \arg Fortran:	\c acpfc (not provided yet)
 
    For example:
 
@@ -347,14 +367,17 @@
    shell$
    </tt>
 
-   All the wrapper compilers do is add a variety of compiler and linker flags to the command
-   line and then invoke a back-end compiler. To be specific: the wrapper compilers do not parse
-   source code at all; they are solely command-line manipulators, and have nothing to do with
-   the actual compilation or linking of programs. The end result is an ACP executable that is
-   properly linked to all the relevant libraries.
+   All the wrapper compilers do is add a variety of compiler and
+   linker flags to the command line and then invoke a back-end
+   compiler. To be specific: the wrapper compilers do not parse source
+   code at all; they are solely command-line manipulators, and have
+   nothing to do with the actual compilation or linking of
+   programs. The end result is an ACP executable that is properly
+   linked to all the relevant libraries.
 
-   Customizing the behavior of the wrapper compilers is possible 
-   (e.g., changing the compiler [not recommended] or specifying additional compiler/linker flags).
+   Customizing the behavior of the wrapper compilers is possible
+   (e.g., changing the compiler [not recommended] or specifying
+   additional compiler/linker flags).
 
    @subsection execution Execution
 
@@ -369,7 +392,8 @@
    Please note that \c "-np nprocs" has to be 'first' option of acprun command. 
    There are no such limitations for long option.
 
-   You can specify a \c --acp-nodefile=nodefile option to indicate hostnames on which 
+   You can specify a \c --acp-nodefile=nodefile option to indicate 
+   hostnames on which 
    \c hello_world_acp command will be launched.
 
    If you want launch two processes on pc01 and pc02, use following command:

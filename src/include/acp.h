@@ -1193,7 +1193,7 @@ extern "C" {
  * @EN
  * @brief Workspace creation
  *
- * Creates a workspace
+ * Creates a workspace with the specified size.
  *
  * @param size Size of the workspace
  * @retval ACP_WSD_NULL Fial
@@ -1209,14 +1209,15 @@ extern acp_wsd_t acp_create_ws(size_t size);
  * ワークスペース開始ランク番号をリセットする．
  * 全プロセスで集団的に呼び出す必要がある。
  *
- * @param size ワークスペースのスタートランク番号
+ * @param proc_start ワークスペースのスタートランク番号
  * @param size_default 各プロセスでのデフォルトアロケートサイズ
  * @retval いつも 0
  *
  * @EN
- * @brief Workspace creation
+ * @brief Workspace set parameters
  *
- * Creates a workspace
+ * Set parameters for distributing workspace among processes. Every
+ * process need to specify the same value.
  *
  * @param proc_start Start rank for workspace
  * @param size_default Default allocated size on each process
@@ -1799,16 +1800,16 @@ extern size_t acp_size_vector(acp_vector_t vector);
  *
  * ２つのベクトル型データの内容を交換する。
  *
- * @param v1 交換するベクトル型データの一方の参照
- * @param v2 交換するベクトル型データのもう一方の参照
+ * @param vector1 交換するベクトル型データの一方の参照
+ * @param vector2 交換するベクトル型データのもう一方の参照
  * 
  * @EN
  * @brief Vector swap
  *
  * 
  *
- * @param v1 A reference of vector data to be swapped.
- * @param v2 Another reference of vector data to be swapped.
+ * @param vector1 A reference of vector data to be swapped.
+ * @param vector2 Another reference of vector data to be swapped.
  *
  * @ENDL
  */
@@ -1935,7 +1936,9 @@ extern void acp_assign_deque(acp_deque_t deque1, acp_deque_t deque2);
  * @EN
  * @brief Deque assignment with range
  *
- * Copy deque data from the point of "start" to "end".
+ * Copy a range of elements in a deque, specified by start and end, to
+ * deque.  start and end must be in the same deque. Old data in deque is
+ * overwritten.
  * 
  * @param deque A reference of destination deque data.
  * @param start A deque type data iterator for pointing the starting address
@@ -2304,14 +2307,14 @@ extern size_t acp_size_deque(acp_deque_t deque);
  *
  * ２つのデック型データの内容を交換する。
  *
- * @param v1 交換するデック型データの一方の参照
- * @param v2 交換するデック型データのもう一方の参照
+ * @param deque1 交換するデック型データの一方の参照
+ * @param deque2 交換するデック型データのもう一方の参照
  * 
  * @EN
  * @brief Deque swap
  *
- * @param v1 A reference of deque data to be swapped.
- * @param v2 Another reference of deque data to be swapped.
+ * @param deque1 A reference of deque data to be swapped.
+ * @param deque2 Another reference of deque data to be swapped.
  *
  * @ENDL
  */
@@ -2344,13 +2347,15 @@ extern acp_deque_it_t acp_advance_deque_it(acp_deque_it_t it, int n);
  * デックイテレータの参照先グローバルアドレスを返す。
  *
  * @param it デックデータのイテレータ
- * @retval acp_ga_t デックイテレータの参照先グローバルアドレス
+ * @param size size
+ * @retval acp_pair_t デックイテレータの参照先グローバルアドレス
  *
  * @EN
  * @brief Query of the global address of a reference of deque tyep iterator
  *
  * @param it The iterator of deque type data
- * @retval acp_ga_t The global address of a reference of deque type iterator 
+ * @param size size
+ * @retval acp_pair_t The global address of a reference of deque type iterator 
  * @ENDL
  */
 extern acp_pair_t acp_dereference_deque_it(acp_deque_it_t it, size_t size);
@@ -2618,8 +2623,7 @@ extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end
  * 指定したプロセスに要素をコピーし、リスト型データの指定位置に挿入する。
  *
  * @param it リスト型のイテレータ
- * @param ga 挿入するデータのグローバルアドレス
- * @param size 挿入するデータのサイズ
+ * @param elem 新しい要素に格納するデータ
  * @param rank 要素を複製するプロセス
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 挿入された要素を指すリスト型イテレータ
@@ -2630,8 +2634,7 @@ extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end
  * Copy an element to the specified process and inserts it into the specified position of the list.
  *
  * @param it An iterater of list type data.
- * @param ga The global address of the data to be added.
- * @param size Size of the data to be added.
+ * @param elem The global address of the data to be added.
  * @param rank Rank of the process in which the element is copied.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The iterator that points to the inserted element.
@@ -2941,7 +2944,7 @@ extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
  *
  * リスト型イテレータを一つ減少させる。
  *
- * @param list リスト型データの参照
+ * @param it リスト型データの参照
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 デクリメントしたイテレータ
  *
@@ -2950,7 +2953,7 @@ extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
  *
  * Decrements an iterater of a list data.
  *
- * @param list A reference of list type data.
+ * @param it A reference of list type data.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The previous iterator of the specified one.
  * @ENDL
@@ -3001,7 +3004,7 @@ extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
  *
  * リスト型イテレータを一つ増加させる。
  *
- * @param list リスト型データの参照
+ * @param it リスト型データのイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 インクリメントしたイテレータ
  *
@@ -3009,7 +3012,7 @@ extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
  * @brief Increment an iterater of a list data
  *
  *
- * @param list A reference of list type data.
+ * @param it A reference of list type iterator.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The next iterator of the specified one.
  * @ENDL
@@ -3053,6 +3056,25 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief セットローカル代入
+ *
+ * 自プロセスに配置されたキーをコピーする。以前のデータは破棄される。
+ *
+ * @param set1 コピー先セット型データの参照
+ * @param set2 コピー元セット型データの参照
+ *
+ * @EN
+ * @brief Set type data assignment
+ *
+ * Among the keys of set2, copy the keys that are allocated in the
+ * caller process. Keys of the destination set (set1) are destroyed.
+ *
+ * @param set1 A reference of destination set data.
+ * @param set2 A reference of source set data.
+ * @ENDL
+ */
 extern void acp_assign_local_set(acp_set_t set1, acp_set_t set2);
 
 /**
@@ -3067,7 +3089,7 @@ extern void acp_assign_local_set(acp_set_t set1, acp_set_t set2);
  * @EN
  * @brief Set type data assignment
  *
- * Copy set type data between two sets.
+ * Copy keys of set2. Keys of the destination set (set1) are destroyed.
  *
  * @param set1 A reference of destination set data.
  * @param set2 A reference of source set data.
@@ -3075,6 +3097,27 @@ extern void acp_assign_local_set(acp_set_t set1, acp_set_t set2);
  */
 extern void acp_assign_set(acp_set_t set1, acp_set_t set2);
 
+/**
+ * @JP
+ * @brief セットローカル先頭イテレータ
+ *
+ * 自プロセスに配置されたキーの先頭を指すイテレータを返す。
+ *
+ * @param set セット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the local head iterator of a set
+ *
+ * Among the keys of set, query for the first key of the keys that are
+ * allocated in the caller process.
+ *
+ * @param set A reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the set.
+ * @ENDL
+ */
 extern acp_set_it_t acp_begin_local_set(acp_set_t set);
 
 /**
@@ -3123,7 +3166,7 @@ extern void acp_clear_set(acp_set_t set);
  *
  * 任意のプロセスでセット型データを生成する。
  *
- * @param num_rank バケットを配置するプロセス数
+ * @param num_ranks バケットを配置するプロセス数
  * @param ranks バケットを配置するプロセスのランク番号配列
  * @param num_slots 1プロセスあたりのバケットスロット数
  * @param rank セットの制御情報を配置するランク番号
@@ -3135,7 +3178,7 @@ extern void acp_clear_set(acp_set_t set);
  *
  * Creates a set type data on any process.
  *
- * @param num_rank A process number for assigning buckets
+ * @param num_ranks A process number for assigning buckets
  * @param ranks An array of rank number for assigning buckets
  * @param num_slots A number of bucket slot for one process
  * @param rank The rank number where has the control information of a set
@@ -3162,6 +3205,28 @@ extern acp_set_t acp_create_set(int num_ranks, const int* ranks, int num_slots, 
  * @ENDL
  */
 extern void acp_destroy_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セットローカル空チェック
+ *
+ * セットに自プロセスに配置されたキーがないかどうかを返す。
+ *
+ * @param set セット型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for local set empty
+ *
+ * Query if, among the keys of set, the number of keys that are
+ * allocated in the caller process is zero.
+ *
+ * @param set A reference of set data.  
+ * @retval 1 Empty 
+ * @retval 0 There is a set data 
+ * @ENDL
+ */
 extern int acp_empty_local_set(acp_set_t set);
 
 /**
@@ -3183,6 +3248,28 @@ extern int acp_empty_local_set(acp_set_t set);
  * @ENDL
  */
 extern int acp_empty_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セットローカル後端イテレータ取得
+ *
+ * セット型データの後端要素を指すイテレータを取得する。
+ *
+ * @param set セット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 要素の直後の要素を指すセット型イテレータ
+ *
+ * @EN
+ * @brief Query for the tail iterator of a set
+ *
+ * Among the keys of set, query for the last key of the keys 
+ * that are allocated in the caller process.
+ *
+ * @param set A reference of set type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the behind of the last element 
+ * @ENDL
+ */
 extern acp_set_it_t acp_end_local_set(acp_set_t set);
 
 /**
@@ -3206,6 +3293,27 @@ extern acp_set_it_t acp_end_local_set(acp_set_t set);
  * @ENDL
  */
 extern acp_set_it_t acp_end_set(acp_set_t set);
+
+/**
+ * @JP
+ * @brief セット検索
+ *
+ * 一致するキーを検索する。
+ *
+ * @param set セット型データへの参照
+ * @param key 検索するキー
+ * @retval イテレータ　一致したキーを指すイテレータ
+ * @retval イテレータ　一致したキーがない場合は末尾イテレータ
+ *
+ * @EN
+ * @brief Search for the key in set that matches with key.
+ *
+ * @param set A reference of set type data
+ * @param key Key
+ * @retval iterator An iterator of the key that matches with key.
+ * @retval iterator The end of the iterator.
+ * @ENDL
+ */
 extern acp_set_it_t acp_find_set(acp_set_t set, acp_element_t key);
 
 /**
@@ -3233,30 +3341,124 @@ extern acp_set_it_t acp_find_set(acp_set_t set, acp_element_t key);
  */
 extern int acp_insert_set(acp_set_t set, acp_element_t key);
 
+/**
+ * @JP
+ * @brief セットローカル併合
+ *
+ * 自プロセスに配置されたキーを併合する。
+ *
+ * @param set1 併合先セット型データへの参照
+ * @param set2 併合元セット型データへの参照
+ *
+ * @EN
+ * @brief Merge the local keys
+ *
+ * Among the keys of set2, merge the keys that are allocated 
+ * in the caller process to set1.
+ *
+ * @param set1 A reference of the destination set type data
+ * @param set2 A reference of the source set type data
+ * @ENDL
+ */
 extern void acp_merge_local_set(acp_set_t set1, acp_set_t set2);
+
+/**
+ * @JP
+ * @brief セット併合
+ *
+ * 併合元セットの全要素を併合先セットに併合する。
+ *
+ * @param set1 併合先セット型データへの参照
+ * @param set2 併合元セット型データへの参照
+ *
+ * @EN
+ * @brief Merge the keys
+ *
+ * Merge set2 to set1.
+ *
+ * @param set1 A reference of the destination set type data
+ * @param set2 A reference of the source set type data
+ * @ENDL
+ */
 extern void acp_merge_set(acp_set_t set1, acp_set_t set2);
+
+/**
+ * @JP
+ * @brief セットローカル移動
+ *
+ * 自プロセスに配置されたキーを移動する。
+ *
+ * @param set1 移動先セット型データへの参照
+ * @param set2 移動元セット型データへの参照
+ *
+ * @EN
+ * @brief Move the local keys
+ *
+ * Among the keys of set2, move the keys that are allocated 
+ * in the caller process to set1.
+ *
+ * @param set1 A reference of the destination set type data
+ * @param set2 A reference of the source set type data
+ * @ENDL
+ */
 extern void acp_move_local_set(acp_set_t set1, acp_set_t set2);
+
+/**
+ * @JP
+ * @brief セット移動
+ *
+ * 移動元セットの全要素を移動先セットに移動する。
+ *
+ * @param set1 移動先セット型データへの参照
+ * @param set2 移動元セット型データへの参照
+ *
+ * @EN
+ * @brief Move the keys
+ *
+ * Move the keys of set2 to set1.
+ *
+ * @param set1 A reference of the destination set type data
+ * @param set2 A reference of the source set type data
+ * @ENDL
+ */
 extern void acp_move_set(acp_set_t set1, acp_set_t set2);
 
 /**
  * @JP
- * @brief セット要素除去
+ * @brief セット除去
  *
- * 指定した位置の要素をセット型データから削除する。
+ * セットからキーを削除する。
  *
- * @param it 削除する要素を指すセット型イテレータ
- * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 削除した要素の直後の要素を指すセット型イテレータ
+ * @param set セット
+ * @param key 削除する key
  *
  * @EN
  * @brief Erase a set element
  *
- * @param it An iterator of set type data.
- * @retval "member elem == ACP_GA_NULL" Fail
- * @retval oterhwise The iterator that points to the element which is immediately after the erased one.
+ * Delete the key of set that matches with key.
+ *
+ * @param set set
+ * @param key key
  * @ENDL
  */
 extern void acp_remove_set(acp_set_t set, acp_element_t key);
+
+/**
+ * @JP
+ * @brief セットローカルサイズ
+ *
+ * 自プロセスに配置されているキーの数を返す。
+ *
+ * @param set セットデータの参照
+ * @retval size_t 自プロセスに配置されているキーの数
+ *
+ * @EN
+ * @brief Query of the number ot local keys in the set
+ *
+ * @param set A referenc of the set data
+ * @retval size_t Numbers of keys
+ * @ENDL
+ */
 extern size_t acp_size_local_set(acp_set_t set);
 
 /**
@@ -3320,7 +3522,7 @@ extern acp_element_t acp_dereference_set_it(acp_set_it_t it);
  *
  * セット型イテレータを一つ増加させる。
  *
- * @param set セット型データの参照
+ * @param it セット型データのイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 インクリメントしたイテレータ
  *
@@ -3328,7 +3530,7 @@ extern acp_element_t acp_dereference_set_it(acp_set_it_t it);
  * @brief Increment an iterater of a set data
  *
  *
- * @param set A reference of set type data.
+ * @param it A reference of set type iterator.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The next iterator of the specified one.
  * @ENDL
@@ -3372,10 +3574,106 @@ typedef struct {
 extern "C" {
 #endif
 
+/**
+ * @JP
+ * @brief マップローカル代入
+ *
+ * 自プロセスに配置された要素をコピーする。以前の要素は破棄される。
+ *
+ * @param map1 コピー先マップ型データの参照
+ * @param map2 コピー元マップ型データの参照
+ *
+ * @EN
+ * @brief Map local assignment
+ *
+ * Among the elements of map2, copy the elements that are allocated 
+ * in the caller process. Elements of the destination map (map1) are destroyed.
+ *
+ * @param map1 A reference of destination map data.
+ * @param map2 A reference of source map data.
+ * @ENDL
+ */
 extern void acp_assign_local_map(acp_map_t map1, acp_map_t map2);
+
+/**
+ * @JP
+ * @brief マップ代入
+ *
+ * マップ間で要素をコピーする。以前の要素は破棄される。
+ *
+ * @param map1 コピー先マップ型データの参照
+ * @param map2 コピー元マップ型データの参照
+ *
+ * @EN
+ * @brief Map assignment
+ *
+ * Copy elements of map2 to map1.
+ * Elements of the destination map (map1) are destroyed.
+ *
+ * @param map1 A reference of destination map data.
+ * @param map2 A reference of source map data.
+ * @ENDL
+ */
 extern void acp_assign_map(acp_map_t map1, acp_map_t map2);
+
+/**
+ * @JP
+ * @brief マップローカル先頭イテレータ
+ *
+ * 自プロセスに配置された要素の先頭を指すイテレータを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval acp_map_it_t マップの先頭データを指すイテレータ
+ *
+ * @EN
+ * @brief Query for the local iterator of the head of map data
+ *
+ * Among the elements of map, query for the first element of 
+ * the ones that are allocated in the caller process.
+ *
+ * @param map A reference of map data.
+ * @retval acp_map_it_t An iterator of the head of map data
+ * @ENDL
+ */
 extern acp_map_it_t acp_begin_local_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップ先頭イテレータ
+ *
+ * マップの先頭要素を指すイテレータを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval acp_map_it_t マップの先頭データを指すイテレータ
+ *
+ * @EN
+ * @brief Query for the iterator of the head of map data
+ *
+ * Query for the iterator that points to the first element of map.
+ *
+ * @param map A reference of map data.
+ * @retval acp_map_it_t An iterator of the head of map data
+ * @ENDL
+ */
 extern acp_map_it_t acp_begin_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップローカル消去
+ *
+ * 自プロセスに配置された要素を削除する。
+ *
+ * @param map マップ型データの参照
+ *
+ * @EN
+ * @brief Delete elements of lists in a map type data.
+ *
+ * Among the elements of map, delete all of the ones that are 
+ * allocated in the caller process.
+ *
+ * @param map A reference of map data.
+ * @ENDL
+ */
 extern void acp_clear_local_map(acp_map_t map);
 
 /**
@@ -3391,7 +3689,6 @@ extern void acp_clear_local_map(acp_map_t map);
  *
  * @param map A reference of map data.
  * @ENDL
-
  */
 extern void acp_clear_map(acp_map_t map);
 
@@ -3441,8 +3738,70 @@ extern acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, 
  */
 extern void acp_destroy_map(acp_map_t map);
 
+/**
+ * @JP
+ * @brief マップローカル空チェック
+ *
+ * 自プロセスに配置されたデータがないかどうかを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for the local map is empty or not
+ *
+ * Query if, in the map, the number of elements that are 
+ * allocated in the caller process is zero.
+ *
+ * @param map A reference of map data.
+ * @retval 1 Empty
+ * @retval 0 Not empty
+ * @ENDL
+ */
 extern int acp_empty_local_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップ空チェック
+ *
+ * マップが空かどうかを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for the map is empty or not
+ *
+ * Query for the emptiness of map.
+ *
+ * @param map A reference of map data.
+ * @retval 1 Empty
+ * @retval 0 Not empty
+ * @ENDL
+ */
 extern int acp_empty_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップローカル末尾イテレータ
+ *
+ * 自プロセスに配置された最後の要素の直後を指すイテレータを返す。
+ *
+ * @param map マップ型データの参照
+ * @retval イテレータ 自プロセスに配置された最後の要素の直後を指すイテレータ
+ *
+ * @EN
+ * @brief Loacl map end iterator
+ *
+ * Among the elements of map, query for the iterator just after 
+ * the last element of the elements that are allocated in the caller process.
+ *
+ * @param map A reference of map data.
+ * @retval iterator The iterator just after the tail element of a map.
+ * @ENDL
+ */
 extern acp_map_it_t acp_end_local_map(acp_map_t map);
 
 /**
@@ -3475,7 +3834,6 @@ extern acp_map_it_t acp_end_map(acp_map_t map);
  *
  * @param map マップ型データの参照
  * @param key 検索する key のグローバルアドレス
- * @param size_key key のサイズ
  * @retval "member elem == ACP_GA_NULL" 失敗
  * @retval 以外 検索結果のイテレータの参照
  *
@@ -3486,7 +3844,6 @@ extern acp_map_it_t acp_end_map(acp_map_t map);
  *
  * @param map A reference of a map type data.
  * @param key Global address of the key to search.
- * @param size_key Size of the key.
  * @retval "member elem == ACP_GA_NULL" Fail
  * @retval otherwise The item found in the map.
  * @ENDL
@@ -3500,12 +3857,9 @@ extern acp_map_it_t acp_find_map(acp_map_t map, acp_element_t key);
  * マップにキーと変数を挿入する。
  *
  * @param map マップ型データの参照
- * @param key 挿入する key-value ペアの key のグローバルアドレス
- * @param size_key key のサイズ
- * @param value 挿入する key-value ペアの value のグローバルアドレス
- * @param size_value value のサイズ
- * @retval "member success == 0" 失敗、または既に同じ key-value ペアがある
- * @retval 以外 挿入したイテレータの参照
+ * @param pair 新しい要素に格納するキー、データのペア
+ * @retval 1 成功
+ * @retval 0 失敗
  *
  * @EN
  * @brief Map creation
@@ -3513,27 +3867,238 @@ extern acp_map_it_t acp_find_map(acp_map_t map, acp_element_t key);
  * Inserts a key-value pair to a map.
  *
  * @param map A reference of a map type data.
- * @param key Global address of the key of the key-value pair.
- * @param size_key Size of the key.
- * @param value Global address of the value of the key-value pair.
- * @param size_value Size of the value.
- * @retval "member success == 0" Fail or the same key-value pair is already in the map.
- * @retval otherwise The item inserted to the map.
+ * @param pair
+ * @retval 1 Success
+ * @retval 0 Fail
  * @ENDL
  */
 extern int acp_insert_map(acp_map_t map, acp_pair_t pair);
 
+/**
+ * @JP
+ * @brief マップローカル併合
+ *
+ * 自プロセスに配置された要素を併合する。
+ *
+ * @param map1 併合先マップ型データの参照
+ * @param map2 併合元マップ型データの参照
+ *
+ * @EN
+ * @brief map type data local merge
+ *
+ * Among the keys of map2, merge the keys that are 
+ * allocated in the caller process to map1.
+ *
+ * @param map1 A reference of destination map data.
+ * @param map2 A reference of source map data.
+ * @ENDL
+ */
 extern void acp_merge_local_map(acp_map_t map1, acp_map_t map2);
+
+/**
+ * @JP
+ * @brief マップ併合
+ *
+ * 併合元マップの全要素を併合先マップに併合する。
+ *
+ * @param map1 併合先マップ型データの参照
+ * @param map2 併合元マップ型データの参照
+ *
+ * @EN
+ * @brief map type data merge
+ *
+ * Merge map2 to map1.
+ *
+ * @param map1 A reference of destination map data.
+ * @param map2 A reference of source map data.
+ * @ENDL
+ */
 extern void acp_merge_map(acp_map_t map1, acp_map_t map2);
+
+/**
+ * @JP
+ * @brief セットローカル移動
+ *
+ * 自プロセスに配置された要素を移動する。
+ *
+ * @param map1 移動先マップ型データへの参照
+ * @param map2 移動元マップ型データへの参照
+ *
+ * @EN
+ * @brief Move the local keys
+ *
+ * Among the keys of map2, move the keys that are allocated 
+ * in the caller process to map1.
+ *
+ * @param map1 A reference of the destination map type data
+ * @param map2 A reference of the source map type data
+ * @ENDL
+ */
 extern void acp_move_local_map(acp_map_t map1, acp_map_t map2);
+
+/**
+ * @JP
+ * @brief マップ移動
+ *
+ * 移動元マップの全要素を移動先マップに移動する。
+ *
+ * @param map1 移動先マップ型データへの参照
+ * @param map2 移動元マップ型データへの参照
+ *
+ * @EN
+ * @brief Move the keys
+ *
+ * Move the keys of map2 to map1.
+ *
+ * @param map1 A reference of the destination map type data
+ * @param map2 A reference of the source map type data
+ * @ENDL
+ */
 extern void acp_move_map(acp_map_t map1, acp_map_t map2);
+
+
+/**
+ * @JP
+ * @brief マップ除去
+ *
+ * マップから要素を削除する。
+ *
+ * @param map セット
+ * @param key 削除する key
+ *
+ * @EN
+ * @brief Erase the key of map
+ *
+ * Delete the key of map that matches with key.
+ *
+ * @param map map
+ * @param key key
+ * @ENDL
+ */
 extern void acp_remove_map(acp_map_t map, acp_element_t key);
+
+/**
+ * @JP
+ * @brief マップ取得
+ *
+ * キーが一致する要素を取得する。
+ *
+ * @param map マップデータの参照
+ * @param pair キーおよび取得先バッファ
+ * @retval 0 一致したキーなし
+ * @retval データサイズ 取得先バッファにコピーしたデータサイズ
+ *
+ * @EN
+ * @brief Retrieve the map
+ *
+ * From map, retrieve the element that matches with the specified 
+ * key in pair. The value of the element is copied in the second 
+ * member of the pair.
+ *
+ * @param map A referenc of the map data
+ * @param pair Pair of the key and the buffer for retrieving value.
+ * @retval size_t Size of the data retrieved to the buffer in the pair.
+ * @retval 0 No matching key.
+ * @ENDL
+ */
 extern size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair);
+
+/**
+ * @JP
+ * @brief マップローカルサイズ
+ *
+ * 自プロセスに配置された要素数を返す。
+ *
+ * @param map マップデータの参照
+ * @retval size_t 自プロセスに配置され要素数
+ *
+ * @EN
+ * @brief Query of the number ot local keys in the map
+ *
+ * Among the elements of map, query for the number of elements 
+ * that are allocated in the caller process.
+ *
+ * @param map A referenc of the map data
+ * @retval size_t Numbers of elements
+ * @ENDL
+ */
 extern size_t acp_size_local_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップサイズ
+ *
+ * マップに格納している要素数を返す。
+ *
+ * @param map マップデータの参照
+ * @retval size_t マップに格納している要素数
+ *
+ * @EN
+ * @brief Query for the number of elements of map
+ *
+ * @param map A referenc of the map data
+ * @retval size_t Number of elements.
+ * @ENDL
+ */
 extern size_t acp_size_map(acp_map_t map);
+
+/**
+ * @JP
+ * @brief マップ交換
+ *
+ * ２つのマップの要素を交換する。
+ *
+ * @param map1 交換するマップの一方の参照
+ * @param map2 交換するマップのもう一方の参照
+ * 
+ * @EN
+ * @brief Swap map type data
+ *
+ * Swap keys between map1 and map2.
+ *
+ * @param map1 A reference of map data to be swapped.
+ * @param map2 Another reference of map data to be swapped.
+ *
+ * @ENDL
+ */
 extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
 
+/**
+ * @JP
+ * @brief マップイテレータ間接参照
+ *
+ * マップイテレータの参照先要素のキー、データのペアを返す。
+ *
+ * @param it マップイテレータ
+ * @retval マップイテレータの参照先要素のキー、データのペア
+ *
+ * @EN
+ * @brief Query for the element referenced by "it".
+ *
+ * @param it Iterator of a map.
+ * @retval The element referenced by it
+ * @ENDL
+ */
 extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
+
+/**
+ * @JP
+ * @brief マップイテレータ加算
+ *
+ * マップ型イテレータを一つ増加させる。
+ *
+ * @param it マップ型データのイテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 インクリメントしたイテレータ
+ *
+ * @EN
+ * @brief Increment an iterater of a map data
+ *
+ * @param it A reference of map type iterator.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The next iterator of the specified one.
+ * @ENDL
+ */
 extern acp_map_it_t acp_increment_map_it(acp_map_it_t it);
 
 #ifdef __cplusplus

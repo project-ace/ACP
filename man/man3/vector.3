@@ -1,4 +1,4 @@
-.TH "vector" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "vector" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -19,91 +19,91 @@ vector \- ACP Middle Layer Dara Library Vector
 .ti -1c
 .RI "void \fBacp_assign_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 .br
-.RI "\fIVector assignment\&. \fP"
+.RI "Vector assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_range_vector\fP (\fBacp_vector_t\fP vector, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIVector assignment with range\&. \fP"
+.RI "Vector assignment with range\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_at_vector\fP (\fBacp_vector_t\fP vector, int index)"
 .br
-.RI "\fIQuery for a global address of any point on a vector type data\&. \fP"
+.RI "Query for a global address of any point on a vector type data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for the iterator of the head of vector data\&. \fP"
+.RI "Query for the iterator of the head of vector data\&. "
 .ti -1c
 .RI "size_t \fBacp_capacity_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fICapacity of vector\&. \fP"
+.RI "Capacity of vector\&. "
 .ti -1c
 .RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIVector elimination\&. \fP"
+.RI "Vector elimination\&. "
 .ti -1c
 .RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t size, int rank)"
 .br
-.RI "\fIVector creation\&. \fP"
+.RI "Vector creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIVector destruction\&. \fP"
+.RI "Vector destruction\&. "
 .ti -1c
 .RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for vector empty\&. \fP"
+.RI "Query for vector empty\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for the iterator of just behind of the end of vector data\&. \fP"
+.RI "Query for the iterator of just behind of the end of vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_it_t\fP it, size_t size)"
 .br
-.RI "\fIDeletion of the vector data\&. \fP"
+.RI "Deletion of the vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_erase_range_vector\fP (\fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIDeletion of the vector data from 'start' to 'end'\&. \fP"
+.RI "Deletion of the vector data from 'start' to 'end'\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_insert_vector\fP (\fBacp_vector_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIInsertion of the vector data\&. \fP"
+.RI "Insertion of the vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_insert_range_vector\fP (\fBacp_vector_it_t\fP it, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIInsertion of the vector data from 'start' to 'end'\&. \fP"
+.RI "Insertion of the vector data from 'start' to 'end'\&. "
 .ti -1c
 .RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
 .br
-.RI "\fIData deletion at the end of the vector data\&. \fP"
+.RI "Data deletion at the end of the vector data\&. "
 .ti -1c
 .RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP vector, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIData addition at the end of the vector data\&. \fP"
+.RI "Data addition at the end of the vector data\&. "
 .ti -1c
 .RI "void \fBacp_reserve_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
 .br
-.RI "\fIReservation of a region in the vector type data\&. \fP"
+.RI "Reservation of a region in the vector type data\&. "
 .ti -1c
 .RI "size_t \fBacp_size_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery of the data size in the vector\&. \fP"
+.RI "Query of the data size in the vector\&. "
 .ti -1c
 .RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 .br
-.RI "\fIVector swap\&. \fP"
+.RI "Vector swap\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_advance_vector_it\fP (\fBacp_vector_it_t\fP it, int n)"
 .br
-.RI "\fIAdvancement of an iterator for vector type data\&. \fP"
+.RI "Advancement of an iterator for vector type data\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_dereference_vector_it\fP (\fBacp_vector_it_t\fP it)"
 .br
-.RI "\fIQuery of the global address of a reference of vector tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of vector tyep iterator\&. "
 .ti -1c
 .RI "int \fBacp_distance_vector_it\fP (\fBacp_vector_it_t\fP first, \fBacp_vector_it_t\fP last)"
 .br
-.RI "\fIQuery of the distance of two iterators of vector type data between 'first' and 'last'\&. \fP"
+.RI "Query of the distance of two iterators of vector type data between 'first' and 'last'\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 
@@ -451,9 +451,9 @@ Vector swap\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIv1\fP A reference of vector data to be swapped\&. 
+\fIvector1\fP A reference of vector data to be swapped\&. 
 .br
-\fIv2\fP Another reference of vector data to be swapped\&. 
+\fIvector2\fP Another reference of vector data to be swapped\&. 
 .RE
 .PP
 

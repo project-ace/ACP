@@ -1,4 +1,4 @@
-.TH "acpcl" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "acpcl" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -19,27 +19,27 @@ acpcl \- ACP Middle Layer Communication Library
 .ti -1c
 .RI "acp_ch_t \fBacp_create_ch\fP (int sender, int receiver)"
 .br
-.RI "\fICreates an endpoint of a channel to transfer messages from sender to receiver\&. \fP"
+.RI "Creates an endpoint of a channel to transfer messages from sender to receiver\&. "
 .ti -1c
 .RI "int \fBacp_free_ch\fP (acp_ch_t ch)"
 .br
-.RI "\fIFrees the endpoint of the channel specified by the handle\&. \fP"
+.RI "Frees the endpoint of the channel specified by the handle\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbfree_ch\fP (acp_ch_t ch)"
 .br
-.RI "\fIStarts a nonblocking free of the endpoint of the channel specified by t he handle\&. \fP"
+.RI "Starts a nonblocking free of the endpoint of the channel specified by t he handle\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbsend_ch\fP (acp_ch_t ch, void *buf, size_t size)"
 .br
-.RI "\fINon-Blocking send via channels\&. \fP"
+.RI "Non-Blocking send via channels\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbrecv_ch\fP (acp_ch_t ch, void *buf, size_t size)"
 .br
-.RI "\fINon-Blocking receive via channels\&. \fP"
+.RI "Non-Blocking receive via channels\&. "
 .ti -1c
 .RI "size_t \fBacp_wait_ch\fP (acp_request_t request)"
 .br
-.RI "\fIWaits for the completion of the nonblocking operation\&. \fP"
+.RI "Waits for the completion of the nonblocking operation\&. "
 .ti -1c
 .RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
 .br

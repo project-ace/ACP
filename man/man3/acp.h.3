@@ -1,4 +1,4 @@
-.TH "doc/src/acp.h" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "doc/src/acp.h" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -77,132 +77,132 @@ doc/src/acp.h \- A header file for ACP\&.
 .ti -1c
 .RI "#define \fBACP_WSD_NULL\fP   (\fBacp_wsd_t\fP)(\-1)"
 .br
-.RI "\fItypedef int64_t acp_wsd_t; \fP"
+.RI "typedef int64_t acp_wsd_t; "
 .ti -1c
-.RI "#define \fBacp_assign\fP(type, \&.\&.\&.)                             acp_assign_##type(__VA_ARGS__)"
+.RI "#define \fBacp_assign\fP(type, \&.\&.\&.)   acp_assign_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_assign_range\fP(type, \&.\&.\&.)                 acp_assign_range_##type(__VA_ARGS__)"
+.RI "#define \fBacp_assign_range\fP(type, \&.\&.\&.)   acp_assign_range_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_at\fP(type, \&.\&.\&.)                                     acp_at_##type(__VA_ARGS__)"
+.RI "#define \fBacp_at\fP(type, \&.\&.\&.)   acp_at_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_back\fP(type, \&.\&.\&.)                                 acp_back_##type(__VA_ARGS__)"
+.RI "#define \fBacp_back\fP(type, \&.\&.\&.)   acp_back_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_begin\fP(type, \&.\&.\&.)                               acp_begin_##type(__VA_ARGS__)"
+.RI "#define \fBacp_begin\fP(type, \&.\&.\&.)   acp_begin_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_bucket\fP(type, \&.\&.\&.)                             acp_bucket_##type(__VA_ARGS__)"
+.RI "#define \fBacp_bucket\fP(type, \&.\&.\&.)   acp_bucket_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_bucket_count\fP(type, \&.\&.\&.)                 acp_bucket_count_##type(__VA_ARGS__)"
+.RI "#define \fBacp_bucket_count\fP(type, \&.\&.\&.)   acp_bucket_count_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_bucket_size\fP(type, \&.\&.\&.)                   acp_bucket_size_##type(__VA_ARGS__)"
+.RI "#define \fBacp_bucket_size\fP(type, \&.\&.\&.)   acp_bucket_size_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_capacity\fP(type, \&.\&.\&.)                         acp_capacity_##type(__VA_ARGS__)"
+.RI "#define \fBacp_capacity\fP(type, \&.\&.\&.)   acp_capacity_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_clear\fP(type, \&.\&.\&.)                               acp_clear_##type(__VA_ARGS__)"
+.RI "#define \fBacp_clear\fP(type, \&.\&.\&.)   acp_clear_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_count\fP(type, \&.\&.\&.)                               acp_count_##type(__VA_ARGS__)"
+.RI "#define \fBacp_count\fP(type, \&.\&.\&.)   acp_count_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_create\fP(type, \&.\&.\&.)                             acp_create_##type(__VA_ARGS__)"
+.RI "#define \fBacp_create\fP(type, \&.\&.\&.)   acp_create_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_destroy\fP(type, \&.\&.\&.)                           acp_destroy_##type(__VA_ARGS__)"
+.RI "#define \fBacp_destroy\fP(type, \&.\&.\&.)   acp_destroy_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_empty\fP(type, \&.\&.\&.)                               acp_empty_##type(__VA_ARGS__)"
+.RI "#define \fBacp_empty\fP(type, \&.\&.\&.)   acp_empty_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_end\fP(type, \&.\&.\&.)                                   acp_end_##type(__VA_ARGS__)"
+.RI "#define \fBacp_end\fP(type, \&.\&.\&.)   acp_end_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_erase\fP(type, \&.\&.\&.)                               acp_erase_##type(__VA_ARGS__)"
+.RI "#define \fBacp_erase\fP(type, \&.\&.\&.)   acp_erase_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_erase_range\fP(type, \&.\&.\&.)                   acp_erase_range_##type(__VA_ARGS__)"
+.RI "#define \fBacp_erase_range\fP(type, \&.\&.\&.)   acp_erase_range_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_find\fP(type, \&.\&.\&.)                                 acp_find_##type(__VA_ARGS__)"
+.RI "#define \fBacp_find\fP(type, \&.\&.\&.)   acp_find_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_front\fP(type, \&.\&.\&.)                               acp_front_##type(__VA_ARGS__)"
+.RI "#define \fBacp_front\fP(type, \&.\&.\&.)   acp_front_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_insert\fP(type, \&.\&.\&.)                             acp_insert_##type(__VA_ARGS__)"
+.RI "#define \fBacp_insert\fP(type, \&.\&.\&.)   acp_insert_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_insert_range\fP(type, \&.\&.\&.)                 acp_insert_range_##type(__VA_ARGS__)"
+.RI "#define \fBacp_insert_range\fP(type, \&.\&.\&.)   acp_insert_range_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_merge\fP(type, \&.\&.\&.)                               acp_merge_##type(__VA_ARGS__)"
+.RI "#define \fBacp_merge\fP(type, \&.\&.\&.)   acp_merge_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_pop_back\fP(type, \&.\&.\&.)                         acp_pop_back_##type(__VA_ARGS__)"
+.RI "#define \fBacp_pop_back\fP(type, \&.\&.\&.)   acp_pop_back_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_pop_front\fP(type, \&.\&.\&.)                       acp_pop_front_##type(__VA_ARGS__)"
+.RI "#define \fBacp_pop_front\fP(type, \&.\&.\&.)   acp_pop_front_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_push_back\fP(type, \&.\&.\&.)                       acp_push_back_##type(__VA_ARGS__)"
+.RI "#define \fBacp_push_back\fP(type, \&.\&.\&.)   acp_push_back_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_push_front\fP(type, \&.\&.\&.)                     acp_push_front_##type(__VA_ARGS__)"
+.RI "#define \fBacp_push_front\fP(type, \&.\&.\&.)   acp_push_front_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_remove\fP(type, \&.\&.\&.)                             acp_remove_##type(__VA_ARGS__)"
+.RI "#define \fBacp_remove\fP(type, \&.\&.\&.)   acp_remove_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_reserve\fP(type, \&.\&.\&.)                           acp_reserve_##type(__VA_ARGS__)"
+.RI "#define \fBacp_reserve\fP(type, \&.\&.\&.)   acp_reserve_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_reverse\fP(type, \&.\&.\&.)                           acp_reverse_##type(__VA_ARGS__)"
+.RI "#define \fBacp_reverse\fP(type, \&.\&.\&.)   acp_reverse_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_size\fP(type, \&.\&.\&.)                                 acp_size_##type(__VA_ARGS__)"
+.RI "#define \fBacp_size\fP(type, \&.\&.\&.)   acp_size_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_sort\fP(type, \&.\&.\&.)                                 acp_sort_##type(__VA_ARGS__)"
+.RI "#define \fBacp_sort\fP(type, \&.\&.\&.)   acp_sort_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_splice\fP(type, \&.\&.\&.)                             acp_splice_##type(__VA_ARGS__)"
+.RI "#define \fBacp_splice\fP(type, \&.\&.\&.)   acp_splice_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_swap\fP(type, \&.\&.\&.)                                 acp_swap_##type(__VA_ARGS__)"
+.RI "#define \fBacp_swap\fP(type, \&.\&.\&.)   acp_swap_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_unique\fP(type, \&.\&.\&.)                             acp_unique_##type(__VA_ARGS__)"
+.RI "#define \fBacp_unique\fP(type, \&.\&.\&.)   acp_unique_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_advance\fP(type, \&.\&.\&.)                           acp_advance_##type(__VA_ARGS__)"
+.RI "#define \fBacp_advance\fP(type, \&.\&.\&.)   acp_advance_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_decrement\fP(type, \&.\&.\&.)                       acp_decrement_##type(__VA_ARGS__)"
+.RI "#define \fBacp_decrement\fP(type, \&.\&.\&.)   acp_decrement_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_dereference\fP(type, \&.\&.\&.)                   acp_dereference_##type(__VA_ARGS__)"
+.RI "#define \fBacp_dereference\fP(type, \&.\&.\&.)   acp_dereference_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_dereference_value\fP(type, \&.\&.\&.)       acp_dereference_value_##type(__VA_ARGS__)"
+.RI "#define \fBacp_dereference_value\fP(type, \&.\&.\&.)   acp_dereference_value_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_distance\fP(type, \&.\&.\&.)                         acp_distance_##type(__VA_ARGS__)"
+.RI "#define \fBacp_distance\fP(type, \&.\&.\&.)   acp_distance_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_increment\fP(type, \&.\&.\&.)                       acp_increment_##type(__VA_ARGS__)"
+.RI "#define \fBacp_increment\fP(type, \&.\&.\&.)   acp_increment_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_size\fP(type, \&.\&.\&.)                                 acp_size_##type(__VA_ARGS__)"
+.RI "#define \fBacp_size\fP(type, \&.\&.\&.)   acp_size_##type(__VA_ARGS__)"
 .br
 .ti -1c
-.RI "#define \fBacp_size_value\fP(type, \&.\&.\&.)                     acp_size_value_##type(__VA_ARGS__)"
+.RI "#define \fBacp_size_value\fP(type, \&.\&.\&.)   acp_size_value_##type(__VA_ARGS__)"
 .br
 .in -1c
 .SS "Typedefs"
@@ -233,637 +233,673 @@ doc/src/acp.h \- A header file for ACP\&.
 .ti -1c
 .RI "int \fBacp_init\fP (int *argc, char ***argv)"
 .br
-.RI "\fIACP initialization\&. \fP"
+.RI "ACP initialization\&. "
 .ti -1c
 .RI "int \fBacp_finalize\fP (void)"
 .br
-.RI "\fIACP finalization\&. \fP"
+.RI "ACP finalization\&. "
 .ti -1c
 .RI "int \fBacp_reset\fP (int rank)"
 .br
-.RI "\fIACP Re-initialization\&. \fP"
+.RI "ACP Re-initialization\&. "
 .ti -1c
 .RI "void \fBacp_abort\fP (const char *str)"
 .br
-.RI "\fIACP abort\&. \fP"
+.RI "ACP abort\&. "
 .ti -1c
 .RI "int \fBacp_sync\fP (void)"
 .br
-.RI "\fIACP Syncronization\&. \fP"
+.RI "ACP Syncronization\&. "
 .ti -1c
 .RI "int \fBacp_rank\fP (void)"
 .br
-.RI "\fIQuery for the process rank\&. \fP"
+.RI "Query for the process rank\&. "
 .ti -1c
 .RI "int \fBacp_procs\fP (void)"
 .br
-.RI "\fIQuery for the number of processes\&. \fP"
+.RI "Query for the number of processes\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_query_starter_ga\fP (int rank)"
 .br
-.RI "\fIQuery for the global address of the starter memory\&. \fP"
+.RI "Query for the global address of the starter memory\&. "
 .ti -1c
 .RI "\fBacp_atkey_t\fP \fBacp_register_memory\fP (void *addr, size_t size, int color)"
 .br
-.RI "\fIMemory registration\&. \fP"
+.RI "Memory registration\&. "
 .ti -1c
 .RI "int \fBacp_unregister_memory\fP (\fBacp_atkey_t\fP atkey)"
 .br
-.RI "\fIMemory unregistration\&. \fP"
+.RI "Memory unregistration\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_query_ga\fP (\fBacp_atkey_t\fP atkey, void *addr)"
 .br
-.RI "\fIQuery for the global address\&. \fP"
+.RI "Query for the global address\&. "
 .ti -1c
 .RI "void * \fBacp_query_address\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the logical address\&. \fP"
+.RI "Query for the logical address\&. "
 .ti -1c
 .RI "int \fBacp_query_rank\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the rank of the global address\&. \fP"
+.RI "Query for the rank of the global address\&. "
 .ti -1c
 .RI "int \fBacp_query_color\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIQuery for the color of the global address\&. \fP"
+.RI "Query for the color of the global address\&. "
 .ti -1c
 .RI "int \fBacp_colors\fP (void)"
 .br
-.RI "\fIQuery for the maximum number of colors\&. \fP"
+.RI "Query for the maximum number of colors\&. "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_copy\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, size_t size, \fBacp_handle_t\fP order)"
 .br
-.RI "\fICopy\&. \fP"
+.RI "Copy\&. "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_cas4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t oldval, uint32_t newval, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Compare and Swap \fP"
+.RI "4byte Compare and Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_cas8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t oldval, uint64_t newval, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Compare and Swap \fP"
+.RI "8byte Compare and Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_swap4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Swap \fP"
+.RI "4byte Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_swap8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Swap \fP"
+.RI "8byte Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_add4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Add \fP"
+.RI "4byte Add "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_add8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Add \fP"
+.RI "8byte Add "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_xor4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Exclusive OR \fP"
+.RI "4byte Exclusive OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_xor8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_or4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte OR \fP"
+.RI "4byte OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_or8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte OR \fP"
+.RI "8byte OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_and4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte AND \fP"
+.RI "4byte AND "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_and8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte AND \fP"
+.RI "8byte AND "
 .ti -1c
 .RI "void \fBacp_complete\fP (\fBacp_handle_t\fP handle)"
 .br
-.RI "\fICompletion of GMA\&. \fP"
+.RI "Completion of GMA\&. "
 .ti -1c
 .RI "int \fBacp_inquire\fP (\fBacp_handle_t\fP handle)"
 .br
-.RI "\fIQuery for the completion of GMA\&. \fP"
+.RI "Query for the completion of GMA\&. "
 .ti -1c
 .RI "acp_ch_t \fBacp_create_ch\fP (int sender, int receiver)"
 .br
-.RI "\fICreates an endpoint of a channel to transfer messages from sender to receiver\&. \fP"
+.RI "Creates an endpoint of a channel to transfer messages from sender to receiver\&. "
 .ti -1c
 .RI "int \fBacp_free_ch\fP (acp_ch_t ch)"
 .br
-.RI "\fIFrees the endpoint of the channel specified by the handle\&. \fP"
+.RI "Frees the endpoint of the channel specified by the handle\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbfree_ch\fP (acp_ch_t ch)"
 .br
-.RI "\fIStarts a nonblocking free of the endpoint of the channel specified by t he handle\&. \fP"
+.RI "Starts a nonblocking free of the endpoint of the channel specified by t he handle\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbsend_ch\fP (acp_ch_t ch, void *buf, size_t size)"
 .br
-.RI "\fINon-Blocking send via channels\&. \fP"
+.RI "Non-Blocking send via channels\&. "
 .ti -1c
 .RI "acp_request_t \fBacp_nbrecv_ch\fP (acp_ch_t ch, void *buf, size_t size)"
 .br
-.RI "\fINon-Blocking receive via channels\&. \fP"
+.RI "Non-Blocking receive via channels\&. "
 .ti -1c
 .RI "size_t \fBacp_wait_ch\fP (acp_request_t request)"
 .br
-.RI "\fIWaits for the completion of the nonblocking operation\&. \fP"
+.RI "Waits for the completion of the nonblocking operation\&. "
 .ti -1c
 .RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
 .br
 .ti -1c
 .RI "\fBacp_wsd_t\fP \fBacp_create_ws\fP (size_t size)"
 .br
-.RI "\fIWorkspace creation\&. \fP"
+.RI "Workspace creation\&. "
 .ti -1c
 .RI "int \fBacp_setparams_ws\fP (size_t proc_start, size_t size_default)"
 .br
-.RI "\fIWorkspace creation\&. \fP"
+.RI "Workspace set parameters\&. "
 .ti -1c
 .RI "void \fBacp_destroy_ws\fP (\fBacp_wsd_t\fP WSD)"
 .br
-.RI "\fIWorkspace destruction\&. \fP"
+.RI "Workspace destruction\&. "
 .ti -1c
 .RI "int \fBacp_read_ws\fP (\fBacp_wsd_t\fP WSD, \fBacp_ga_t\fP ga, size_t size, size_t offset)"
 .br
-.RI "\fIReading workspace\&. \fP"
+.RI "Reading workspace\&. "
 .ti -1c
 .RI "int \fBacp_write_ws\fP (\fBacp_wsd_t\fP WSD, const \fBacp_ga_t\fP ga, size_t size, size_t offset)"
 .br
-.RI "\fIWriting workspace\&. \fP"
+.RI "Writing workspace\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_malloc\fP (size_t size, int rank)"
 .br
-.RI "\fIGlobal memory allocation\&. \fP"
+.RI "Global memory allocation\&. "
 .ti -1c
 .RI "void \fBacp_free\fP (\fBacp_ga_t\fP ga)"
 .br
-.RI "\fIDeallocate the global memory\&. \fP"
+.RI "Deallocate the global memory\&. "
 .ti -1c
 .RI "void \fBacp_assign_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 .br
-.RI "\fIVector assignment\&. \fP"
+.RI "Vector assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_range_vector\fP (\fBacp_vector_t\fP vector, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIVector assignment with range\&. \fP"
+.RI "Vector assignment with range\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_at_vector\fP (\fBacp_vector_t\fP vector, int index)"
 .br
-.RI "\fIQuery for a global address of any point on a vector type data\&. \fP"
+.RI "Query for a global address of any point on a vector type data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_begin_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for the iterator of the head of vector data\&. \fP"
+.RI "Query for the iterator of the head of vector data\&. "
 .ti -1c
 .RI "size_t \fBacp_capacity_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fICapacity of vector\&. \fP"
+.RI "Capacity of vector\&. "
 .ti -1c
 .RI "void \fBacp_clear_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIVector elimination\&. \fP"
+.RI "Vector elimination\&. "
 .ti -1c
 .RI "\fBacp_vector_t\fP \fBacp_create_vector\fP (size_t size, int rank)"
 .br
-.RI "\fIVector creation\&. \fP"
+.RI "Vector creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIVector destruction\&. \fP"
+.RI "Vector destruction\&. "
 .ti -1c
 .RI "int \fBacp_empty_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for vector empty\&. \fP"
+.RI "Query for vector empty\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_end_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery for the iterator of just behind of the end of vector data\&. \fP"
+.RI "Query for the iterator of just behind of the end of vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_erase_vector\fP (\fBacp_vector_it_t\fP it, size_t size)"
 .br
-.RI "\fIDeletion of the vector data\&. \fP"
+.RI "Deletion of the vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_erase_range_vector\fP (\fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIDeletion of the vector data from 'start' to 'end'\&. \fP"
+.RI "Deletion of the vector data from 'start' to 'end'\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_insert_vector\fP (\fBacp_vector_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIInsertion of the vector data\&. \fP"
+.RI "Insertion of the vector data\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_insert_range_vector\fP (\fBacp_vector_it_t\fP it, \fBacp_vector_it_t\fP start, \fBacp_vector_it_t\fP end)"
 .br
-.RI "\fIInsertion of the vector data from 'start' to 'end'\&. \fP"
+.RI "Insertion of the vector data from 'start' to 'end'\&. "
 .ti -1c
 .RI "void \fBacp_pop_back_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
 .br
-.RI "\fIData deletion at the end of the vector data\&. \fP"
+.RI "Data deletion at the end of the vector data\&. "
 .ti -1c
 .RI "void \fBacp_push_back_vector\fP (\fBacp_vector_t\fP vector, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIData addition at the end of the vector data\&. \fP"
+.RI "Data addition at the end of the vector data\&. "
 .ti -1c
 .RI "void \fBacp_reserve_vector\fP (\fBacp_vector_t\fP vector, size_t size)"
 .br
-.RI "\fIReservation of a region in the vector type data\&. \fP"
+.RI "Reservation of a region in the vector type data\&. "
 .ti -1c
 .RI "size_t \fBacp_size_vector\fP (\fBacp_vector_t\fP vector)"
 .br
-.RI "\fIQuery of the data size in the vector\&. \fP"
+.RI "Query of the data size in the vector\&. "
 .ti -1c
 .RI "void \fBacp_swap_vector\fP (\fBacp_vector_t\fP vector1, \fBacp_vector_t\fP vector2)"
 .br
-.RI "\fIVector swap\&. \fP"
+.RI "Vector swap\&. "
 .ti -1c
 .RI "\fBacp_vector_it_t\fP \fBacp_advance_vector_it\fP (\fBacp_vector_it_t\fP it, int n)"
 .br
-.RI "\fIAdvancement of an iterator for vector type data\&. \fP"
+.RI "Advancement of an iterator for vector type data\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_dereference_vector_it\fP (\fBacp_vector_it_t\fP it)"
 .br
-.RI "\fIQuery of the global address of a reference of vector tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of vector tyep iterator\&. "
 .ti -1c
 .RI "int \fBacp_distance_vector_it\fP (\fBacp_vector_it_t\fP first, \fBacp_vector_it_t\fP last)"
 .br
-.RI "\fIQuery of the distance of two iterators of vector type data between 'first' and 'last'\&. \fP"
+.RI "Query of the distance of two iterators of vector type data between 'first' and 'last'\&. "
 .ti -1c
 .RI "void \fBacp_assign_deque\fP (\fBacp_deque_t\fP deque1, \fBacp_deque_t\fP deque2)"
 .br
-.RI "\fIDeque assignment\&. \fP"
+.RI "Deque assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_range_deque\fP (\fBacp_deque_t\fP deque, \fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
 .br
-.RI "\fIDeque assignment with range\&. \fP"
+.RI "Deque assignment with range\&. "
 .ti -1c
 .RI "\fBacp_ga_t\fP \fBacp_at_deque\fP (\fBacp_deque_t\fP deque, int index)"
 .br
-.RI "\fIQuery for a global address of any point on a deque type data\&. \fP"
+.RI "Query for a global address of any point on a deque type data\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_begin_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIQuery for the iterator of the head of deque data\&. \fP"
+.RI "Query for the iterator of the head of deque data\&. "
 .ti -1c
 .RI "size_t \fBacp_capacity_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fICapacity of deque\&. \fP"
+.RI "Capacity of deque\&. "
 .ti -1c
 .RI "void \fBacp_clear_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIDeque elimination\&. \fP"
+.RI "Deque elimination\&. "
 .ti -1c
 .RI "\fBacp_deque_t\fP \fBacp_create_deque\fP (size_t size, int rank)"
 .br
-.RI "\fIDeque creation\&. \fP"
+.RI "Deque creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIDeque destruction\&. \fP"
+.RI "Deque destruction\&. "
 .ti -1c
 .RI "int \fBacp_empty_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIQuery for deque empty\&. \fP"
+.RI "Query for deque empty\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_end_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIQuery for the iterator of just behind of the end of deque data\&. \fP"
+.RI "Query for the iterator of just behind of the end of deque data\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_erase_deque\fP (\fBacp_deque_it_t\fP it, size_t size)"
 .br
-.RI "\fIDeletion of the deque data\&. \fP"
+.RI "Deletion of the deque data\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_erase_range_deque\fP (\fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
 .br
-.RI "\fIDeletion of the deque data from 'start' to 'end'\&. \fP"
+.RI "Deletion of the deque data from 'start' to 'end'\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_insert_deque\fP (\fBacp_deque_it_t\fP it, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIInsertion of the deque data\&. \fP"
+.RI "Insertion of the deque data\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_insert_range_deque\fP (\fBacp_deque_it_t\fP it, \fBacp_deque_it_t\fP start, \fBacp_deque_it_t\fP end)"
 .br
-.RI "\fIInsertion of the deque data from 'start' to 'end'\&. \fP"
+.RI "Insertion of the deque data from 'start' to 'end'\&. "
 .ti -1c
 .RI "void \fBacp_pop_back_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
 .br
-.RI "\fIData deletion at the end of the deque data\&. \fP"
+.RI "Data deletion at the end of the deque data\&. "
 .ti -1c
 .RI "void \fBacp_pop_front_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
 .br
-.RI "\fIData deletion at the head of the deque data\&. \fP"
+.RI "Data deletion at the head of the deque data\&. "
 .ti -1c
 .RI "void \fBacp_push_back_deque\fP (\fBacp_deque_t\fP deque, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIData addition at the end of the deque data\&. \fP"
+.RI "Data addition at the end of the deque data\&. "
 .ti -1c
 .RI "void \fBacp_push_front_deque\fP (\fBacp_deque_t\fP deque, const \fBacp_ga_t\fP ga, size_t size)"
 .br
-.RI "\fIData addition at the end of the deque data\&. \fP"
+.RI "Data addition at the end of the deque data\&. "
 .ti -1c
 .RI "void \fBacp_reserve_deque\fP (\fBacp_deque_t\fP deque, size_t size)"
 .br
-.RI "\fIReservation of a region in the deque type data\&. \fP"
+.RI "Reservation of a region in the deque type data\&. "
 .ti -1c
 .RI "size_t \fBacp_size_deque\fP (\fBacp_deque_t\fP deque)"
 .br
-.RI "\fIQuery of the data size in the deque\&. \fP"
+.RI "Query of the data size in the deque\&. "
 .ti -1c
 .RI "void \fBacp_swap_deque\fP (\fBacp_deque_t\fP deque1, \fBacp_deque_t\fP deque2)"
 .br
-.RI "\fIDeque swap\&. \fP"
+.RI "Deque swap\&. "
 .ti -1c
 .RI "\fBacp_deque_it_t\fP \fBacp_advance_deque_it\fP (\fBacp_deque_it_t\fP it, int n)"
 .br
-.RI "\fIAdvancement of an iterator for deque type data\&. \fP"
+.RI "Advancement of an iterator for deque type data\&. "
 .ti -1c
 .RI "\fBacp_pair_t\fP \fBacp_dereference_deque_it\fP (\fBacp_deque_it_t\fP it, size_t size)"
 .br
-.RI "\fIQuery of the global address of a reference of deque tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of deque tyep iterator\&. "
 .ti -1c
 .RI "int \fBacp_distance_deque_it\fP (\fBacp_deque_it_t\fP first, \fBacp_deque_it_t\fP last)"
 .br
-.RI "\fIQuery of the distance of two iterators of deque type data between 'first' and 'last'\&. \fP"
+.RI "Query of the distance of two iterators of deque type data between 'first' and 'last'\&. "
 .ti -1c
 .RI "void \fBacp_assign_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
 .br
-.RI "\fIList type data assignment\&. \fP"
+.RI "List type data assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_range_list\fP (\fBacp_list_t\fP list, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIList assignment with range\&. \fP"
+.RI "List assignment with range\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_begin_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for the head iterator of a list\&. \fP"
+.RI "Query for the head iterator of a list\&. "
 .ti -1c
 .RI "void \fBacp_clear_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIList elimination\&. \fP"
+.RI "List elimination\&. "
 .ti -1c
 .RI "\fBacp_list_t\fP \fBacp_create_list\fP (int rank)"
 .br
-.RI "\fIList creation\&. \fP"
+.RI "List creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIList destruction\&. \fP"
+.RI "List destruction\&. "
 .ti -1c
 .RI "int \fBacp_empty_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for list empty\&. \fP"
+.RI "Query for list empty\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_end_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery for the tail iterator of a list\&. \fP"
+.RI "Query for the tail iterator of a list\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_erase_list\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIErase a list element\&. \fP"
+.RI "Erase a list element\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_erase_range_list\fP (\fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIDeletion of the list data from 'start' to 'end'\&. \fP"
+.RI "Deletion of the list data from 'start' to 'end'\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_insert_list\fP (\fBacp_list_it_t\fP it, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInsert a list element\&. \fP"
+.RI "Insert a list element\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_insert_range_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fIInsertion of the list data from 'start' to 'end'\&. \fP"
+.RI "Insertion of the list data from 'start' to 'end'\&. "
 .ti -1c
 .RI "void \fBacp_merge_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2, int(*comp)(const \fBacp_element_t\fP elem1, const \fBacp_element_t\fP elem2))"
 .br
-.RI "\fIList type data merge\&. \fP"
+.RI "List type data merge\&. "
 .ti -1c
 .RI "void \fBacp_pop_back_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIData deletion at the end of the list data\&. \fP"
+.RI "Data deletion at the end of the list data\&. "
 .ti -1c
 .RI "void \fBacp_pop_front_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIData deletion at the head of the list data\&. \fP"
+.RI "Data deletion at the head of the list data\&. "
 .ti -1c
 .RI "void \fBacp_push_back_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInserts a list element at the tail of the list\&. \fP"
+.RI "Inserts a list element at the tail of the list\&. "
 .ti -1c
 .RI "void \fBacp_push_front_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem, int rank)"
 .br
-.RI "\fIInsert a list element at the head of the list\&. \fP"
+.RI "Insert a list element at the head of the list\&. "
 .ti -1c
 .RI "void \fBacp_remove_list\fP (\fBacp_list_t\fP list, const \fBacp_element_t\fP elem)"
 .br
-.RI "\fIErase a list\&. \fP"
+.RI "Erase a list\&. "
 .ti -1c
 .RI "void \fBacp_reverse_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIReconnect elements of a list in reverse sequence\&. \fP"
+.RI "Reconnect elements of a list in reverse sequence\&. "
 .ti -1c
 .RI "size_t \fBacp_size_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIQuery of the data size in the list\&. \fP"
+.RI "Query of the data size in the list\&. "
 .ti -1c
 .RI "void \fBacp_sort_list\fP (\fBacp_list_t\fP list, int(*comp)(const \fBacp_element_t\fP elem1, const \fBacp_element_t\fP elem2))"
 .br
-.RI "\fISorting List type data\&. \fP"
+.RI "Sorting List type data\&. "
 .ti -1c
 .RI "void \fBacp_splice_list\fP (\fBacp_list_it_t\fP it1, \fBacp_list_it_t\fP it2)"
 .br
-.RI "\fISplice list type data\&. \fP"
+.RI "Splice list type data\&. "
 .ti -1c
 .RI "void \fBacp_splice_range_list\fP (\fBacp_list_it_t\fP it, \fBacp_list_it_t\fP start, \fBacp_list_it_t\fP end)"
 .br
-.RI "\fISpilice list with range\&. \fP"
+.RI "Spilice list with range\&. "
 .ti -1c
 .RI "void \fBacp_swap_list\fP (\fBacp_list_t\fP list1, \fBacp_list_t\fP list2)"
 .br
-.RI "\fISwap list type data\&. \fP"
+.RI "Swap list type data\&. "
 .ti -1c
 .RI "void \fBacp_unique_list\fP (\fBacp_list_t\fP list)"
 .br
-.RI "\fIUnique list type data\&. \fP"
+.RI "Unique list type data\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_advance_list_it\fP (\fBacp_list_it_t\fP it, int n)"
 .br
-.RI "\fIAdvancement of an iterator for list type data\&. \fP"
+.RI "Advancement of an iterator for list type data\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_decrement_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIDecrement an iterater of a list data\&. \fP"
+.RI "Decrement an iterater of a list data\&. "
 .ti -1c
 .RI "\fBacp_element_t\fP \fBacp_dereference_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIQuery of the global address of a reference of list tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of list tyep iterator\&. "
 .ti -1c
 .RI "int \fBacp_distance_list_it\fP (\fBacp_list_it_t\fP first, \fBacp_list_it_t\fP last)"
 .br
-.RI "\fIQuery of the distance of two iterators of list type data between 'first' and 'last'\&. \fP"
+.RI "Query of the distance of two iterators of list type data between 'first' and 'last'\&. "
 .ti -1c
 .RI "\fBacp_list_it_t\fP \fBacp_increment_list_it\fP (\fBacp_list_it_t\fP it)"
 .br
-.RI "\fIIncrement an iterater of a list data\&. \fP"
+.RI "Increment an iterater of a list data\&. "
+.ti -1c
+.RI "void \fBacp_assign_local_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.RI "Set type data assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 .br
-.RI "\fISet type data assignment\&. \fP"
+.RI "Set type data assignment\&. "
 .ti -1c
-.RI "void \fBacp_assign_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.RI "\fBacp_set_it_t\fP \fBacp_begin_local_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fISet assignment with range\&. \fP"
+.RI "Query for the local head iterator of a set\&. "
 .ti -1c
 .RI "\fBacp_set_it_t\fP \fBacp_begin_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fIQuery for the head iterator of a set\&. \fP"
-.ti -1c
-.RI "int \fBacp_bucket_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key)"
-.br
-.ti -1c
-.RI "int \fBacp_bucket_count_set\fP (\fBacp_set_t\fP set)"
-.br
-.ti -1c
-.RI "int \fBacp_bucket_size_set\fP (\fBacp_set_t\fP set, int index)"
-.br
+.RI "Query for the head iterator of a set\&. "
 .ti -1c
 .RI "void \fBacp_clear_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fISet elimination\&. \fP"
+.RI "Set elimination\&. "
 .ti -1c
 .RI "\fBacp_set_t\fP \fBacp_create_set\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
 .br
-.RI "\fISet creation\&. \fP"
+.RI "Set creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fISet destruction\&. \fP"
+.RI "Set destruction\&. "
+.ti -1c
+.RI "int \fBacp_empty_local_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "Query for local set empty\&. "
 .ti -1c
 .RI "int \fBacp_empty_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fIQuery for set empty\&. \fP"
+.RI "Query for set empty\&. "
+.ti -1c
+.RI "\fBacp_set_it_t\fP \fBacp_end_local_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "Query for the tail iterator of a set\&. "
 .ti -1c
 .RI "\fBacp_set_it_t\fP \fBacp_end_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fIQuery for the tail iterator of a set\&. \fP"
+.RI "Query for the tail iterator of a set\&. "
 .ti -1c
-.RI "\fBacp_set_it_t\fP \fBacp_erase_set\fP (\fBacp_set_it_t\fP it)"
+.RI "\fBacp_set_it_t\fP \fBacp_find_set\fP (\fBacp_set_t\fP set, \fBacp_element_t\fP key)"
 .br
-.RI "\fIErase a set element\&. \fP"
+.RI "Search for the key in set that matches with key\&. "
 .ti -1c
-.RI "\fBacp_set_it_t\fP \fBacp_erase_range_set\fP (\fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.RI "int \fBacp_insert_set\fP (\fBacp_set_t\fP set, \fBacp_element_t\fP key)"
 .br
-.RI "\fIDeletion of the set data from 'start' to 'end'\&. \fP"
+.RI "Insert a set element\&. "
 .ti -1c
-.RI "\fBacp_set_ib_t\fP \fBacp_find_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_merge_local_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 .br
+.RI "Merge the local keys\&. "
 .ti -1c
-.RI "\fBacp_set_ib_t\fP \fBacp_insert_set\fP (\fBacp_set_t\fP set, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_merge_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 .br
-.RI "\fIInsert a set element\&. \fP"
+.RI "Merge the keys\&. "
 .ti -1c
-.RI "\fBacp_set_ib_t\fP \fBacp_insert_range_set\fP (\fBacp_set_t\fP set, \fBacp_set_it_t\fP start, \fBacp_set_it_t\fP end)"
+.RI "void \fBacp_move_local_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 .br
-.RI "\fIInsertion of the set data from 'start' to 'end'\&. \fP"
+.RI "Move the local keys\&. "
+.ti -1c
+.RI "void \fBacp_move_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
+.br
+.RI "Move the keys\&. "
+.ti -1c
+.RI "void \fBacp_remove_set\fP (\fBacp_set_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Erase a set element\&. "
+.ti -1c
+.RI "size_t \fBacp_size_local_set\fP (\fBacp_set_t\fP set)"
+.br
+.RI "Query of the number ot local keys in the set\&. "
 .ti -1c
 .RI "size_t \fBacp_size_set\fP (\fBacp_set_t\fP set)"
 .br
-.RI "\fIQuery of the data size in the set\&. \fP"
+.RI "Query of the data size in the set\&. "
 .ti -1c
 .RI "void \fBacp_swap_set\fP (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 .br
-.RI "\fISwap set type data\&. \fP"
-.ti -1c
-.RI "\fBacp_set_it_t\fP \fBacp_advance_set_it\fP (\fBacp_set_it_t\fP it, int n)"
-.br
-.RI "\fIAdvancement of an iterator for set type data\&. \fP"
-.ti -1c
-.RI "\fBacp_set_it_t\fP \fBacp_decrement_set_it\fP (\fBacp_set_it_t\fP it)"
-.br
-.RI "\fIDecrement an iterater of a set data\&. \fP"
+.RI "Swap set type data\&. "
 .ti -1c
 .RI "\fBacp_element_t\fP \fBacp_dereference_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
-.RI "\fIQuery of the global address of a reference of set tyep iterator\&. \fP"
+.RI "Query of the global address of a reference of set tyep iterator\&. "
 .ti -1c
 .RI "\fBacp_set_it_t\fP \fBacp_increment_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
-.RI "\fIIncrement an iterater of a set data\&. \fP"
+.RI "Increment an iterater of a set data\&. "
+.ti -1c
+.RI "void \fBacp_assign_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.RI "Map local assignment\&. "
 .ti -1c
 .RI "void \fBacp_assign_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
+.RI "Map assignment\&. "
 .ti -1c
-.RI "void \fBacp_assign_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "\fBacp_map_it_t\fP \fBacp_begin_local_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the local iterator of the head of map data\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_begin_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the iterator of the head of map data\&. "
 .ti -1c
-.RI "int \fBacp_bucket_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_clear_local_map\fP (\fBacp_map_t\fP map)"
 .br
-.ti -1c
-.RI "int \fBacp_bucket_count_map\fP (\fBacp_map_t\fP map)"
-.br
-.ti -1c
-.RI "int \fBacp_bucket_size_map\fP (\fBacp_map_t\fP map, int index)"
-.br
+.RI "Delete elements of lists in a map type data\&. "
 .ti -1c
 .RI "void \fBacp_clear_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIDelete elements of lists in a map type data\&. \fP"
+.RI "Delete elements of lists in a map type data\&. "
 .ti -1c
 .RI "\fBacp_map_t\fP \fBacp_create_map\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
 .br
-.RI "\fIMap creation\&. \fP"
+.RI "Map creation\&. "
 .ti -1c
 .RI "void \fBacp_destroy_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIMap destruction\&. \fP"
+.RI "Map destruction\&. "
+.ti -1c
+.RI "int \fBacp_empty_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Query for the local map is empty or not\&. "
 .ti -1c
 .RI "int \fBacp_empty_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the map is empty or not\&. "
+.ti -1c
+.RI "\fBacp_map_it_t\fP \fBacp_end_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Loacl map end iterator\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_end_map\fP (\fBacp_map_t\fP map)"
 .br
-.RI "\fIMap end iterator\&. \fP"
+.RI "Map end iterator\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_erase_map\fP (\fBacp_map_it_t\fP it)"
+.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
 .br
+.RI "Map finding\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_erase_range_map\fP (\fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "int \fBacp_insert_map\fP (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
 .br
+.RI "Map creation\&. "
 .ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_find_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size)"
+.RI "void \fBacp_merge_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.RI "\fIMap finding\&. \fP"
+.RI "map type data local merge "
 .ti -1c
-.RI "\fBacp_map_ib_t\fP \fBacp_insert_map\fP (\fBacp_map_t\fP map, const \fBacp_ga_t\fP key, size_t key_size, const \fBacp_ga_t\fP value, size_t value_size)"
+.RI "void \fBacp_merge_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.RI "\fIMap creation\&. \fP"
+.RI "map type data merge "
 .ti -1c
-.RI "\fBacp_map_ib_t\fP \fBacp_insert_range_map\fP (\fBacp_map_t\fP map, \fBacp_map_it_t\fP start, \fBacp_map_it_t\fP end)"
+.RI "void \fBacp_move_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
+.RI "Move the local keys\&. "
+.ti -1c
+.RI "void \fBacp_move_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
+.br
+.RI "Move the keys\&. "
+.ti -1c
+.RI "void \fBacp_remove_map\fP (\fBacp_map_t\fP map, \fBacp_element_t\fP key)"
+.br
+.RI "Erase the key of map\&. "
+.ti -1c
+.RI "size_t \fBacp_retrieve_map\fP (\fBacp_map_t\fP map, \fBacp_pair_t\fP pair)"
+.br
+.RI "Retrieve the map\&. "
+.ti -1c
+.RI "size_t \fBacp_size_local_map\fP (\fBacp_map_t\fP map)"
+.br
+.RI "Query of the number ot local keys in the map\&. "
 .ti -1c
 .RI "size_t \fBacp_size_map\fP (\fBacp_map_t\fP map)"
 .br
+.RI "Query for the number of elements of map\&. "
 .ti -1c
 .RI "void \fBacp_swap_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br
-.ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_advance_map_it\fP (\fBacp_map_it_t\fP it, int n)"
-.br
-.ti -1c
-.RI "\fBacp_map_it_t\fP \fBacp_decrement_map_it\fP (\fBacp_map_it_t\fP it)"
-.br
+.RI "Swap map type data\&. "
 .ti -1c
 .RI "\fBacp_pair_t\fP \fBacp_dereference_map_it\fP (\fBacp_map_it_t\fP it)"
 .br
+.RI "Query for the element referenced by 'it'\&. "
 .ti -1c
 .RI "\fBacp_map_it_t\fP \fBacp_increment_map_it\fP (\fBacp_map_it_t\fP it)"
 .br
+.RI "Increment an iterater of a map data\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 

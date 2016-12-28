@@ -1,4 +1,4 @@
-.TH "GMA" 3 "Thu Jun 2 2016" "Version 2.0.0" "ACP Library" \" -*- nroff -*-
+.TH "GMA" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -29,62 +29,62 @@ GMA \- ACP Basic Layer Global Memory Access
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_copy\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, size_t size, \fBacp_handle_t\fP order)"
 .br
-.RI "\fICopy\&. \fP"
+.RI "Copy\&. "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_cas4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t oldval, uint32_t newval, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Compare and Swap \fP"
+.RI "4byte Compare and Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_cas8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t oldval, uint64_t newval, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Compare and Swap \fP"
+.RI "8byte Compare and Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_swap4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Swap \fP"
+.RI "4byte Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_swap8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Swap \fP"
+.RI "8byte Swap "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_add4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Add \fP"
+.RI "4byte Add "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_add8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte Add \fP"
+.RI "8byte Add "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_xor4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte Exclusive OR \fP"
+.RI "4byte Exclusive OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_xor8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_or4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte OR \fP"
+.RI "4byte OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_or8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte OR \fP"
+.RI "8byte OR "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_and4\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint32_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI4byte AND \fP"
+.RI "4byte AND "
 .ti -1c
 .RI "\fBacp_handle_t\fP \fBacp_and8\fP (\fBacp_ga_t\fP dst, \fBacp_ga_t\fP src, uint64_t value, \fBacp_handle_t\fP order)"
 .br
-.RI "\fI8byte AND \fP"
+.RI "8byte AND "
 .ti -1c
 .RI "void \fBacp_complete\fP (\fBacp_handle_t\fP handle)"
 .br
-.RI "\fICompletion of GMA\&. \fP"
+.RI "Completion of GMA\&. "
 .ti -1c
 .RI "int \fBacp_inquire\fP (\fBacp_handle_t\fP handle)"
 .br
-.RI "\fIQuery for the completion of GMA\&. \fP"
+.RI "Query for the completion of GMA\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 

@@ -12,34 +12,34 @@
 
 import os, sys, socket, re, copy, time
 
-ENVNETWORK       = "@NETDEV@"
-REMOTESHELL      = "ssh"
+ENVNETWORK         = "@NETDEV@"
+REMOTESHELL        = "ssh"
 
-VERSION          = "@VERSION@"
-STARTER_MEMSIZE  = 1024
+VERSION            = "@VERSION@"
+STARTER_MEMSIZE    = 1024
 STARTER_MEMSIZE_CL = 1024
 STARTER_MEMSIZE_DL = 1024
-PORTID_START     = 44256
-TASKID           = 100
-LST_ENVNETWORK   = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
-STR_ENVNETWORK   = "ACP_ENVNET"
-STR_ENVMYRANK    = "ACP_MYRANK"
-STR_ENVLPORT     = "ACP_LPORT"
-STR_ENVRPORT     = "ACP_RPORT"
-STR_ENVRHOST     = "ACP_RHOST"
-STR_ENVNPROCS    = "ACP_NUMPROCS"
-STR_ENVSMSIZE    = "ACP_STARTER_MEMSIZE"
-STR_ENVTASKID    = "ACP_TASKID"
-STR_PORTFILEBASE = "Portfile"
-STR_NODEFILEBASE = "Nodefile"
+PORTID_START       = 44256
+TASKID             = 100
+LST_ENVNETWORK     = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
+STR_ENVNETWORK     = "ACP_ENVNET"
+STR_ENVMYRANK      = "ACP_MYRANK"
+STR_ENVLPORT       = "ACP_LPORT"
+STR_ENVRPORT       = "ACP_RPORT"
+STR_ENVRHOST       = "ACP_RHOST"
+STR_ENVNPROCS      = "ACP_NUMPROCS"
+STR_ENVSMSIZE      = "ACP_STARTER_MEMSIZE"
+STR_ENVTASKID      = "ACP_TASKID"
+STR_PORTFILEBASE   = "Portfile"
+STR_NODEFILEBASE   = "Nodefile"
 #
-STR_COMM_ACPRUN  = "acprun"
+STR_COMM_ACPRUN    = "acprun"
 
 
-DEBUG_MODE       = False ## or True
-DEBUG_LEVEL      = 1000  ## change to >200
+DEBUG_MODE         = False ## or True
+DEBUG_LEVEL        = 1000  ## change to >200
 ####
-EXECUTE_COMMAND  = True  ## False
+EXECUTE_COMMAND    = True  ## False
 ####
 
 OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
@@ -164,17 +164,17 @@ class MAcprun:
     #########################################################
     def print_help( self ):
         print( "%s [Opts] Inputfile" % self.myname )
-        print( "Opts: -np NPROCS                          or --acp-nprocs=NPROCS                      (default: 1)" )
-        print( "    : -nodefile NODEFILENAME              or --acp-nodefile=NODEFILENAME              (default: calc inside 1 node)" )
-        print( "    : -host HOST1,HOST2,...               or --acp-host=HOST1,HOST2,...               (default: host value overwrites nodefile info.) " )
-        print( "    : -startermemsize STARTER_MEMORY_SIZE or --acp-startermemsize=STARTER_MEMORY_SIZE (default: %d Bytes) " % STARTER_MEMSIZE )
-        print( "    : -startermemsize-cl STARTER_MEMORY_SIZE_CL or --acp-startermemsize-cl=STARTER_MEMORY_SIZE_CL (default: %d Bytes) " % STARTER_MEMSIZE_CL )
-        print( "    : -startermemsize-dl STARTER_MEMORY_SIZE_DL or --acp-startermemsize-dl=STARTER_MEMORY_SIZE_DL (default: %d Bytes) " % STARTER_MEMSIZE_DL )
-        print( "    : -net/-ndev/-envnet ENVNETWORK       or --acp-envnet=ENVNETWORK                  (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "Opts: -np NPROCS                                or --acp-nprocs=NPROCS                            (default: 1)" )
+        print( "    : -nodefile NODEFILENAME                    or --acp-nodefile=NODEFILENAME                    (default: calc inside 1 node)" )
+        print( "    : -host HOST1,HOST2,...                     or --acp-host=HOST1,HOST2,...                     (default: host value overwrites nodefile info.) " )
+        print( "    : -startermemsize STARTER_MEMORY_SIZE       or --acp-startermemsize=STARTER_MEMORY_SIZE       (default: %d Bytes) "             % STARTER_MEMSIZE )
+        print( "    : -startermemsize-cl STARTER_MEMORY_SIZE_CL or --acp-startermemsize-cl=STARTER_MEMORY_SIZE_CL (default: %d Bytes) "             % STARTER_MEMSIZE_CL )
+        print( "    : -startermemsize-dl STARTER_MEMORY_SIZE_DL or --acp-startermemsize-dl=STARTER_MEMORY_SIZE_DL (default: %d Bytes) "             % STARTER_MEMSIZE_DL )
+        print( "    : -net/-ndev/-envnet ENVNETWORK             or --acp-envnet=ENVNETWORK                        (default: %s. specify UDP or IB)" % ENVNETWORK )
         print( "    : --acp-version" )
         print( "    : --acp-help" )
         print( "Memo: 1. Other --acp-* options are errors." )
-        print( "    : 2. All options for %s have to be before inputfile." % self.myname )
+        print( "    : 2. All options for %s have to be before Inputfile." % self.myname )
         sys.exit( "" )
 
     #########################################################
@@ -585,11 +585,11 @@ class MAcprun:
             if ( basename_comm == STR_COMM_ACPRUN ):
                 if ( self.flg_localmode ):
                     self.comms_runtime.append(
-                                "%s --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                "%s --acp-multirun --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
                                 ( self.runtimes[ i ], self.nprocs[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
                 else:
                     self.comms_runtime.append(
-                                "%s --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
+                                "%s --acp-multirun --acp-nprocs=%d --acp-portfile=%s --acp-offsetrank=%d %s" % \
                                 ( self.runtimes[ i ], self.nprocs[ i ], self.portfile, self.offsets_rank[ i ] , self.commands[ i ] ) )
             else:
                 if ( self.flg_localmode ):

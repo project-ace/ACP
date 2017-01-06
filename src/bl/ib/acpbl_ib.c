@@ -3183,10 +3183,19 @@ static void *comm_thread_func(void *dm){
                 }/* wc.wr_id & MASK_WRID_ACK is equel to MASK_WRID_ACK */
             }/* wc.status is IBV_WC_SUCCESS */
             else {
-                fprintf(stderr, 
-                        "%d: wc %lx is not SUCESS when check CQ %d\n", 
-                        myrank, wc.wr_id, wc.status);
-                exit(-1);
+	      if (wc.wr_id & MAX_RCMDB_SIZE == MAX_RCMDB_SIZE ) {
+		uint64_t ch_index, chidx;
+		
+		ch_index = wc.wr_id - MAX_RCMDB_SIZE ;
+		chidx = ch_index % MAX_RCMDB_SIZE;
+		rcmdbuf[chidx].stat = CMD_UNISSUED;
+	      }
+	      else {
+		fprintf(stderr, 
+			"%d: wc %lx is not SUCESS when check CQ %d\n", 
+			myrank, wc.wr_id, wc.status);
+		exit(-1);
+	      }
             }
         }
         /* CHECK COMMAND QUEUE section */
@@ -4125,16 +4134,21 @@ int iacp_init(void){
     fprintf(stdout, "RM %lu, CMD %lu\n ", sizeof(RM), sizeof(CMD));
     fflush(stdout);
 #endif
-
+        
     /* sysmem size */
     syssize = acp_smsize_adj + sizeof(RM) * (MAX_RM_SIZE) * 2  + sizeof(uint64_t) * 4 +
         sizeof(CMD) * MAX_CMDQ_ENTRY + sizeof(CMD) * MAX_RCMDB_SIZE + sizeof(CMD) * MAX_CMDQ_ENTRY +
         ncharflagtb_adj + acp_smdlsize_adj + acp_smclsize_adj;	
     
     /* malloc sysmem */
+#ifdef DEBUG
+    fprintf(stdout, "%d: pre sysmem  malloc %zu bytes to memory buffer\n", acp_myrank, syssize);
+    fflush(stdout);
+#endif
     sysmem = (char *) malloc(syssize);
+    
     if (NULL == sysmem ) {
-        fprintf(stderr, "failed to malloc %d bytes to memory buffer\n", 
+        fprintf(stderr, "failed to malloc %zu bytes to memory buffer\n", 
                 syssize);
         rc = -1;
         goto exit;
@@ -4150,6 +4164,8 @@ int iacp_init(void){
         /* entry non active */
         lrmtb[i].valid = false;
     }
+
+    
     /* initalize revcieve local rkey memory */
     recv_lrmtb = (RM *) ((char *)lrmtb + sizeof(RM) * MAX_RM_SIZE );
     offset_recv_lrmtb = offset_lrmtb + sizeof(RM) * MAX_RM_SIZE;
@@ -4213,13 +4229,14 @@ int iacp_init(void){
     offset_acp_buf_cl = offset_acp_buf_dl + acp_smdlsize_adj;
     
 #ifdef DEBUG
-    fprintf(stderr, 
-            "sm %p acp_cl_buf %p syssize %d sm + syssize %p, offset_acp_buf_vd %lu %d\n", 
-            sysmem, (char *)acp_buf_cl + acp_smclsize_adj, 
+    fprintf(stdout, 
+            "%d: sm %p acp_cl_buf %p syssize %zu sm + syssize %p, offset_acp_buf_vd %lu %d\n", 
+            acp_myrank, 
+	    sysmem, (char *)acp_buf_cl + acp_smclsize_adj, 
             syssize, sysmem + syssize, offset_acp_buf_cl, sizeof(CMD));
-    fflush(stderr);
+    fflush(stdout);
 #endif
-    
+
     /* remote register memory table */
     if(acp_numprocs > MAX_RKEY_CASH_SIZE){
         rkey_cache_size = MAX_RKEY_CASH_SIZE;
@@ -4838,6 +4855,11 @@ int acp_init(int *argc, char ***argv)
 ///
     int rc = 0 ; /* return code */
     acpbl_input_t *ait ;
+
+#ifdef DEBUG    
+    fprintf(stdout, "acp_init() start\n");
+    fflush(stdout);
+#endif
 ///
     ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
 ///
@@ -4855,6 +4877,7 @@ int acp_init(int *argc, char ***argv)
     ///fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
     ///fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",
     ///        acp_myrank, acp_numprocs, acp_taskid, my_port, dst_port, dst_addr, acp_smsize, iacp_starter_memory_size_cl, iacp_starter_memory_size_dl ) ;
+    ///fflush(stdout);
 ///
 #ifdef DEBUG
     fprintf(stdout, 
@@ -4863,7 +4886,6 @@ int acp_init(int *argc, char ***argv)
             my_port, dst_port, dst_addr);
     fflush(stdout);
 #endif
-    
     ///exit ( 1 ) ;
     rc = iacp_init();
     

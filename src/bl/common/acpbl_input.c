@@ -194,6 +194,7 @@ static int copy_arg( char *opt, char *optarg, int ir_default_opts, acpbl_input_t
 static int mygetopt_long_only( int *argc, char ***argv, acpbl_input_t *ait )
 {
     int i, ir, ind ;
+    ait->argc = 0 ;
     ait->argv = ( char ** ) malloc( (*argc) * sizeof( char ** ) ) ;
     for ( i = 0 ; i < (*argc) ; i++ ) {
         ait->argv[ i ] = ( char * ) malloc( (*argc) * sizeof( char * ) ) ;

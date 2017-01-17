@@ -1788,7 +1788,7 @@ extern void acp_reserve_vector(acp_vector_t vector, size_t size);
  * @EN
  * @brief Query of the data size in the vector
  *
- * @param vector A referenc of the vector data
+ * @param vector A reference of the vector data
  * @retval size_t The data size in the vector
  * @ENDL
  */
@@ -2295,7 +2295,7 @@ extern void acp_reserve_deque(acp_deque_t deque, size_t size);
  * @EN
  * @brief Query of the data size in the deque
  *
- * @param deque A referenc of the deque data
+ * @param deque A reference of the deque data
  * @retval size_t The data size in the deque
  * @ENDL
  */
@@ -2580,9 +2580,9 @@ extern acp_list_it_t acp_end_list(acp_list_t list);
  *
  * 指定した位置の要素をリスト型データから削除する。
  *
- * @param it 削除する要素を指すリスト型イテレータ
+ * @param it 削除する要素を指すリストイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 削除した要素の直後の要素を指すリスト型イテレータ
+ * @retval 以外 削除した要素の直後の要素を指すリストイテレータ
  *
  * @EN
  * @brief Erase a list element
@@ -2622,11 +2622,11 @@ extern acp_list_it_t acp_erase_range_list(acp_list_it_t start, acp_list_it_t end
  *
  * 指定したプロセスに要素をコピーし、リスト型データの指定位置に挿入する。
  *
- * @param it リスト型のイテレータ
+ * @param it リストイテレータ
  * @param elem 新しい要素に格納するデータ
  * @param rank 要素を複製するプロセス
  * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 挿入された要素を指すリスト型イテレータ
+ * @retval 以外 挿入された要素を指すリストイテレータ
  *
  * @EN
  * @brief Insert a list element
@@ -2814,7 +2814,7 @@ extern void acp_reverse_list(acp_list_t list);
  * @EN
  * @brief Query of the data size in the list
  *
- * @param list A referenc of the list data
+ * @param list A reference of the list data
  * @retval size_t The data size in the list
  * @ENDL
  */
@@ -2940,9 +2940,9 @@ extern acp_list_it_t acp_advance_list_it(acp_list_it_t it, int n);
 
 /**
  * @JP
- * @brief リスト先頭イテレータ減算
+ * @brief リストイテレータ減算
  *
- * リスト型イテレータを一つ減少させる。
+ * リストイテレータを一つ減少させる。
  *
  * @param it リスト型データの参照
  * @retval "member elem == ACP_GA_NULL" 失敗
@@ -3000,9 +3000,9 @@ extern int acp_distance_list_it(acp_list_it_t first, acp_list_it_t last);
 
 /**
  * @JP
- * @brief リスト先頭イテレータ加算
+ * @brief リストイテレータ加算
  *
- * リスト型イテレータを一つ増加させる。
+ * リストイテレータを一つ増加させる。
  *
  * @param it リスト型データのイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗
@@ -3046,11 +3046,6 @@ typedef struct {
     int slot;
     acp_ga_t elem;
 } acp_set_it_t;	/*!< Iterater of set data type. */
-
-typedef struct {
-    acp_set_it_t it;
-    int success;
-} acp_set_ib_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -3257,7 +3252,7 @@ extern int acp_empty_set(acp_set_t set);
  *
  * @param set セット型データの参照
  * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 要素の直後の要素を指すセット型イテレータ
+ * @retval 以外 要素の直後の要素を指すセットイテレータ
  *
  * @EN
  * @brief Query for the tail iterator of a set
@@ -3280,7 +3275,7 @@ extern acp_set_it_t acp_end_local_set(acp_set_t set);
  *
  * @param set セット型データの参照
  * @retval "member elem == ACP_GA_NULL" 失敗
- * @retval 以外 要素の直後の要素を指すセット型イテレータ
+ * @retval 以外 要素の直後の要素を指すセットイテレータ
  *
  * @EN
  * @brief Query for the tail iterator of a set
@@ -3325,18 +3320,16 @@ extern acp_set_it_t acp_find_set(acp_set_t set, acp_element_t key);
  *
  * @param set セット型データへの参照
  * @param key 挿入するキー
- * @retval "member success == 1" 成功
- * @retval "member success == 0" 失敗
- * @retval "member it" 挿入したキーを差すイテレータ
+ * @retval 1 成功
+ * @retval 0 失敗
  *
  * @EN
  * @brief Insert a set element
  *
  * @param set A reference of set type data
  * @param key An inserting key
- * @retval "member success == 1" Success
- * @retval "member success == 0" Fail
- * @retval "member it" An iterator for the iserted key
+ * @retval 1 Success
+ * @retval 0 Fail
  * @ENDL
  */
 extern int acp_insert_set(acp_set_t set, acp_element_t key);
@@ -3455,7 +3448,7 @@ extern void acp_remove_set(acp_set_t set, acp_element_t key);
  * @EN
  * @brief Query of the number ot local keys in the set
  *
- * @param set A referenc of the set data
+ * @param set A reference of the set data
  * @retval size_t Numbers of keys
  * @ENDL
  */
@@ -3473,7 +3466,7 @@ extern size_t acp_size_local_set(acp_set_t set);
  * @EN
  * @brief Query of the data size in the set
  *
- * @param set A referenc of the set data
+ * @param set A reference of the set data
  * @retval size_t The data size in the set
  * @ENDL
  */
@@ -3502,25 +3495,27 @@ extern void acp_swap_set(acp_set_t set1, acp_set_t set2);
  * @JP
  * @brief セットイテレータ間接参照
  *
- * セットイテレータの参照先グローバルアドレスを返す。
+ * セットイテレータの参照先のキーを返す。
  *
  * @param it セットデータのイテレータ
- * @retval acp_ga_t セットイテレータの参照先グローバルアドレス
+ * @retval member ga 参照先キーのグローバルアドレス
+ * @retval member size 参照先キーのサイズ
  *
  * @EN
- * @brief Query of the global address of a reference of set tyep iterator
+ * @brief Query of the key of a reference of set tyep iterator
  *
  * @param it The iterator of set type data
- * @retval acp_ga_t The global address of a reference of set type iterator 
+ * @retval member ga The global address of the key referenced by the specified iterator
+ * @retval member size The size of the key referenced by the specified iterator
  * @ENDL
  */
 extern acp_element_t acp_dereference_set_it(acp_set_it_t it);
 
 /**
  * @JP
- * @brief セット先頭イテレータ加算
+ * @brief セットイテレータ加算
  *
- * セット型イテレータを一つ増加させる。
+ * セットイテレータを一つ増加させる。
  *
  * @param it セット型データのイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗
@@ -3541,6 +3536,549 @@ extern acp_set_it_t acp_increment_set_it(acp_set_it_t it);
 }
 #endif
 /*@}*/ /* Set */
+
+/* Multi-set */
+/**
+ * @defgroup set ACP Middle Layer Dara Library Multiset
+ * @ingroup acpdl
+ * 
+ * ACP Middle Layer Data Library Multiset
+ *
+ * @{
+ */
+
+typedef struct {
+    acp_ga_t ga;
+    uint64_t num_ranks;
+    uint64_t num_slots;
+} acp_multiset_t;	/*!< Multiset data type. */
+
+typedef struct {
+    acp_multiset_t set;
+    int rank;
+    int slot;
+    acp_ga_t elem;
+} acp_multiset_it_t;	/*!< Iterater of multiset data type. */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/**
+ * @JP
+ * @brief マルチセットローカル代入
+ *
+ * 自プロセスに配置されたキーをコピーする。以前のデータは破棄される。
+ *
+ * @param set1 コピー先マルチセット型データの参照
+ * @param set2 コピー元マルチセット型データの参照
+ *
+ * @EN
+ * @brief Multiset type data assignment
+ *
+ * Among the keys of set2, copy the keys that are allocated in the
+ * caller process. Keys of the destination set (set1) are destroyed.
+ *
+ * @param set1 A reference of destination multiset data.
+ * @param set2 A reference of source multiset data.
+ * @ENDL
+ */
+extern void acp_assign_local_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセット代入
+ *
+ * マルチセット間でデータをコピーする。以前のデータは破棄される。
+ *
+ * @param set1 コピー先マルチセット型データの参照
+ * @param set2 コピー元マルチセット型データの参照
+ *
+ * @EN
+ * @brief Multiet type data assignment
+ *
+ * Copy keys of set2. Keys of the destination set (set1) are destroyed.
+ *
+ * @param set1 A reference of destination multiset data.
+ * @param set2 A reference of source multiset data.
+ * @ENDL
+ */
+extern void acp_assign_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセットローカル先頭イテレータ
+ *
+ * 自プロセスに配置されたキーの先頭を指すイテレータを返す。
+ *
+ * @param set マルチセット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the local head iterator of a set
+ *
+ * Among the keys of set, query for the first key of the keys that are
+ * allocated in the caller process.
+ *
+ * @param set A reference of multiset type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the multiset.
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_begin_local_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット先頭イテレータ取得
+ *
+ * マルチセット型データの先頭要素を指すイテレータを取得する。
+ *
+ * @param set マルチセット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 先頭イテレータ
+ *
+ * @EN
+ * @brief Query for the head iterator of a multiset
+ *
+ * 
+ *
+ * @param set A reference of multiset type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The head iterator of the multiset.
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_begin_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット消去
+ *
+ * マルチセットのサイズを０にする。
+ *
+ * @param set マルチセット型データの参照
+ *
+ * @EN
+ * @brief Multiset elimination
+ *
+ * Set the size of the multiset to be zero.
+ *
+ * @param set A reference of multiset data.
+ * @ENDL
+ */
+extern void acp_clear_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット生成
+ *
+ * 任意のプロセスでマルチセット型データを生成する。
+ *
+ * @param num_ranks バケットを配置するプロセス数
+ * @param ranks バケットを配置するプロセスのランク番号配列
+ * @param num_slots 1プロセスあたりのバケットスロット数
+ * @param rank マルチセットの制御情報を配置するランク番号
+ * @retval "member ga == ACP_GA_NULL" 失敗
+ * @retval 以外 生成したセット型データの参照
+ *
+ * @EN
+ * @brief Multiet creation
+ *
+ * Creates a multiset type data on any process.
+ *
+ * @param num_ranks A process number for assigning buckets
+ * @param ranks An array of rank number for assigning buckets
+ * @param num_slots A number of bucket slot for one process
+ * @param rank The rank number where has the control information of a multiset
+ * @retval "member ga == ACP_GA_NULL" Fail
+ * @retval otherwise A reference of created set data.
+ * @ENDL
+ */
+extern acp_multiset_t acp_create_multiset(int num_ranks, const int* ranks, int num_slots, int rank);
+
+/**
+ * @JP
+ * @brief マルチセット破棄
+ *
+ * マルチセット型データを破棄する。
+ *
+ * @param set マルチセット型データの参照
+ *
+ * @EN
+ * @brief Multiset destruction
+ *
+ * Destroies a multiset type data.
+ *
+ * @param set A reference of multiset data.
+ * @ENDL
+ */
+extern void acp_destroy_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセットローカル空チェック
+ *
+ * マルチセットに自プロセスに配置されたキーがないかどうかを返す。
+ *
+ * @param set マルチセット型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for local multiset empty
+ *
+ * Query if, among the keys of multiset, the number of keys that are
+ * allocated in the caller process is zero.
+ *
+ * @param set A reference of multiset data.  
+ * @retval 1 Empty 
+ * @retval 0 There is a multiset data 
+ * @ENDL
+ */
+extern int acp_empty_local_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット空チェック
+ *
+ * マルチセットが空かどうかを返す。
+ *
+ * @param set マルチセット型データの参照
+ * @retval 1 空
+ * @retval 0 データが存在する
+ *
+ * @EN
+ * @brief Query for multiset empty
+ *
+ * @param set A reference of multiset data.
+ * @retval 1 Empty
+ * @retval 0 There is a multiset data
+ * @ENDL
+ */
+extern int acp_empty_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセットローカル後端イテレータ取得
+ *
+ * マルチセット型データの後端要素を指すイテレータを取得する。
+ *
+ * @param set マルチセット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 要素の直後の要素を指すマルチセットイテレータ
+ *
+ * @EN
+ * @brief Query for the tail iterator of a multiset
+ *
+ * Among the keys of multiset, query for the last key of the keys 
+ * that are allocated in the caller process.
+ *
+ * @param set A reference of multiset type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the behind of the last element 
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_end_local_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット後端イテレータ取得
+ *
+ * マルチセット型データの後端要素を指すイテレータを取得する。
+ *
+ * @param set マルチセット型データの参照
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 要素の直後の要素を指すマルチセットイテレータ
+ *
+ * @EN
+ * @brief Query for the tail iterator of a multiset
+ *
+ * 
+ *
+ * @param set A reference of multiset type data.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval oterhwise The iterator that points to the behind of the last element 
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_end_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット検索
+ *
+ * 一致するキーを検索する。
+ *
+ * @param set マルチセット型データへの参照
+ * @param key 検索するキー
+ * @retval イテレータ　一致したキーを指すイテレータ
+ * @retval イテレータ　一致したキーがない場合は末尾イテレータ
+ *
+ * @EN
+ * @brief Search for the key in multiset that matches with key.
+ *
+ * @param set A reference of multiset type data
+ * @param key Key
+ * @retval iterator An iterator of the key that matches with key.
+ * @retval iterator The end of the iterator.
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_find_multiset(acp_multiset_t set, acp_element_t key);
+
+/**
+ * @JP
+ * @brief マルチセット挿入
+ *
+ * マルチセットに新しいキーを挿入する。
+ * 既にキーが存在する場合は、カウンタ値が1加算される。
+ *
+ * @param set マルチセット型データへの参照
+ * @param key 挿入するキー
+ * @retval 1 成功
+ * @retval 0 失敗
+ *
+ * @EN
+ * @brief Insert a multiset element
+ *
+ * Insert the key to the multiset or increment the counter value of the key
+ * if the key already exists in the multiset
+ *
+ * @param set A reference of multiset type data
+ * @param key An inserting key
+ * @retval 1 Success
+ * @retval 0 Fail
+ * @ENDL
+ */
+extern int acp_insert_multiset(acp_multiset_t set, acp_element_t key);
+
+/**
+ * @JP
+ * @brief マルチセットローカル併合
+ *
+ * 自プロセスに配置されたキーを併合する。
+ *
+ * @param set1 併合先マルチセット型データへの参照
+ * @param set2 併合元マルチセット型データへの参照
+ *
+ * @EN
+ * @brief Merge the local keys
+ *
+ * Among the keys of set2, merge the keys that are allocated 
+ * in the caller process to set1.
+ *
+ * @param set1 A reference of the destination multiset type data
+ * @param set2 A reference of the source multiset type data
+ * @ENDL
+ */
+extern void acp_merge_local_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセット併合
+ *
+ * 併合元マルチセットの全要素を併合先マルチセットに併合する。
+ *
+ * @param set1 併合先マルチセット型データへの参照
+ * @param set2 併合元マルチセット型データへの参照
+ *
+ * @EN
+ * @brief Merge the keys
+ *
+ * Merge set2 to set1.
+ *
+ * @param set1 A reference of the destination multiset type data
+ * @param set2 A reference of the source multiset type data
+ * @ENDL
+ */
+extern void acp_merge_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセットローカル移動
+ *
+ * 自プロセスに配置されたキーを移動する。
+ *
+ * @param set1 移動先マルチセット型データへの参照
+ * @param set2 移動元マルチセット型データへの参照
+ *
+ * @EN
+ * @brief Move the local keys
+ *
+ * Among the keys of set2, move the keys that are allocated 
+ * in the caller process to set1.
+ *
+ * @param set1 A reference of the destination multiset type data
+ * @param set2 A reference of the source multiset type data
+ * @ENDL
+ */
+extern void acp_move_local_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセット移動
+ *
+ * 移動元マルチセットの全要素を移動先マルチセットに移動する。
+ *
+ * @param set1 移動先マルチセット型データへの参照
+ * @param set2 移動元マルチセット型データへの参照
+ *
+ * @EN
+ * @brief Move the keys
+ *
+ * Move the keys of set2 to set1.
+ *
+ * @param set1 A reference of the destination multiset type data
+ * @param set2 A reference of the source multiset type data
+ * @ENDL
+ */
+extern void acp_move_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセット除去
+ *
+ * マルチセットからキーを削除する。
+ * カウンタ値が2以上の場合、カウンタ値を1減算し、キーは削除しない。
+ *
+ * @param set マルチセット
+ * @param key 削除する key
+ *
+ * @EN
+ * @brief Erase a multiset element
+ *
+ * Delete the key of multiset that matches with key, or decrement
+ * the counter value of the key if the value is equal or greater than two.
+ *
+ * @param set multiset
+ * @param key key
+ * @ENDL
+ */
+extern void acp_remove_multiset(acp_multiset_t set, acp_element_t key);
+
+/**
+ * @JP
+ * @brief マルチセット取得
+ *
+ * キーが一致する要素のカウンタ値を取得する。
+ *
+ * @param set マルチセットデータの参照
+ * @param key キー
+ * @retval 0 一致したキーなし
+ * @retval カウンタ値
+ *
+ * @EN
+ * @brief Retrieve the map
+ *
+ * From multiset, retrieve the counter value of the stored key
+ * that matches with the specified key.
+ *
+ * @param map A reference of the multiset data
+ * @param key key
+ * @retval 0 No matching key.
+ * @retval Counter value.
+ * @ENDL
+ */
+extern uint64_t acp_retrieve_multiset(acp_multiset_t set, acp_element_t key);
+
+/**
+ * @JP
+ * @brief マルチセットローカルサイズ
+ *
+ * 自プロセスに配置されているキーの数を返す。
+ *
+ * @param set マルチセットデータの参照
+ * @retval size_t 自プロセスに配置されているキーの数
+ *
+ * @EN
+ * @brief Query of the number ot local keys in the multiset
+ *
+ * @param set A reference of the multiset data
+ * @retval size_t Numbers of keys
+ * @ENDL
+ */
+extern size_t acp_size_local_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセットサイズ
+ *
+ * マルチセットに格納しているデータのサイズを返す。
+ *
+ * @param set マルチセットデータの参照
+ * @retval size_t セットに格納しているデータのサイズ
+ *
+ * @EN
+ * @brief Query of the data size in the multiset
+ *
+ * @param set A reference of the multiset data
+ * @retval size_t The data size in the multiset
+ * @ENDL
+ */
+extern size_t acp_size_multiset(acp_multiset_t set);
+
+/**
+ * @JP
+ * @brief マルチセット交換
+ *
+ * ２つのマルチセット型データの内容を交換する。
+ *
+ * @param set1 交換するマルチセット型データの一方の参照
+ * @param set2 交換するマルチセット型データのもう一方の参照
+ * 
+ * @EN
+ * @brief Swap multiset type data
+ *
+ * @param set1 A reference of multiset data to be swapped.
+ * @param set2 Another reference of multiset data to be swapped.
+ *
+ * @ENDL
+ */
+extern void acp_swap_multiset(acp_multiset_t set1, acp_multiset_t set2);
+
+/**
+ * @JP
+ * @brief マルチセットイテレータ間接参照
+ *
+ * マルチセットイテレータの参照先のキーを返す。
+ *
+ * @param it マルチセットデータのイテレータ
+ * @retval member ga 参照先キーのグローバルアドレス
+ * @retval member size 参照先キーのサイズ
+ *
+ * @EN
+ * @brief Query of the key of a reference of multiset tyep iterator
+ *
+ * @param it The iterator of multiset type data
+ * @retval member ga The global address of the key referenced by the specified iterator
+ * @retval member size The size of the key referenced by the specified iterator
+ * @ENDL
+ */
+extern acp_element_t acp_dereference_multiset_it(acp_multiset_it_t it);
+
+/**
+ * @JP
+ * @brief マルチセットイテレータ加算
+ *
+ * マルチセットイテレータを一つ増加させる。
+ *
+ * @param it マルチセット型データのイテレータ
+ * @retval "member elem == ACP_GA_NULL" 失敗
+ * @retval 以外 インクリメントしたイテレータ
+ *
+ * @EN
+ * @brief Increment an iterater of a multiset data
+ *
+ *
+ * @param it A reference of multiset type iterator.
+ * @retval "member elem == ACP_GA_NULL" Fail
+ * @retval otherwise The next iterator of the specified one.
+ * @ENDL
+ */
+extern acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it);
+
+#ifdef __cplusplus
+}
+#endif
+/*@}*/ /* Multiset */
 
 /* Map */
 /**
@@ -3995,7 +4533,7 @@ extern void acp_remove_map(acp_map_t map, acp_element_t key);
  * key in pair. The value of the element is copied in the second 
  * member of the pair.
  *
- * @param map A referenc of the map data
+ * @param map A reference of the map data
  * @param pair Pair of the key and the buffer for retrieving value.
  * @retval size_t Size of the data retrieved to the buffer in the pair.
  * @retval 0 No matching key.
@@ -4018,7 +4556,7 @@ extern size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair);
  * Among the elements of map, query for the number of elements 
  * that are allocated in the caller process.
  *
- * @param map A referenc of the map data
+ * @param map A reference of the map data
  * @retval size_t Numbers of elements
  * @ENDL
  */
@@ -4036,7 +4574,7 @@ extern size_t acp_size_local_map(acp_map_t map);
  * @EN
  * @brief Query for the number of elements of map
  *
- * @param map A referenc of the map data
+ * @param map A reference of the map data
  * @retval size_t Number of elements.
  * @ENDL
  */
@@ -4076,7 +4614,7 @@ extern void acp_swap_map(acp_map_t map1, acp_map_t map2);
  * @brief Query for the element referenced by "it".
  *
  * @param it Iterator of a map.
- * @retval The element referenced by it
+ * @retval The key and value pair referenced by it
  * @ENDL
  */
 extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
@@ -4085,7 +4623,7 @@ extern acp_pair_t acp_dereference_map_it(acp_map_it_t it);
  * @JP
  * @brief マップイテレータ加算
  *
- * マップ型イテレータを一つ増加させる。
+ * マップイテレータを一つ増加させる。
  *
  * @param it マップ型データのイテレータ
  * @retval "member elem == ACP_GA_NULL" 失敗

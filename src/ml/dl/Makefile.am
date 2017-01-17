@@ -15,6 +15,7 @@ libacpml_dl_la_SOURCES = \
 			 acpdl_deque.c \
 			 acpdl_list.c \
 			 acpdl_set.c \
+			 acpdl_multiset.c \
 			 acpdl_map.c \
 			 acpdl_ws.c \
 			 acpbl.h

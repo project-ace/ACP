@@ -109,7 +109,7 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
 libacpml_dl_la_LIBADD =
-am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_vector.lo acpdl_deque.lo acpdl_list.lo acpdl_set.lo acpdl_map.lo acpdl_ws.lo
+am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_vector.lo acpdl_deque.lo acpdl_list.lo acpdl_set.lo acpdl_multiset.lo acpdl_map.lo acpdl_ws.lo
 libacpml_dl_la_OBJECTS = $(am_libacpml_dl_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -327,6 +327,7 @@ libacpml_dl_la_SOURCES = \
 			 acpdl_deque.c \
 			 acpdl_list.c \
 			 acpdl_set.c \
+			 acpdl_multiset.c \
 			 acpdl_map.c \
 			 acpdl_ws.c \
 			 acpbl.h
@@ -391,6 +392,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_deque.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_set.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_multiset.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_map.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_ws.Plo@am__quote@
 

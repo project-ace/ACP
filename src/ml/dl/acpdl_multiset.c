@@ -1671,7 +1671,7 @@ void acp_remove_multiset(acp_multiset_t set, acp_element_t key)
         acp_copy(buf_elem, ga_elem, size_elem, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
         ga_next_elem = elem[0];
-        if (elem[2] == size_new_key) {
+        if (elem[3] == size_new_key) {
             acp_copy(buf_elem_key, ga_elem + size_elem, size_new_key, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
             uint8_t* p1 = (uint8_t*)elem_key;

@@ -1102,7 +1102,7 @@ int acp_insert_set(acp_set_t set, acp_element_t key)
                 acp_copy(ga_lock_var, buf_lock_var, size_lock_var, ACP_HANDLE_NULL);
                 acp_complete(ACP_HANDLE_ALL);
                 acp_free(buf);
-                return 0;
+                return 1;
             }
         }
     }

@@ -168,6 +168,13 @@ static int init_shmbuffer()
         shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP;
     else
         shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t) + sizeof(rxbuf_t)) * NODE_POP;
+    size_t segcl_size = iacp_starter_memory_size_cl * NODE_POP;
+    size_t segdl_size = iacp_starter_memory_size_dl * NODE_POP;
+    size_t segst_size = SMEM_SIZE * NODE_POP;
+    size_t segcl_offset = shmbuf_size;
+    size_t segdl_offset = segcl_offset + segcl_size;
+    size_t segst_offset = segdl_offset + segdl_size;
+    shmbuf_size = segst_offset + segst_size;
     lseek(shmfd, shmbuf_size, SEEK_SET);
     read(shmfd, &c, sizeof(char));
     write(shmfd, &c, sizeof(char));
@@ -179,6 +186,12 @@ static int init_shmbuffer()
         txbuf = (txbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP);
         rxbuf = (rxbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t)) * NODE_POP);
     }
+    SEGMENT[SEGCL][0] = (uintptr_t)(shmbuf + segcl_offset);
+    SEGMENT[SEGCL][1] = SEGMENT[SEGCL][0] + segcl_size;
+    SEGMENT[SEGDL][0] = (uintptr_t)(shmbuf + segdl_offset);
+    SEGMENT[SEGDL][1] = SEGMENT[SEGDL][0] + segdl_size;
+    SEGMENT[SEGST][0] = (uintptr_t)(shmbuf + segst_offset);
+    SEGMENT[SEGST][1] = SEGMENT[SEGST][0] + segst_size;
     
     /* Prepare attributes */
     pthread_mutexattr_init(&mutexattr);
@@ -1116,10 +1129,12 @@ static void finalize_cq(void)
 
 static inline int cq_open_entry(acp_ga_t dst, acp_ga_t src, acp_handle_t order)
 {
-    int src_rank, dst_rank, p;
+    int src_rank, dst_rank, is_src_local, is_dst_local, p;
     
     src_rank = ga2rank(src);
     dst_rank = ga2rank(dst);
+    is_src_local = isgalocal(src);
+    is_dst_local = isgalocal(dst);
     
     while (1) {
         pthread_mutex_lock(&mutex_cq);
@@ -1135,13 +1150,13 @@ static inline int cq_open_entry(acp_ga_t dst, acp_ga_t src, acp_handle_t order)
     cq[p].src = src;
     cq[p].dst = dst;
     
-    if (src_rank == MY_RANK && dst_rank == MY_RANK) {
+    if (is_src_local && is_dst_local) {
         cq[p].stat = CQSTAT_11;
         cq[p].inum = MY_INUM;
         cq[p].gateway = MY_GATEWAY;
         cq[p].rfence = 0;
     } else {
-        if (src_rank == MY_RANK) {
+        if (is_src_local) {
             cq[p].stat = CQSTAT_12;
             cq[p].inum = MY_INUM;
             cq[p].gateway = MY_GATEWAY;

@@ -65,13 +65,6 @@ int iacpbludp_init_gmm(void)
     
     debug printf("rank %d - global address {rank[63:%d], seg[%d:%d], addr[%d:0]}\n", MY_RANK, BIT_SEG + BIT_OFFSET, BIT_SEG + BIT_OFFSET - 1, BIT_OFFSET, BIT_OFFSET - 1);
     
-    SEGMENT[SEGST][0] = (uintptr_t)malloc(SMEM_SIZE);
-    SEGMENT[SEGST][1] = SEGMENT[SEGST][0] + SMEM_SIZE;
-    SEGMENT[SEGDL][0] = (uintptr_t)malloc(iacp_starter_memory_size_dl);
-    SEGMENT[SEGDL][1] = SEGMENT[SEGDL][0] + iacp_starter_memory_size_dl;
-    SEGMENT[SEGCL][0] = (uintptr_t)malloc(iacp_starter_memory_size_cl);
-    SEGMENT[SEGCL][1] = SEGMENT[SEGCL][0] + iacp_starter_memory_size_cl;
-    
     sprintf(s, "/proc/%d/maps", getpid());
     if((fp = fopen(s, "r")) == NULL){
         printf("Cannot open file %s.", s);
@@ -107,7 +100,7 @@ int iacpbludp_init_gmm(void)
         SEGMENT[i][1] = SEGMENT[i][0] = 0xffffffffffffffffLLU;
 #ifdef DEBUG
     printf("rank %d - num_segment %d\n", MY_RANK, NUM_SEGMENT);
-    for (i = 0; i < 16; i++)
+    for (i = 0; i < SEGMAX; i++)
         printf("rank %d - segment[%2d] 0x%016llx - 0x%016llx\n", MY_RANK, i, SEGMENT[i][0], SEGMENT[i][1]);
 #endif
     
@@ -116,19 +109,11 @@ int iacpbludp_init_gmm(void)
 
 int iacpbludp_finalize_gmm(void)
 {
-    free((uintptr_t*)SEGMENT[SEGCL][0]);
-    free((uintptr_t*)SEGMENT[SEGDL][0]);
-    free((uintptr_t*)SEGMENT[SEGST][0]);
-    
     return 0;
 }
 
 void iacpbludp_abort_gmm(void)
 {
-    free((uintptr_t*)SEGMENT[SEGCL][0]);
-    free((uintptr_t*)SEGMENT[SEGDL][0]);
-    free((uintptr_t*)SEGMENT[SEGST][0]);
-    
     return;
 }
 

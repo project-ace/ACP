@@ -24,10 +24,6 @@ extern uint64_t iacpbludp_mask_rank;
 extern uint64_t iacpbludp_mask_seg;
 extern uint64_t iacpbludp_mask_offset;
 
-extern uint64_t iacpbludp_segment[16][2];
-extern int iacpbludp_num_segment;
-extern int iacpbludp_starter_memory_size;
-
 #define BIT_RANK    iacpbludp_bit_rank
 #define BIT_SEG     4
 #define BIT_OFFSET  iacpbludp_bit_offset
@@ -35,15 +31,19 @@ extern int iacpbludp_starter_memory_size;
 #define MASK_SEG    0x000000000000000fLLU
 #define MASK_OFFSET iacpbludp_mask_offset
 
-#define SEGMENT     iacpbludp_segment
-#define NUM_SEGMENT iacpbludp_num_segment
-#define SMEM_SIZE   iacpbludp_starter_memory_size
-
 #define BIT_GA 64
 #define SEGST  15
 #define SEGDL  14
 #define SEGCL  13
 #define SEGMAX 13
+
+extern uint64_t iacpbludp_segment[16][2];
+extern volatile uint64_t* iacpbludp_shared_segment;
+extern int iacpbludp_starter_memory_size;
+
+#define SEGMENT     iacpbludp_segment
+#define SHARESEG(x,y,z) iacpbludp_shared_segment[((x) * SEGMAX + (y)) + (z)]
+#define SMEM_SIZE   iacpbludp_starter_memory_size
 
 static inline int ga2rank(acp_ga_t ga)
 {
@@ -75,13 +75,15 @@ static inline acp_ga_t address2ga(void* addr, size_t size)
     uint64_t start, end, seg, rank, offset, inum;
     
     start = (uintptr_t)addr;
-    end = start + size;
-    for (seg = 0; seg < NUM_SEGMENT; seg++)
+    end = start + size - 1;
+    for (seg = 0; seg < SEGMAX; seg++) {
+        if (SEGMENT[seg][1] == 0) break;
         if (SEGMENT[seg][0] <= start && end <= SEGMENT[seg][1]) {
             rank = MY_RANK + 1;
             offset = start - SEGMENT[seg][0];
             return (acp_ga_t)((rank << (BIT_SEG + BIT_OFFSET)) | (seg << BIT_OFFSET) | offset);
         }
+    }
     if (SEGMENT[SEGST][0] <= start && end <= SEGMENT[SEGST][1]) {
         offset = start - SEGMENT[SEGST][0];
         inum = offset / SMEM_SIZE;
@@ -119,8 +121,8 @@ static inline void* ga2address(acp_ga_t ga)
     seg = (ga >> BIT_OFFSET) & MASK_SEG;
     offset = ga & MASK_OFFSET;
     ptr = SEGMENT[seg][0] + offset;
-    if (seg < NUM_SEGMENT) {
-        if (rank == MY_RANK && ptr < SEGMENT[seg][1]) return (void*)ptr;
+    if (seg < SEGMAX) {
+        if (rank == MY_RANK && SEGMENT[seg][1] != 0 && ptr <= SEGMENT[seg][1]) return (void*)ptr;
     } else if (seg == SEGST) {
         if (offset < SMEM_SIZE) return (void*)(ptr + INUM_TABLE[rank] * SMEM_SIZE);
     } else if (seg == SEGDL) {
@@ -133,14 +135,13 @@ static inline void* ga2address(acp_ga_t ga)
 
 static inline acp_ga_t atkey2ga(acp_atkey_t atkey, void* addr)
 {
-    uint64_t start;
-    int seg;
+    uint64_t ptr, seg;
     
-    start = (uintptr_t)addr;
-    if (((atkey >> (BIT_SEG + BIT_OFFSET)) & MASK_RANK) != MY_RANK + 1) return ACP_GA_NULL;
-    seg = (atkey >> BIT_OFFSET) & MASK_SEG;
-    if (NUM_SEGMENT <= seg && seg < SEGMAX) return ACP_GA_NULL;
-    return (acp_ga_t)((atkey & ~MASK_OFFSET) | (start - SEGMENT[seg][0]));
+    ptr = (uintptr_t)addr;
+    if (atkey == 0 || atkey > SEGMAX) return ACP_GA_NULL;
+    seg = atkey - 1;
+    if (SEGMENT[seg][1] == 0 || ptr < SEGMENT[seg][1] || ptr > SEGMENT[seg][1]) return ACP_GA_NULL;
+    return (acp_ga_t)(((MY_RANK + 1)  << (BIT_SEG + BIT_OFFSET)) | (seg << BIT_OFFSET) | (ptr - SEGMENT[seg][0]));
 }
 
 #endif /* acpbl_udp_gmm.h */

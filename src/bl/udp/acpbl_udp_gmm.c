@@ -45,7 +45,7 @@ uint64_t iacpbludp_mask_seg;
 uint64_t iacpbludp_mask_offset;
 
 uint64_t iacpbludp_segment[16][2];
-int iacpbludp_num_segment;
+volatile uint64_t* iacpbludp_shared_segment;
 int iacpbludp_starter_memory_size;
 
 int iacpbludp_init_gmm(void)
@@ -74,32 +74,30 @@ int iacpbludp_init_gmm(void)
     seg_full = (1LLU << BIT_OFFSET);
     seg_half = (seg_full >> 1);
     bottom = 0LLU - seg_full;
-    NUM_SEGMENT = 0;
-    while (NUM_SEGMENT < SEGMAX && fgets(s, 4096, fp) != NULL){
+    for (i = 0; i < SEGMAX && fgets(s, 4096, fp) != NULL; ){
         sscanf(s, "%" PRIx64 "-%" PRIx64, &start_addr, &end_addr);
-        if(seg_top == 0){
+        if(seg_top == 0 && seg_bottom == 0){
             seg_top = start_addr;
             seg_bottom = end_addr;
-        } else if (end_addr < seg_top + seg_half){
+        } else if (end_addr < seg_top + seg_full){
             seg_bottom = end_addr;
         } else {
-            SEGMENT[NUM_SEGMENT][0] = (seg_bottom < seg_half) ? 0 : (seg_top > bottom) ? bottom : seg_bottom - seg_half;
-            SEGMENT[NUM_SEGMENT][1] = SEGMENT[NUM_SEGMENT][0] + seg_full;
-            NUM_SEGMENT++;
+            SEGMENT[i][0] = (seg_bottom < seg_half) ? 0 : (seg_top > bottom) ? bottom : (seg_bottom >= seg_top + seg_half) ? seg_top : seg_bottom - seg_half;
+            SEGMENT[i][1] = SEGMENT[i][0] + seg_full - 1;
+            i++;
             seg_top = start_addr;
             seg_bottom = end_addr;
         }
     }
     if (seg_top != 0){
-        SEGMENT[NUM_SEGMENT][0] = (seg_bottom < seg_half) ? 0 : (seg_top > bottom) ? bottom : seg_bottom - seg_half;
-        SEGMENT[NUM_SEGMENT][1] = SEGMENT[NUM_SEGMENT][0] + seg_full;
-        NUM_SEGMENT++;
+        SEGMENT[i][0] = (seg_bottom < seg_half) ? 0 : (seg_top > bottom) ? bottom : seg_bottom - seg_half;
+        SEGMENT[i][1] = SEGMENT[i][0] + seg_full - 1;
+        i++;
     }
     fclose(fp);
-    for (i = NUM_SEGMENT; i < SEGMAX; i++)
-        SEGMENT[i][1] = SEGMENT[i][0] = 0xffffffffffffffffLLU;
+    for (; i < SEGMAX; i++)
+        SEGMENT[i][1] = SEGMENT[i][0] = 0;
 #ifdef DEBUG
-    printf("rank %d - num_segment %d\n", MY_RANK, NUM_SEGMENT);
     for (i = 0; i < SEGMAX; i++)
         printf("rank %d - segment[%2d] 0x%016llx - 0x%016llx\n", MY_RANK, i, SEGMENT[i][0], SEGMENT[i][1]);
 #endif
@@ -134,7 +132,33 @@ acp_ga_t iacp_query_starter_ga_cl(int rank)
 
 acp_atkey_t acp_register_memory(void* addr, size_t size, int color)
 {
-    return (acp_atkey_t)address2ga(addr, size);
+    uint64_t start, end, seg;
+    uint64_t seg_half, seg_full, seg_qrtr, bottom, ptr;
+    
+    start = (uintptr_t)addr;
+    end = start + size - 1;
+    for (seg = 0; seg < SEGMAX; seg++) {
+        if (SEGMENT[seg][0] <= start && end <= SEGMENT[seg][1]) return seg + 1;
+        if (SEGMENT[seg][1] == 0) {
+            seg_full = (1LLU << BIT_OFFSET);
+            seg_half = (seg_full >> 1);
+            seg_qrtr = (seg_half >> 1);
+            bottom = 0LLU - seg_full;
+            if (size > seg_full) return 0;
+            if (size > seg_half) {
+                ptr = start;
+            } else {
+                ptr = start & ~(seg_qrtr - 1);
+                ptr = (end >= ptr + seg_full) ? start : (end < ptr + seg_half && ptr >= seg_qrtr) ? ptr - seg_qrtr : ptr;
+            }
+            SEGMENT[seg][0] = (ptr > bottom) ? bottom : ptr;
+            SEGMENT[seg][1] = SEGMENT[seg][0] + seg_full - 1;
+            SHARESEG(MY_INUM, seg, 0) = SEGMENT[seg][0];
+            SHARESEG(MY_INUM, seg, 1) = SEGMENT[seg][1];
+            return seg + 1;
+        }
+    }
+    return 0;
 }
 
 int acp_unregister_memory(acp_atkey_t atkey)

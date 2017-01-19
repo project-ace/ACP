@@ -168,6 +168,8 @@ static int init_shmbuffer()
         shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP;
     else
         shmbuf_size = (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t) + sizeof(rxbuf_t)) * NODE_POP;
+    size_t shareseg_offset = shmbuf_size;
+    shmbuf_size += sizeof(uint64_t) * NODE_POP * SEGMAX;
     size_t segcl_size = iacp_starter_memory_size_cl * NODE_POP;
     size_t segdl_size = iacp_starter_memory_size_dl * NODE_POP;
     size_t segst_size = SMEM_SIZE * NODE_POP;
@@ -186,12 +188,17 @@ static int init_shmbuffer()
         txbuf = (txbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP) * NODE_POP);
         rxbuf = (rxbuf_t*)(shmbuf + (sizeof(doorbell_t) + sizeof(ibuf_t) * NODE_POP + sizeof(txbuf_t)) * NODE_POP);
     }
+    iacpbludp_shared_segment = (volatile uint64_t*)(shmbuf + shareseg_offset);
+    for (i = 0; i < SEGMAX; i++) {
+        SHARESEG(MY_INUM, i, 0) = SEGMENT[i][0];
+        SHARESEG(MY_INUM, i, 1) = SEGMENT[i][1];
+    }
     SEGMENT[SEGCL][0] = (uintptr_t)(shmbuf + segcl_offset);
-    SEGMENT[SEGCL][1] = SEGMENT[SEGCL][0] + segcl_size;
+    SEGMENT[SEGCL][1] = SEGMENT[SEGCL][0] + segcl_size - 1;
     SEGMENT[SEGDL][0] = (uintptr_t)(shmbuf + segdl_offset);
-    SEGMENT[SEGDL][1] = SEGMENT[SEGDL][0] + segdl_size;
+    SEGMENT[SEGDL][1] = SEGMENT[SEGDL][0] + segdl_size - 1;
     SEGMENT[SEGST][0] = (uintptr_t)(shmbuf + segst_offset);
-    SEGMENT[SEGST][1] = SEGMENT[SEGST][0] + segst_size;
+    SEGMENT[SEGST][1] = SEGMENT[SEGST][0] + segst_size - 1;
     
     /* Prepare attributes */
     pthread_mutexattr_init(&mutexattr);

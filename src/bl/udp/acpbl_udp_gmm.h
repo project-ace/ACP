@@ -135,13 +135,14 @@ static inline void* ga2address(acp_ga_t ga)
 
 static inline acp_ga_t atkey2ga(acp_atkey_t atkey, void* addr)
 {
-    uint64_t ptr, seg;
+    uint64_t ptr, rank, seg;
     
     ptr = (uintptr_t)addr;
     if (atkey == 0 || atkey > SEGMAX) return ACP_GA_NULL;
     seg = atkey - 1;
-    if (SEGMENT[seg][1] == 0 || ptr < SEGMENT[seg][1] || ptr > SEGMENT[seg][1]) return ACP_GA_NULL;
-    return (acp_ga_t)(((MY_RANK + 1)  << (BIT_SEG + BIT_OFFSET)) | (seg << BIT_OFFSET) | (ptr - SEGMENT[seg][0]));
+    if (SEGMENT[seg][1] == 0 || ptr < SEGMENT[seg][0] || ptr > SEGMENT[seg][1]) return ACP_GA_NULL;
+    rank = MY_RANK + 1;
+    return (acp_ga_t)((rank << (BIT_SEG + BIT_OFFSET)) | (seg << BIT_OFFSET) | (ptr - SEGMENT[seg][0]));
 }
 
 #endif /* acpbl_udp_gmm.h */

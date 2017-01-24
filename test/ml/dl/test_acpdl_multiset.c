@@ -190,6 +190,13 @@ int main(int argc, char** argv)
         print_int_multiset(set);
         print_int_multiset(tmpset);
         
+        printf("** remove all 'ABC'\n");
+        key.size = 3;
+        for (j = 0; j < key.size; j++) tmp_key[j] = 'A' + j;
+        acp_remove_all_multiset(set, key);
+        print_int_multiset(set);
+        print_int_multiset(tmpset);
+        
         printf("** destroy\n");
         acp_destroy_multiset(tmpset);
         acp_destroy_multiset(set);

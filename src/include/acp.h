@@ -3956,6 +3956,27 @@ extern void acp_remove_multiset(acp_multiset_t set, acp_element_t key);
 
 /**
  * @JP
+ * @brief マルチセット全除去
+ *
+ * カウンタ値に関わらず、マルチセットからキーを削除する。
+ *
+ * @param set マルチセット
+ * @param key 削除する key
+ *
+ * @EN
+ * @brief Erase a multiset element
+ *
+ * Delete the key of multiset that matches with key, regardless of
+ * the counter value of the key.
+ *
+ * @param set multiset
+ * @param key key
+ * @ENDL
+ */
+extern void acp_remove_all_multiset(acp_multiset_t set, acp_element_t key);
+
+/**
+ * @JP
  * @brief マルチセット取得
  *
  * キーが一致する要素のカウンタ値を取得する。

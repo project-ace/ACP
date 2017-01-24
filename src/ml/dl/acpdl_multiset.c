@@ -1734,6 +1734,128 @@ void acp_remove_multiset(acp_multiset_t set, acp_element_t key)
     return;
 }
 
+void acp_remove_all_multiset(acp_multiset_t set, acp_element_t key)
+{
+    if (key.size == 0) return;
+    
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t size_list      = 24;
+    uint64_t size_elem      = 32;
+    uint64_t size_new_key   = key.size;
+    uint64_t size_elem_key  = size_new_key;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t offset_list      = offset_lock_var  + size_lock_var;
+    uint64_t offset_elem      = offset_list      + size_list;
+    uint64_t offset_new_key   = offset_elem      + size_elem;
+    uint64_t offset_elem_key  = offset_new_key   + size_new_key;
+    uint64_t size_buf         = offset_elem_key  + size_elem_key;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    acp_ga_t buf_elem      = buf + offset_elem;
+    acp_ga_t buf_new_key   = buf + offset_new_key;
+    acp_ga_t buf_elem_key  = buf + offset_elem_key;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
+    volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
+    volatile uint8_t* new_key    = (volatile uint8_t*)(ptr + offset_new_key);
+    volatile uint8_t* elem_key   = (volatile uint8_t*)(ptr + offset_elem_key);
+    
+    /*** read key ***/
+    
+    if (acp_query_rank(key.ga) != acp_rank()) {
+        acp_copy(buf_new_key, key.ga, size_new_key, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+    } else {
+        memcpy((void*)new_key, acp_query_address(key.ga), size_new_key);
+    }
+    
+    /*** remove key ***/
+    
+    uint64_t crc = iacpdl_crc64((void*)new_key, size_new_key) >> 16;
+    int rank = (crc / set.num_slots) % set.num_ranks;
+    int slot = crc % set.num_slots;
+    
+    acp_ga_t ga_directory = set.ga + rank * 8;
+    acp_copy(buf_directory, ga_directory, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    acp_ga_t ga_lock_var = *directory + slot * 32;
+    acp_ga_t ga_list = ga_lock_var + 8;
+    do {
+        acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+        acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
+        acp_complete(ACP_HANDLE_ALL);
+    } while (*lock_var != 0);
+    
+    acp_ga_t ga_next_elem = list[0];
+    while (ga_next_elem != ACP_GA_NULL) {
+        acp_ga_t ga_elem = ga_next_elem;
+        acp_copy(buf_elem, ga_elem, size_elem, ACP_HANDLE_NULL);
+        acp_complete(ACP_HANDLE_ALL);
+        ga_next_elem = elem[0];
+        if (elem[3] == size_new_key) {
+            acp_copy(buf_elem_key, ga_elem + size_elem, size_new_key, ACP_HANDLE_NULL);
+            acp_complete(ACP_HANDLE_ALL);
+            uint8_t* p1 = (uint8_t*)elem_key;
+            uint8_t* p2 = (uint8_t*)new_key;
+            int i;
+            for (i = 0; i < size_new_key; i++) if (*p1++ != *p2++) break;
+            if (i == size_new_key) {
+                acp_ga_t tmp_head = list[0];
+                acp_ga_t tmp_tail = list[1];
+                uint64_t tmp_num  = list[2];
+                acp_ga_t tmp_next = elem[0];
+                acp_ga_t tmp_prev = elem[1];
+                
+                if (tmp_num <= 1) {
+                    list[0] = ACP_GA_NULL;
+                    list[1] = ACP_GA_NULL;
+                    list[2] = 0;
+                    acp_free(ga_elem);
+                } else if (tmp_head == ga_elem) {
+                    list[0] = tmp_next;
+                    list[2] = tmp_num - 1;
+                    acp_copy(tmp_next + 8, ga_elem + 8, 8, ACP_HANDLE_NULL);
+                    acp_complete(ACP_HANDLE_ALL);
+                    acp_free(ga_elem);
+                } else if (tmp_tail == ga_elem) {
+                    list[1] = tmp_prev;
+                    list[2] = tmp_num - 1;
+                    acp_copy(tmp_prev, ga_elem, 8, ACP_HANDLE_NULL);
+                    acp_complete(ACP_HANDLE_ALL);
+                    acp_free(ga_elem);
+                } else {
+                    list[2] = tmp_num - 1;
+                    acp_copy(tmp_next + 8, ga_elem + 8, 8, ACP_HANDLE_NULL);
+                    acp_copy(tmp_prev, ga_elem, 8, ACP_HANDLE_NULL);
+                    acp_complete(ACP_HANDLE_ALL);
+                    acp_free(ga_elem);
+                }
+                acp_copy(ga_list, buf_list, size_list, ACP_HANDLE_NULL);
+                acp_copy(ga_lock_var, buf_lock_var, size_lock_var, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+                acp_free(buf);
+                return;
+            }
+        }
+    }
+    
+    acp_copy(ga_lock_var, buf_lock_var, size_lock_var, ACP_HANDLE_ALL);
+    acp_complete(ACP_HANDLE_ALL);
+    acp_free(buf);
+    return;
+}
+
 uint64_t acp_retrieve_multiset(acp_multiset_t set, acp_element_t key)
 {
     if (key.size == 0) return 0;

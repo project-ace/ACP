@@ -2119,6 +2119,7 @@ acp_pair_t acp_dereference_map_it(acp_map_it_t it)
     
     uint64_t element_size = elem[2];
     uint64_t key_size = elem[3];
+    acp_free(buf);
     
     pair.first.ga    = it.elem + size_elem;
     pair.first.size  = key_size;
@@ -2165,6 +2166,7 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
     
     if (elem[0] != ACP_GA_NULL) {
         it.elem = elem[0];
+        acp_free(buf);
         return it;
     }
     
@@ -2186,6 +2188,7 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
                 it.rank = rank;
                 it.slot = slot;
                 it.elem = list[0];
+                acp_free(buf);
                 return it;
             }
         }
@@ -2205,6 +2208,7 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
             it.rank = rank;
             it.slot = slot;
             it.elem = list[0];
+            acp_free(buf);
             return it;
         }
     }
@@ -2220,10 +2224,12 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
             it.rank = rank;
             it.slot = slot;
             it.elem = list[0];
+            acp_free(buf);
             return it;
         }
     }
     
+    acp_free(buf);
     return iacp_null_map_it(it.map);
 }
 

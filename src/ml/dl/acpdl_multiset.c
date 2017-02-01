@@ -2161,6 +2161,7 @@ acp_element_t acp_dereference_multiset_it(acp_multiset_it_t it)
     acp_complete(ACP_HANDLE_ALL);
     
     uint64_t key_size = elem[3];
+    acp_free(buf);
     
     key.ga    = it.elem + size_elem;
     key.size  = key_size;
@@ -2205,6 +2206,7 @@ acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it)
     
     if (elem[0] != ACP_GA_NULL) {
         it.elem = elem[0];
+        acp_free(buf);
         return it;
     }
     
@@ -2226,6 +2228,7 @@ acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it)
                 it.rank = rank;
                 it.slot = slot;
                 it.elem = list[0];
+                acp_free(buf);
                 return it;
             }
         }
@@ -2245,6 +2248,7 @@ acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it)
             it.rank = rank;
             it.slot = slot;
             it.elem = list[0];
+            acp_free(buf);
             return it;
         }
     }
@@ -2260,10 +2264,12 @@ acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it)
             it.rank = rank;
             it.slot = slot;
             it.elem = list[0];
+            acp_free(buf);
             return it;
         }
     }
     
+    acp_free(buf);
     return iacp_null_multiset_it(it.set);
 }
 

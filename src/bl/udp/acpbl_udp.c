@@ -390,21 +390,18 @@ static int iacp_init(void)
 
 int acp_init(int* argc, char*** argv)
 {
-    acpbl_input_t *ait ;
+    iacpbl_interpret_option( argc, argv ) ;
 ///
-    ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
-    iacp_connection_information( argc, argv, ait ) ;
-///
-    MY_RANK                     = ( uint32_t ) ait->u_inputs[ IR_MYRANK    ] ;
-    NUM_PROCS                   = ( uint32_t ) ait->u_inputs[ IR_NPROCS    ] ;
-    TASKID                      = ( uint32_t ) ait->u_inputs[ IR_TASKID    ] ;
-    my_port                     = ( uint16_t ) ait->u_inputs[ IR_LPORT     ] ;
-    parent_port                 = ( uint16_t ) ait->u_inputs[ IR_RPORT     ] ;
-    parent_addr                 = ( uint32_t ) ait->u_inputs[ IR_RHOST     ] ;
-    SMEM_SIZE                   = ( int      ) ait->u_inputs[ IR_SZSMEM_BL ] ;
-    iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
-    iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
-    iacpbludp_eth_speed         = ( uint32_t ) ait->u_inputs[ IR_ETHSPEED  ] ;
+    MY_RANK                     = ( uint32_t ) iacpbl_option.myrank.value   ;
+    NUM_PROCS                   = ( uint32_t ) iacpbl_option.nprocs.value   ;
+    TASKID                      = ( uint32_t ) iacpbl_option.taskid.value   ;
+    my_port                     = ( uint16_t ) iacpbl_option.lport.value    ;
+    parent_port                 = ( uint16_t ) iacpbl_option.rport.value    ;
+    parent_addr                 = ( uint32_t ) iacpbl_option.rhost_ip       ;
+    SMEM_SIZE                   = ( int      ) iacpbl_option.szsmem.value   ;
+    iacp_starter_memory_size_cl = ( size_t   ) iacpbl_option.szsmemcl.value ;
+    iacp_starter_memory_size_dl = ( size_t   ) iacpbl_option.szsmemdl.value ;
+    iacpbludp_eth_speed         = ( uint32_t ) iacpbl_option.ethspeed.value ;
 ///
 ///    fprintf( stderr, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
 ///    fprintf( stderr, "%u, %u, %u, %u, %u, %u, %d, %lu, %lu\n",
@@ -414,7 +411,6 @@ int acp_init(int* argc, char*** argv)
                  MY_RANK, NUM_PROCS, TASKID, SMEM_SIZE, my_port, parent_port, parent_addr);
 ///
     ///exit( 1 ) ;
-    free( ait ) ;
     return iacp_init() ;
 }
 

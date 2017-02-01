@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
@@ -16,39 +17,60 @@
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
-#define _no_argument_       0
-#define _required_argument_ 1
-#define _optional_argument_ 2
+
+iacpbl_option_t iacpbl_option = {
+    //value,        min,    max
+    { "" },
+    { 1,            0,      10000000 },
+    { 0,            0,      10000000 },
+    { 1,            1,      10000000 },
+    { 44256,        1024,   65535 },
+    { "127.0.0.1" },
+    0,
+    { 44257,        1024,   65535 },
+    { 0,            0,      0xffffffffffffffffLLU },
+    { 10240,        0,      0xffffffffffffffffLLU },
+    { 10240,        0,      0xffffffffffffffffLLU },
+    { 10240,        0,      0xffffffffffffffffLLU },
+    { 1000,         1,      10000000 }
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+typedef enum {
+    arg_nil, arg_uint, arg_uint_metric, arg_double, arg_string
+} argument_type_t;
+
+typedef struct {
+    argument_type_t type;
+    size_t offset;
+    char* name;
+    char* description;
+} option_list_t;
+
+static const option_list_t option_list[] = {
+    //type,             offset,                                 name,                       description
+    {arg_uint,          offsetof(iacpbl_option_t, szsmem),      "--acp-size-smem",          "starter memory size (user region)"},
+    {arg_uint,          offsetof(iacpbl_option_t, szsmemcl),    "--acp-size-smem-cl",       "tarter memory size (comm. library)"},
+    {arg_uint,          offsetof(iacpbl_option_t, szsmemdl),    "--acp-size-smem-dl",       "tarter memory size (data library)"},
+    {arg_uint,          offsetof(iacpbl_option_t, ethspeed),    "--acp-ethernet-speed",     "ethernet speed (in Mbps)"},
+    //
+    {arg_uint,          offsetof(iacpbl_option_t, taskid),      "--acp-taskid",             "parallel task ID"},
+    //
+    {arg_string,        offsetof(iacpbl_option_t, portfile),    "--acp-portfile",           "(for macprun) name of the portfile"},
+    {arg_uint,          offsetof(iacpbl_option_t, offsetrank),  "--acp-offsetrank",         "(for macprun) rank offset"},
+    //
+    {arg_uint,          offsetof(iacpbl_option_t, myrank),      "--acp-myrank",             "(for acprun) rank of this process"},
+    {arg_uint,          offsetof(iacpbl_option_t, nprocs),      "--acp-nprocs",             "(for acprun) number of processes"},
+    {arg_uint,          offsetof(iacpbl_option_t, lport),       "--acp-port-local",         "(for acprun) port number"},
+    {arg_string,        offsetof(iacpbl_option_t, rhost),       "--acp-host-remote",        "(for acprun) remote host address"},
+    {arg_uint,          offsetof(iacpbl_option_t, rport),       "--acp-port-remote",        "(for acprun) remote host port number"}
+};
 
 static char *acp_header = "--acp-" ;
 static int len_acp_header = 6 ;
-
-typedef enum {
-    UINT, DOUBLE, STRING
-} acp_opttype_t ;
-
-typedef struct {
-    char         *name ;
-    acp_opttype_t type ;
-    uint64_t      u_default ;
-    double        d_default ;
-    char         *s_default ;
-    uint64_t      u_min ;
-    uint64_t      u_max ;
-    double        d_min ;
-    double        d_max ;
-} acpbl_default_option_t ;
-
-typedef struct {
-    const char *name;
-    int         has_arg;
-    int        *flag;
-    int         val;
-} acpbl_option_t ;
-
-#define __INSIDE_ACPBL_INPUT_C__
-#include "acpbl_default_input.h"    /// default_opts[] and long_options[] are defined.
-#undef  __INSIDE_ACPBL_INPUT_C__
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,36 +78,25 @@ typedef struct {
 
 static int print_usage( char *comm, FILE *fout )
 {
-    fprintf( fout, "Usage:\n" ) ;
-    fprintf( fout, "ACP connections by options:\n" ) ;
-    fprintf( fout, "    %s\n", comm ) ;
-    fprintf( fout, "     --acp-myrank          myrank\n" ) ;
-    fprintf( fout, "     --acp-nprocs          nprocs\n" ) ;
-    fprintf( fout, "     --acp-port-local      local_port\n" ) ;
-    fprintf( fout, "     --acp-host-remote     remote_host\n" ) ;
-    fprintf( fout, "     --acp-port-remote     remote_port\n" ) ;
-    fprintf( fout, "     --acp-taskid          taskid\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem       starter_memory_size ( user region  ) ]\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem-cl    starter_memory_size ( comm.library ) ]\n" ) ;
-    fprintf( fout, "   [ --acp-size-smem-dl    starter_memory_size ( data library ) ]\n" ) ;
-    fprintf( fout, "   [ --acp-ethernet-speed  ethernet_speed                       ]\n" ) ;
-    fprintf( fout, "ACP connections by portfile,\n" ) ;
-    fprintf( fout, "used for Multiple MPI connections (ACP+MPI):\n" ) ;
-    fprintf( fout, "    %s\n", comm ) ;
-    fprintf( fout, "     --acp-portfile        port_filename\n" ) ;
-    fprintf( fout, "     --acp-offsetrank      rank_offset\n" ) ;
+    int i;
+    fprintf( fout, "Usage:\n    %s\n", comm ) ;
+    for ( i = 0 ; i < sizeof(option_list) / sizeof(option_list_t) ; i++ ) {
+        fprintf( fout, "     %20s  %s\n", option_list[i].name, option_list[i].description) ;
+    }
     return 0 ;
 }
 
 static int print_error_argument( int ir, void *curr, FILE *fout )
 {
-    if ( default_opts[ ir ].type == UINT ) {
+    if ( option_list[ ir ].type == arg_uint || option_list[ ir ].type == arg_uint_metric ) {
+        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
         fprintf( fout, "Error argument value: %lu, !( %lu <= value <= %lu ).\n",
-            *(( uint64_t * ) curr), default_opts[ ir ].u_min, default_opts[ ir ].u_max ) ;
-    } else if ( default_opts[ ir ].type == DOUBLE ) {
+            *(( uint64_t * ) curr), ptr->min, ptr->max ) ;
+    } else if ( option_list[ ir ].type == arg_double ) {
+        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
         fprintf( fout, "Error argument value: %e, ( %e <= value < %e ).\n",
-            *(( double * ) curr), default_opts[ ir ].d_min, default_opts[ ir ].d_max ) ;
-    } else if ( default_opts[ ir ].type == STRING ) {
+            *(( double * ) curr), ptr->min, ptr->max ) ;
+    } else if ( option_list[ ir ].type == arg_string ) {
         fprintf( fout, "Error argument value: %s.\n", ( char * ) curr ) ;
     } else {
         fprintf( fout, "Error argument value: %s.\n", ( char * ) curr ) ;
@@ -97,17 +108,17 @@ static int print_error_argument( int ir, void *curr, FILE *fout )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef MPIACP
-static int read_portfile( acpbl_input_t *ait )
+static int read_portfile( void )
 {
     int  myrank_runtime, nprocs_runtime ;
     char buf[ BUFSIZ ] ;
-    char *filename = ait->s_inputs[ IR_PORTFILE ] ;
+    char *filename = iacpbl_option.portfile.string ;
 
     ///
     MPI_Comm_rank( MPI_COMM_WORLD, &myrank_runtime ) ;
     MPI_Comm_size( MPI_COMM_WORLD, &nprocs_runtime ) ;
 
-///    fprintf( stdout, "%4d, %4d: %s, %lu\n", myrank_runtime, nprocs_runtime, ait->s_inputs[ IR_PORTFILE ], ait->u_inputs[ IR_OFFSETRANK ] ) ;
+///    fprintf( stdout, "%4d, %4d: %s, %lu\n", myrank_runtime, nprocs_runtime, iacpbl_option.portfile.string, iacpbl_option.offsetrank.value ) ;
 
     ///
     {   
@@ -119,20 +130,20 @@ static int read_portfile( acpbl_input_t *ait )
         } 
         i = 0 ;
         while( fgets( buf, BUFSIZ, fp ) != NULL ) {
-            if ( i >= (myrank_runtime + ait->u_inputs[ IR_OFFSETRANK ]) ) {
+            if ( i >= (myrank_runtime + iacpbl_option.offsetrank.value) ) {
                 break ;
             }
             i++ ;
         }
     }
     sscanf( buf, "%lu %lu %lu %lu %s %lu %lu %lu",
-            &(ait->u_inputs[ IR_MYRANK ]), &(ait->u_inputs[ IR_NPROCS ]), &(ait->u_inputs[ IR_LPORT ]), &(ait->u_inputs[ IR_RPORT ]),
-            ait->s_inputs[ IR_RHOST ],
-            &(ait->u_inputs[ IR_SZSMEM_BL ]), &(ait->u_inputs[ IR_SZSMEM_CL ]), &(ait->u_inputs[ IR_SZSMEM_DL ]) ) ;
+            &iacpbl_option.myrank.value, &iacpbl_option.nprocs.value, &iacpbl_option.lport.value, &iacpbl_option.rport.value,
+            iacpbl_option.rhost.string,
+            &iacpbl_option.szsmem.value, &iacpbl_option.szsmemcl.value, &iacpbl_option.szsmemdl.value ) ;
 ///    fprintf( stdout, "%32lu %32lu %32lu %32lu %s %32lu %32lu %32lu\n", 
-///            ait->u_inputs[ IR_MYRANK ], ait->u_inputs[ IR_NPROCS ], ait->u_inputs[ IR_LPORT ], ait->u_inputs[ IR_RPORT ],
-///            ait->s_inputs[ IR_RHOST ],
-///            ait->u_inputs[ IR_SZSMEM_BL ], ait->u_inputs[ IR_SZSMEM_CL ], ait->u_inputs[ IR_SZSMEM_DL ] );
+///            iacpbl_option.myrank.value, iacpbl_option.nprocs.value, iacpbl_option.lport.value, iacpbl_option.rport.value,
+///            iacpbl_option.rhost.string,
+///            iacpbl_option.szsmem.value, iacpbl_option.szsmemcl.value, iacpbl_option.szsmemdl.value ) ;
     return 0 ;
 }
 #endif /* MPIACP */
@@ -157,48 +168,46 @@ static int check_acp_option_header( char *arg )
 static int match_acp_option( char *arg )
 {
     int i ;
-    for ( i = 0 ; i < _NIR_ ; i++ ) {
-        ///if ( strncmp( arg, long_options[ i ].name, strlen( long_options[ i ].name ) ) == 0 ) {
-        if ( strcmp( arg, long_options[ i ].name ) == 0 ) {
-            return long_options[ i ].val ;
+    for ( i = 0 ; i < sizeof(option_list) / sizeof(option_list_t) ; i++) {
+        ///if ( strncmp( arg, option_list[ i ].name, strlen( option_list[ i ].name ) ) == 0 ) {
+        if ( strcmp( arg, option_list[ i ].name ) == 0 ) {
+            return i ;
         }
     }
     return -1 ;
 }
 
-static int copy_arg( char *opt, char *optarg, int ir_default_opts, acpbl_input_t *ait )
+static int copy_arg( char *opt, char *optarg, int ir )
 {
-    int ir = ir_default_opts ;
-    if ( default_opts[ ir ].type == UINT ) {
-        ait->u_inputs[ ir ] = strtoul( optarg, NULL, 0 ) ;
-        if ( !(( default_opts[ ir ].u_min <= ait->u_inputs[ ir ] ) || ( ait->u_inputs[ ir ] <= default_opts[ ir ].u_max )) ) {
-            print_error_argument( ir, &(ait->u_inputs[ ir ]), stderr ) ;
+    if ( option_list[ ir ].type == arg_uint || option_list[ ir ].type == arg_uint_metric ) {
+        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        ptr->value = strtoul( optarg, NULL, 0 ) ;
+        if ( ptr->min > ptr->value || ptr->max < ptr->value ) {
+            print_error_argument( ir, &ptr->value, stderr ) ;
             exit( EXIT_FAILURE ) ;
         }
-    } else if ( default_opts[ ir ].type == DOUBLE ) {
-        ait->d_inputs[ ir ] = strtod( optarg, NULL ) ;
-        if ( !(( default_opts[ ir ].d_min <= ait->d_inputs[ ir ] ) || ( ait->d_inputs[ ir ] <= default_opts[ ir ].d_max )) ) {
-            print_error_argument( ir, &(ait->d_inputs[ ir ]), stderr ) ;
+    } else if ( option_list[ ir ].type == arg_double ) {
+        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        ptr->value = strtod( optarg, NULL ) ;
+        if ( ptr->min > ptr->value || ptr->max < ptr->value ) {
+            print_error_argument( ir, &ptr->value, stderr ) ;
             exit( EXIT_FAILURE ) ;
         }
-    } else if ( default_opts[ ir ].type == STRING ) {
-        sscanf( optarg, "%s", ait->s_inputs[ ir ] ) ;
-        if ( strlen( ait->s_inputs[ ir ] ) <= 0 ) {
-            print_error_argument( ir, ait->s_inputs[ ir ], stderr ) ;
+    } else if ( option_list[ ir ].type == arg_string ) {
+        iacpbl_option_string_t* ptr = (iacpbl_option_string_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        sscanf( optarg, "%s", ptr->string ) ;
+        if ( strlen( ptr->string ) <= 0 ) {
+            print_error_argument( ir, ptr->string, stderr ) ;
         }
     }
-    ait->flg_set[ ir ] = 1 ;
     return 0 ;
 }
 
-static int mygetopt_long_only( int *argc, char ***argv, acpbl_input_t *ait )
+static int mygetopt_long_only( int *argc, char ***argv )
 {
     int i, ir, ind ;
-    ait->argc = 0 ;
-    ait->argv = ( char ** ) malloc( (*argc) * sizeof( char ** ) ) ;
-    for ( i = 0 ; i < (*argc) ; i++ ) {
-        ait->argv[ i ] = ( char * ) malloc( (*argc) * sizeof( char * ) ) ;
-    }
+    int c = 0 ;
+    char** v = *argv ;
 ///
     ind = 0 ;
     while ( ind < (*argc) ) {
@@ -206,7 +215,7 @@ static int mygetopt_long_only( int *argc, char ***argv, acpbl_input_t *ait )
             if ( (ir = match_acp_option( (*argv)[ ind ] )) != -1 ) {
                 if ( ind + 1 < (*argc) ) {
                     if ( (*argv)[ ind + 1 ][ 0 ] != '-' ) {
-                        copy_arg( (*argv)[ ind ], (*argv)[ ind + 1 ], ir, ait ) ;
+                        copy_arg( (*argv)[ ind ], (*argv)[ ind + 1 ], ir ) ;
                     } else {
                         fprintf( stderr, "Error: %s: invalid optarg: \"%s\" for acp-option: \"%s\".\n", (*argv)[ 0 ], (*argv)[ ind + 1 ], (*argv)[ ind ] ) ;
                         exit( EXIT_FAILURE ) ;
@@ -222,11 +231,10 @@ static int mygetopt_long_only( int *argc, char ***argv, acpbl_input_t *ait )
             }
             ind       += 2 ;
         } else {
-            ait->argv[ ait->argc ] = (*argv)[ ind ] ;
-            ait->argc += 1 ;
-            ind       += 1 ;
+            v[ c++ ] = (*argv)[ ind++ ] ;
         }
     }
+    *argc = c;
     return 0 ;
 }
 
@@ -234,41 +242,24 @@ static int mygetopt_long_only( int *argc, char ***argv, acpbl_input_t *ait )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
+int iacpbl_interpret_option( int *argc, char ***argv )
 {
     int  i ;
-    for ( i = 0 ; i < _NIR_ ; i++ ) {
-        ait->flg_set [ i ] = 0 ;
-        ait->u_inputs[ i ] = default_opts[ i ].u_default ;
-        ait->d_inputs[ i ] = default_opts[ i ].d_default ;
-        ait->s_inputs[ i ] = ( char * )malloc( BUFSIZ ) ;
-        if ( ait->s_inputs[ i ] && default_opts[ i ].s_default && ( strlen( default_opts[ i ].s_default ) < BUFSIZ ) ) {
-            strcpy( ait->s_inputs[ i ], default_opts[ i ].s_default ) ;
-        }
-    }
 
-    mygetopt_long_only( argc, argv, ait ) ;
-    *argc = ait->argc ;
-    for ( i = 0 ; i < (*argc) ; i++ ) {
-        (*argv)[ i ] = ait->argv[ i ] ;	
-    }
-///    fprintf( stderr, "%4d: ", ait->argc ) ;
-///    for ( i = 0 ; i < ait->argc ; i++ ) {
-///        fprintf( stderr, "\"%s\" ", ait->argv[ i ] ) ;
+    mygetopt_long_only( argc, argv ) ;
+///    fprintf( stderr, "%4d: ", *argc ) ;
+///    for ( i = 0 ; i < *argc ; i++ ) {
+///        fprintf( stderr, "\"%s\" ", (*argv)[ i ] ) ;
 ///    }
 ///    fprintf( stderr, "\n" ) ;
-///
-///    for ( i = 0 ; i < _NIR_ ; i++ ) {
-///        fprintf( stdout, "flg: %4d -> %4d\n", i, ait->flg_set[ i ] ) ;
-///    }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
 #ifdef MPIACP
-    if ( ait->flg_set[ IR_PORTFILE ] ) {
+    if ( strlen( iacpbl_option.portfile.string ) > 0 ) {
         ///////////////////////////////
-        read_portfile( ait ) ;
+        read_portfile( ) ;
         ///////////////////////////////
     } else {
 #endif /* MPIACP */
@@ -280,18 +271,15 @@ int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait )
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////////////////////////////////////////////////////////////////////////////
-    ait->u_inputs[ IR_RHOST ] = inet_addr( ait->s_inputs[ IR_RHOST ] );
-    if ( ait->u_inputs[ IR_RHOST ] == 0xffffffff ) {
+    iacpbl_option.rhost_ip = inet_addr( iacpbl_option.rhost.string );
+    if ( iacpbl_option.rhost_ip == 0xffffffff ) {
         struct hostent *host;
-        if ((host = gethostbyname( ait->s_inputs[ IR_RHOST ] )) == NULL) {
+        if ( (host = gethostbyname( iacpbl_option.rhost.string )) == NULL ) {
             return -1 ;
         }
-        ait->u_inputs[ IR_RHOST ] = *(uint32_t *)host->h_addr_list[0];
+        iacpbl_option.rhost_ip = *(uint32_t *)host->h_addr_list[0];
     }
     ///
 
-    ///for ( i = 0 ; i < _NIR_ ; i++ ) {
-    ///    free( ait->s_inputs[ i ] ) ;
-    ///}
     return 0 ;
 }

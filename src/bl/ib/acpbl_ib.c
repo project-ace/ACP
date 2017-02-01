@@ -4924,25 +4924,21 @@ int acp_init(int *argc, char ***argv)
 {
 ///
     int rc = 0 ; /* return code */
-    acpbl_input_t *ait ;
 
 #ifdef DEBUG    
     fprintf(stdout, "acp_init() start\n");
     fflush(stdout);
 #endif
-///
-    ait = ( acpbl_input_t * )malloc( sizeof( acpbl_input_t ) ) ;
-///
-    iacp_connection_information( argc, argv, ait ) ;
-    acp_myrank                  = ( int      ) ait->u_inputs[ IR_MYRANK    ] ;
-    acp_numprocs                = ( int      ) ait->u_inputs[ IR_NPROCS    ] ;
-    acp_taskid                  = ( uint32_t ) ait->u_inputs[ IR_TASKID    ] ;
-    my_port                     = ( uint16_t ) ait->u_inputs[ IR_LPORT     ] ;
-    dst_port                    = ( uint16_t ) ait->u_inputs[ IR_RPORT     ] ;
-    dst_addr                    = ( uint32_t ) ait->u_inputs[ IR_RHOST     ] ;
-    acp_smsize                  = ( size_t   ) ait->u_inputs[ IR_SZSMEM_BL ] ;
-    iacp_starter_memory_size_cl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_CL ] ;
-    iacp_starter_memory_size_dl = ( size_t   ) ait->u_inputs[ IR_SZSMEM_DL ] ;
+    iacpbl_interpret_option( argc, argv ) ;
+    acp_myrank                  = ( int      ) iacpbl_option.myrank.value   ;
+    acp_numprocs                = ( int      ) iacpbl_option.nprocs.value   ;
+    acp_taskid                  = ( uint32_t ) iacpbl_option.taskid.value   ;
+    my_port                     = ( uint16_t ) iacpbl_option.lport.value    ;
+    dst_port                    = ( uint16_t ) iacpbl_option.rport.value    ;
+    dst_addr                    = ( uint32_t ) iacpbl_option.rhost_ip       ;
+    acp_smsize                  = ( size_t   ) iacpbl_option.szsmem.value   ;
+    iacp_starter_memory_size_cl = ( size_t   ) iacpbl_option.szsmemcl.value ;
+    iacp_starter_memory_size_dl = ( size_t   ) iacpbl_option.ethspeed.value ;
 ///
     ///fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
     ///fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",
@@ -4964,7 +4960,6 @@ int acp_init(int *argc, char ***argv)
         executed_acp_init = true;
     }
     
-    free( ait ) ;
     return rc;
 }
 

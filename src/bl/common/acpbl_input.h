@@ -1,20 +1,44 @@
 #ifndef __INCLUDE_ACPBL_INPUT__
 #define __INCLUDE_ACPBL_INPUT__
 
-#define __INSIDE_ACPBL_INPUT_H__
-#include "acpbl_default_input.h"    /// IR_* and _NIR_ are defined
-#undef  __INSIDE_ACPBL_INPUT_H__
+typedef struct {
+    uint64_t value;
+} iacpbl_option_nil_t;
 
 typedef struct {
-    int         flg_set [ _NIR_ ] ;
-    uint64_t    u_inputs[ _NIR_ ] ;
-    double      d_inputs[ _NIR_ ] ;
-    char       *s_inputs[ _NIR_ ] ;
-    int         argc ;
-    char      **argv ;
-} acpbl_input_t ;
+    uint64_t value;
+    uint64_t min;
+    uint64_t max;
+} iacpbl_option_uint_t;
 
-extern int iacp_connection_information( int *argc, char ***argv, acpbl_input_t *ait ) ;
+typedef struct {
+    double value;
+    double min;
+    double max;
+} iacpbl_option_double_t;
+
+typedef struct {
+    char string[BUFSIZ];
+} iacpbl_option_string_t;
+
+typedef struct {
+    iacpbl_option_string_t portfile;
+    iacpbl_option_uint_t offsetrank;
+    iacpbl_option_uint_t myrank;
+    iacpbl_option_uint_t nprocs;
+    iacpbl_option_uint_t lport;
+    iacpbl_option_string_t rhost;
+    uint32_t rhost_ip;
+    iacpbl_option_uint_t rport;
+    iacpbl_option_uint_t taskid;
+    iacpbl_option_uint_t szsmem;
+    iacpbl_option_uint_t szsmemcl;
+    iacpbl_option_uint_t szsmemdl;
+    iacpbl_option_uint_t ethspeed;
+} iacpbl_option_t;
+
+extern iacpbl_option_t iacpbl_option;
+extern int iacpbl_interpret_option( int *argc, char ***argv ) ;
 
 //////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////

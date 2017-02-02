@@ -1937,7 +1937,7 @@ size_t acp_size_local_map(acp_map_t map)
         if (acp_query_rank(ga_table) != my_rank) continue;
         acp_copy(buf_table, ga_table, size_table, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-        for (slot = 0; slot < map.num_slots; slot++) ret += table[slot * 32 + 2];
+        for (slot = 0; slot < map.num_slots; slot++) ret += table[slot * 4 + 3];
     }
     
     acp_free(buf);
@@ -1976,7 +1976,7 @@ size_t acp_size_map(acp_map_t map)
         acp_ga_t ga_table = directory[rank];
         acp_copy(buf_table, ga_table, size_table, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
-        for (slot = 0; slot < map.num_slots; slot++) ret += table[slot * 32 + 2];
+        for (slot = 0; slot < map.num_slots; slot++) ret += table[slot * 4 + 3];
     }
     
     acp_free(buf);

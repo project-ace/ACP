@@ -150,7 +150,7 @@ libacpbl_ib_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$@
 libacpbl_ib_mpi_la_DEPENDENCIES =
 am__libacpbl_ib_mpi_la_SOURCES_DIST = acpbl_ib.c acpbl.h acpbl_sync.h \
-	acpbl_input.c acpbl_input.h acpbl_default_input.h
+	acpbl_input.c acpbl_input.h
 @HAVE_MPICC_TRUE@am_libacpbl_ib_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_ib_mpi_la-acpbl_ib.lo \
 @HAVE_MPICC_TRUE@	libacpbl_ib_mpi_la-acpbl_input.lo
@@ -360,10 +360,10 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_ib.la $(am__append_1)
-libacpbl_ib_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h acpbl_default_input.h
+libacpbl_ib_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h
 libacpbl_ib_la_LDFLAGS = -version-info $(libacpbl_ib_version)
 libacpbl_ib_la_LIBADD = -lpthread -libverbs
-@HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h acpbl_default_input.h
+@HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_SOURCES = acpbl_ib.c acpbl.h acpbl_sync.h acpbl_input.c acpbl_input.h
 @HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
 @HAVE_MPICC_TRUE@libacpbl_ib_mpi_la_LIBADD = -lpthread -libverbs
 all: all-am

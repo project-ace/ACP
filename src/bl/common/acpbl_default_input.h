@@ -1,4 +1,0 @@
-///#ifndef __INCLUDE_DEFAULT_INPUT__
-///#define __INCLUDE_DEFAULT_INPUT__
-
-///#endif //__INCLUDE_DEFAULT_INPUT__

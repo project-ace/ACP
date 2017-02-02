@@ -53,16 +53,16 @@ typedef struct {
 static const option_list_t option_list[] = {
     //type,             offset,                                 name,                       description
     {arg_uint,          offsetof(iacpbl_option_t, szsmem),      "--acp-size-smem",          "starter memory size (user region)"},
-    {arg_uint,          offsetof(iacpbl_option_t, szsmemcl),    "--acp-size-smem-cl",       "tarter memory size (comm. library)"},
-    {arg_uint,          offsetof(iacpbl_option_t, szsmemdl),    "--acp-size-smem-dl",       "tarter memory size (data library)"},
+    {arg_uint,          offsetof(iacpbl_option_t, szsmemcl),    "--acp-size-smem-cl",       "starter memory size (comm. library)"},
+    {arg_uint,          offsetof(iacpbl_option_t, szsmemdl),    "--acp-size-smem-dl",       "starter memory size (data library)"},
     {arg_uint,          offsetof(iacpbl_option_t, ethspeed),    "--acp-ethernet-speed",     "ethernet speed (in Mbps)"},
     //
-    {arg_uint,          offsetof(iacpbl_option_t, taskid),      "--acp-taskid",             "parallel task ID"},
+    {arg_uint,          offsetof(iacpbl_option_t, taskid),      "--acp-taskid",             "parallel task identifier"},
     //
-    {arg_string,        offsetof(iacpbl_option_t, portfile),    "--acp-portfile",           "(for macprun) name of the portfile"},
+    {arg_string,        offsetof(iacpbl_option_t, portfile),    "--acp-portfile",           "(for macprun) portfile name"},
     {arg_uint,          offsetof(iacpbl_option_t, offsetrank),  "--acp-offsetrank",         "(for macprun) rank offset"},
     //
-    {arg_uint,          offsetof(iacpbl_option_t, myrank),      "--acp-myrank",             "(for acprun) rank of this process"},
+    {arg_uint,          offsetof(iacpbl_option_t, myrank),      "--acp-myrank",             "(for acprun) process rank"},
     {arg_uint,          offsetof(iacpbl_option_t, nprocs),      "--acp-nprocs",             "(for acprun) number of processes"},
     {arg_uint,          offsetof(iacpbl_option_t, lport),       "--acp-port-local",         "(for acprun) port number"},
     {arg_string,        offsetof(iacpbl_option_t, rhost),       "--acp-host-remote",        "(for acprun) remote host address"},
@@ -81,7 +81,7 @@ static int print_usage( char *comm, FILE *fout )
     int i;
     fprintf( fout, "Usage:\n    %s\n", comm ) ;
     for ( i = 0 ; i < sizeof(option_list) / sizeof(option_list_t) ; i++ ) {
-        fprintf( fout, "     %20s  %s\n", option_list[i].name, option_list[i].description) ;
+        fprintf( fout, "      %-24s  %s\n", option_list[i].name, option_list[i].description) ;
     }
     return 0 ;
 }

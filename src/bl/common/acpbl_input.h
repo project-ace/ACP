@@ -34,6 +34,11 @@ typedef struct {
     iacpbl_option_uint_t szsmem;
     iacpbl_option_uint_t szsmemcl;
     iacpbl_option_uint_t szsmemdl;
+    iacpbl_option_uint_t mhooksmall;
+    iacpbl_option_uint_t mhooklarge;
+    iacpbl_option_uint_t mhookhuge;
+    iacpbl_option_uint_t mhooklow;
+    iacpbl_option_uint_t mhookhigh;
     iacpbl_option_uint_t ethspeed;
 } iacpbl_option_t;
 

@@ -12,11 +12,14 @@
  *
  */
 
+#define _GNU_SOURCE
+#include <dlfcn.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
 #include <acp.h>
+#include <acpbl_input.h>
 #include "acpdl.h"
 #include "acpdl_malloc.h"
 
@@ -24,10 +27,14 @@ uint64_t crc64_table[256];
 
 int iacp_init_dl(void)
 {
+    void (*iacpdl_malloc_hook_init)(int, int, int, uint64_t, uint64_t);
     uint64_t c;
     int n, k;
     
     iacpdl_init_malloc();
+    
+    iacpdl_malloc_hook_init = (void (*)(int, int, int, uint64_t, uint64_t))dlsym(RTLD_DEFAULT, "iacpdl_malloc_hook_init");
+    if(iacpdl_malloc_hook_init != NULL) (*iacpdl_malloc_hook_init)(iacpbl_option.mhooksmall.value, iacpbl_option.mhooklarge.value, iacpbl_option.mhookhuge.value, iacpbl_option.mhooklow.value, iacpbl_option.mhookhigh.value);
     
     for (n = 0; n < 256; n++) {
         c = (uint64_t)n;
@@ -40,6 +47,11 @@ int iacp_init_dl(void)
 
 int iacp_finalize_dl(void)
 {
+    void (*iacpdl_malloc_hook_finalize)(void);
+    
+    iacpdl_malloc_hook_finalize = (void (*)(void))dlsym(RTLD_DEFAULT, "iacpdl_malloc_hook_finalize");
+    if (iacpdl_malloc_hook_finalize != NULL) (*iacpdl_malloc_hook_finalize)();
+    
     iacpdl_finalize_malloc();
     
     return 0;

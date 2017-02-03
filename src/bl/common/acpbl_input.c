@@ -32,6 +32,11 @@ iacpbl_option_t iacpbl_option = {
     { 10240,        0,      0xffffffffffffffffLLU },
     { 10240,        0,      0xffffffffffffffffLLU },
     { 10240,        0,      0xffffffffffffffffLLU },
+    { 0,            0,      1 },
+    { 0,            0,      1 },
+    { 0,            0,      1 },
+    { 128,          0,      0xffffffffffffffffLLU },
+    { 131072,       0,      0xffffffffffffffffLLU },
     { 1000,         1,      10000000 }
 };
 
@@ -55,6 +60,11 @@ static const option_list_t option_list[] = {
     {arg_uint,          offsetof(iacpbl_option_t, szsmem),      "--acp-size-smem",          "starter memory size (user region)"},
     {arg_uint,          offsetof(iacpbl_option_t, szsmemcl),    "--acp-size-smem-cl",       "starter memory size (comm. library)"},
     {arg_uint,          offsetof(iacpbl_option_t, szsmemdl),    "--acp-size-smem-dl",       "starter memory size (data library)"},
+    {arg_uint,          offsetof(iacpbl_option_t, mhooksmall),  "--acp-malloc-hook-small",  "malloc hook flag [0|1] for small size"},
+    {arg_uint,          offsetof(iacpbl_option_t, mhooklarge),  "--acp-malloc-hook-large",  "malloc hook flag [0|1] for large size"},
+    {arg_uint,          offsetof(iacpbl_option_t, mhookhuge),   "--acp-malloc-hook-huge",   "malloc hook flag [0|1] for small size"},
+    {arg_uint,          offsetof(iacpbl_option_t, mhooklow),    "--acp-malloc-hook-low",    "mallok hook low threshold"},
+    {arg_uint,          offsetof(iacpbl_option_t, mhookhigh),   "--acp-malloc-hook-high",   "mallok hook high threshold"},
     {arg_uint,          offsetof(iacpbl_option_t, ethspeed),    "--acp-ethernet-speed",     "ethernet speed (in Mbps)"},
     //
     {arg_uint,          offsetof(iacpbl_option_t, taskid),      "--acp-taskid",             "parallel task identifier"},

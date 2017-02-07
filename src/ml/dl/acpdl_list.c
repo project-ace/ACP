@@ -663,14 +663,8 @@ void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_el
     acp_ga_t next2     = tmp_head2;
     
     /* prepare head elements */
-    if (tmp_num1 > 0) {
-        acp_copy(buf + 48, next1, 24, ACP_HANDLE_NULL);
-        tmp_num1--;
-    }
-    if (tmp_num2 > 0) {
-        acp_copy(buf + 72, next2, 24, ACP_HANDLE_NULL);
-        tmp_num2--;
-    }
+    if (tmp_num1 > 0) acp_copy(buf + 48, next1, 24, ACP_HANDLE_NULL);
+    if (tmp_num2 > 0) acp_copy(buf + 72, next2, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
     acp_ga_t tmp_next1 = *elem1_next;
@@ -697,7 +691,7 @@ void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_el
             elem1.size = tmp_size1;
             elem2.ga   = next2 + 24;
             elem2.size = tmp_size2;
-            sel = comp(elem1, elem2);;
+            sel = comp(elem1, elem2);
         }
         
         /* link element */
@@ -707,14 +701,17 @@ void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_el
                 acp_copy(prev, buf + 96, 16, ACP_HANDLE_NULL);
             } else
                 first = next1;
-            acp_copy(buf + 48, tmp_next1, 24, ACP_HANDLE_NULL);
+            if (tmp_num1 > 1)
+                acp_copy(buf + 48, tmp_next1, 24, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
-            tmp_next1 = *elem1_next;
-            tmp_prev1 = *elem1_prev;
-            tmp_size1 = *elem1_size;
             *prev_prev = prev;
             prev = next1;
             next1 = tmp_next1;
+            if (tmp_num1 > 1) {
+                tmp_next1 = *elem1_next;
+                tmp_prev1 = *elem1_prev;
+                tmp_size1 = *elem1_size;
+            }
             tmp_num1--;
             tmp_num++;
         } else {
@@ -723,14 +720,17 @@ void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_el
                 acp_copy(prev, buf + 96, 16, ACP_HANDLE_NULL);
             } else
                 first = next2;
-            acp_copy(buf + 72, tmp_next2, 24, ACP_HANDLE_NULL);
+            if (tmp_num2 > 1)
+                acp_copy(buf + 72, tmp_next2, 24, ACP_HANDLE_NULL);
             acp_complete(ACP_HANDLE_ALL);
-            tmp_next2 = *elem2_next;
-            tmp_prev2 = *elem2_prev;
-            tmp_size2 = *elem2_size;
             *prev_prev = prev;
             prev = next2;
             next2 = tmp_next2;
+            if (tmp_num2 > 1) {
+                tmp_next2 = *elem2_next;
+                tmp_prev2 = *elem2_prev;
+                tmp_size2 = *elem2_size;
+            }
             tmp_num2--;
             tmp_num++;
         }
@@ -748,7 +748,7 @@ void acp_merge_list(acp_list_t list1, acp_list_t list2, int (*comp)(const acp_el
     *list2_tail = list2.ga;
     *list2_num  = 0;
     acp_copy(list1.ga, buf, 24, ACP_HANDLE_NULL);
-    acp_copy(list2.ga + 24, buf, 24, ACP_HANDLE_NULL);
+    acp_copy(list2.ga, buf + 24, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
     
     acp_free(buf);
@@ -1178,6 +1178,7 @@ void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1, const
             list2.ga = list1.ga;
             q--;
         }
+        next = tmp_next;
     }
     while (list2.ga > buf + 16) {
         list1.ga = list2.ga - 24;
@@ -1185,8 +1186,14 @@ void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1, const
         list2.ga = list1.ga;
     }
     
+    acp_ga_t head = *(volatile acp_ga_t*)(ptr + 16);
+    acp_ga_t tail = *(volatile acp_ga_t*)(ptr + 16 + 8);
+    *elem_next = list.ga;
+    acp_copy(head + 8, buf, 8, ACP_HANDLE_NULL);
+    acp_copy(tail    , buf, 8, ACP_HANDLE_NULL);
     acp_copy(list.ga, buf + 16, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
+    acp_free(buf);
     return;
 }
 

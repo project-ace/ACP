@@ -565,7 +565,7 @@ void acp_clear_local_multiset(acp_multiset_t set)
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
     volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
     
-    /*** clear set ***/
+    /*** clear multiset ***/
     
     acp_copy(buf_directory, set.ga, size_directory, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
@@ -621,7 +621,7 @@ void acp_clear_multiset(acp_multiset_t set)
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
     volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
     
-    /*** clear set ***/
+    /*** clear multiset ***/
     
     acp_copy(buf_directory, set.ga, size_directory, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
@@ -647,6 +647,79 @@ void acp_clear_multiset(acp_multiset_t set)
     
     acp_free(buf);
     return;
+}
+
+acp_set_t acp_collapse_multiset(acp_multiset_t set)
+{
+    /*** local buffer variables ***/
+    
+    uint64_t size_directory = set.num_ranks * 8;
+    uint64_t size_lock_var  = 8;
+    uint64_t size_list      = 24;
+    uint64_t size_elem      = 32;
+    uint64_t offset_directory = 0;
+    uint64_t offset_lock_var  = offset_directory + size_directory;
+    uint64_t offset_list      = offset_lock_var  + size_lock_var;
+    uint64_t offset_elem      = offset_list      + size_list;
+    uint64_t size_buf         = offset_elem      + size_elem;
+    
+    acp_ga_t buf = acp_malloc(size_buf, acp_rank());
+    if (buf == ACP_GA_NULL) return;
+    acp_ga_t buf_directory = buf + offset_directory;
+    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+    acp_ga_t buf_list      = buf + offset_list;
+    acp_ga_t buf_elem      = buf + offset_elem;
+    void* ptr = acp_query_address(buf);
+    volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
+    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+    volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
+    volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
+    volatile uint8_t*  elem_byte = (volatile uint8_t* )(ptr + offset_elem);
+    
+    /*** collapse multiset ***/
+    
+    acp_copy(buf_directory, set.ga, size_directory, ACP_HANDLE_NULL);
+    acp_complete(ACP_HANDLE_ALL);
+    
+    int rank, slot, i;
+    
+    for (rank = 0; rank < set.num_ranks; rank++) {
+        acp_ga_t ga_table = directory[rank];
+        for (slot = 0; slot < set.num_slots; slot++) {
+            acp_ga_t ga_lock_var = ga_table + slot * 32;
+            acp_ga_t ga_list = ga_lock_var + 8;
+            do {
+                acp_cas8(buf_lock_var, ga_lock_var, 0, 1, ACP_HANDLE_NULL);
+                acp_copy(buf_list, ga_list, size_list, ACP_HANDLE_ALL);
+                acp_complete(ACP_HANDLE_ALL);
+            } while (*lock_var != 0);
+            
+            acp_ga_t ga_next_elem = list[0];
+            while (ga_next_elem != ACP_GA_NULL) {
+                acp_ga_t ga_elem = ga_next_elem;
+                acp_copy(buf_elem, ga_elem, size_elem, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+                /*** transform a counter into a big endian number and concatenate it to the head of the key ***/
+                uint64_t counter = elem[2];
+                uint64_t size = elem[3];
+                elem[2] = size + 8;
+                for (i = 0; i < 8; i++) elem_byte[24 + i] = (counter >> ((7 - i) * 8)) & 0xff;
+                acp_copy(ga_elem + 16, buf_elem + 16, size_elem - 16, ACP_HANDLE_NULL);
+                acp_complete(ACP_HANDLE_ALL);
+                ga_next_elem = elem[0];
+            }
+            
+            acp_copy(ga_lock_var, buf_lock_var, size_lock_var, ACP_HANDLE_ALL);
+            acp_complete(ACP_HANDLE_ALL);
+        }
+    }
+    
+    acp_free(buf);
+    acp_set_t ret;
+    ret.ga = set.ga;
+    ret.num_ranks = set.num_ranks;
+    ret.num_slots = set.num_slots;
+    return ret;
 }
 
 acp_multiset_t acp_create_multiset(int num_ranks, const int* ranks, int num_slots, int rank)

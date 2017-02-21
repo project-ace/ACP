@@ -4938,7 +4938,9 @@ int acp_init(int *argc, char ***argv)
     dst_addr                    = ( uint32_t ) iacpbl_option.rhost_ip       ;
     acp_smsize                  = ( size_t   ) iacpbl_option.szsmem.value   ;
     iacp_starter_memory_size_cl = ( size_t   ) iacpbl_option.szsmemcl.value ;
-    iacp_starter_memory_size_dl = ( size_t   ) iacpbl_option.ethspeed.value ;
+    iacp_starter_memory_size_dl = ( size_t   ) iacpbl_option.szsmemdl.value ;
+    //iacp_starter_memory_size_dl = ( size_t   ) iacpbl_option.ethspeed.value ;
+    
 ///
     ///fprintf( stdout, "myrank, nprocs, taskid, myport, parent_port, parent_addr, smem, smem_cl, smem_dl:\n" ) ;
     ///fprintf( stdout, "%u, %u, %u, %u, %u, %u, %lu, %lu, %lu\n",

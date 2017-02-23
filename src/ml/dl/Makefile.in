@@ -108,8 +108,10 @@ CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 LTLIBRARIES = $(noinst_LTLIBRARIES)
-libacpml_dl_la_LIBADD = -ldl
-am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_vector.lo acpdl_deque.lo acpdl_list.lo acpdl_set.lo acpdl_multiset.lo acpdl_map.lo acpdl_ws.lo
+libacpml_dl_la_DEPENDENCIES =
+am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_vector.lo \
+	acpdl_deque.lo acpdl_list.lo acpdl_set.lo acpdl_multiset.lo \
+	acpdl_map.lo acpdl_ws.lo
 libacpml_dl_la_OBJECTS = $(am_libacpml_dl_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -318,6 +320,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
 noinst_LTLIBRARIES = libacpml_dl.la
+libacpml_dl_la_LIBADD = -ldl
 libacpml_dl_la_SOURCES = \
 			 acpdl.c \
 			 acpdl.h \
@@ -387,13 +390,13 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_malloc.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_vector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_deque.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_list.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_set.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_multiset.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_malloc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_map.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_multiset.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_set.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_vector.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_ws.Plo@am__quote@
 
 .c.o:

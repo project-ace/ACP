@@ -291,7 +291,7 @@ void acp_assign_local_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);
@@ -429,7 +429,7 @@ void acp_assign_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);
@@ -1294,7 +1294,7 @@ void acp_merge_local_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);
@@ -1409,7 +1409,7 @@ void acp_merge_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);
@@ -1526,7 +1526,7 @@ void acp_move_local_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);
@@ -1651,7 +1651,7 @@ void acp_move_map(acp_map_t map1, acp_map_t map2)
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_new_value = buf_elem + offset_new_value;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     new_value = (volatile uint8_t*)(ptr + offset_new_value);

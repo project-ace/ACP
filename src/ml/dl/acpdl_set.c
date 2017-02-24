@@ -264,7 +264,7 @@ void acp_assign_local_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
@@ -394,7 +394,7 @@ void acp_assign_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
@@ -1305,7 +1305,7 @@ void acp_merge_local_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
@@ -1412,7 +1412,7 @@ void acp_merge_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
@@ -1521,7 +1521,7 @@ void acp_move_local_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);
@@ -1638,7 +1638,7 @@ void acp_move_set(acp_set_t set1, acp_set_t set2)
                     max_size_buf_elem = size_buf_elem;
                     buf_new_key   = buf_elem + offset_new_key;
                     buf_elem_key  = buf_elem + offset_elem_key;
-                    ptr = acp_query_address(buf_elem);
+                    ptr = (uintptr_t)acp_query_address(buf_elem);
                     elem      = (volatile uint64_t*)(ptr + offset_elem);
                     new_key   = (volatile uint8_t*)(ptr + offset_new_key);
                     elem_key  = (volatile uint8_t*)(ptr + offset_elem_key);

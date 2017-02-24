@@ -979,8 +979,8 @@ void acp_remove_list(acp_list_t list, const acp_element_t elem)
     volatile acp_ga_t* prev_next = (volatile acp_ga_t*)(ptr + 48);
     volatile acp_ga_t* prev_prev = (volatile acp_ga_t*)(ptr + 56);
     
-    void* p1 = ptr + 64;
-    void* p2 = local ? acp_query_address(elem.ga) : ptr + 64 + elem.size;
+    uintptr_t p1 = ptr + 64;
+    uintptr_t p2 = local ? (uintptr_t)acp_query_address(elem.ga) : ptr + 64 + elem.size;
     if (!local) acp_copy(buf + 64 + elem.size, elem.ga, elem.size, ACP_HANDLE_NULL);
     
     acp_copy(buf, list.ga, 24, ACP_HANDLE_NULL);
@@ -1149,7 +1149,7 @@ void acp_sort_list(acp_list_t list, int (*comp)(const acp_element_t elem1, const
     int log2_num = pop_count(fill_lower_bit(tmp_num - 1));
     buf = acp_malloc(16 + 24 * (log2_num + 1), acp_rank());
     if (buf == ACP_GA_NULL) return;
-    ptr = acp_query_address(buf);
+    ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* elem_next = (volatile uint64_t*)ptr;
     volatile acp_ga_t* elem_prev = (volatile uint64_t*)(ptr + 8);
     
@@ -1435,7 +1435,7 @@ void acp_unique_list(acp_list_t list)
             if (capacity < size) {
                 if (capacity > 0) acp_free(buf2);
                 buf2 = acp_malloc(capacity + capacity, acp_rank());
-                ptr = acp_query_address(buf2);
+                ptr = (uintptr_t)acp_query_address(buf2);
                 capacity = size;
             }
             if (buf2 != ACP_GA_NULL) {

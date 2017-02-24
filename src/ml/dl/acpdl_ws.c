@@ -53,10 +53,10 @@ acp_atkey_t iacp_register_key_query_ga_ws( size_t size, void *array, int color, 
 int acp_setparams_ws( size_t proc_start, size_t size_default )
 {
     int myrank  = acp_rank( ) ;
-    if ( proc_start < 0 ) {
-        fprintf( stderr, "acp_setparams_ws: Error: rank%4d : proc_start:%8lu < 0 \n",   myrank, proc_start ) ;
-        exit ( 1 ) ;
-    }
+//  if ( proc_start < 0 ) {
+//      fprintf( stderr, "acp_setparams_ws: Error: rank%4d : proc_start:%8lu < 0 \n",   myrank, proc_start ) ;
+//      exit ( 1 ) ;
+//  }
     if ( size_default <= 0 ) {
         fprintf( stderr, "acp_setparams_ws: Error: rank%4d : size_default:%8lu < 0 \n", myrank, size_default ) ;
         exit ( 1 ) ;
@@ -227,13 +227,13 @@ void acp_destroy_ws ( acp_wsd_t wsd )
 static int setup_dat_ws( acp_wsd_t wsd, size_t size_rw, size_t offset_rw, acp_ga_t ga_base, acp_ga_t *ga_src )
 {
     size_t i, proc_s, proc_e ;
-    size_t size_default, remainder_offset, remainder_data ;
+    size_t size_default, remainder_offset ;//, remainder_data ;
     size_t ngas ;
 ///
     ngas             = wsd->ngas ;
     size_default     = wsd->size_default ;
     remainder_offset = offset_rw % size_default ;
-    remainder_data   = ( offset_rw + size_rw ) % size_default ;
+//  remainder_data   = ( offset_rw + size_rw ) % size_default ;
     proc_s           = offset_rw / size_default ;
     proc_e           = ( offset_rw + size_rw ) / size_default ;
 ///
@@ -344,7 +344,7 @@ int acp_read_ws ( acp_wsd_t wsd, acp_ga_t ga, size_t size, size_t offset )
 ////////////////////////////////////////////////
 int acp_write_ws ( acp_wsd_t wsd, acp_ga_t ga, size_t size, size_t offset )
 {
-    int          i, myrank ;
+    int          i ;
     acp_handle_t hdl ;
     size_t       *sizes_dst   = ( size_t   * ) malloc( wsd->ngas * sizeof( size_t ) ) ;
     size_t       *offsets_dst = ( size_t   * ) malloc( wsd->ngas * sizeof( size_t ) ) ;
@@ -353,8 +353,8 @@ int acp_write_ws ( acp_wsd_t wsd, acp_ga_t ga, size_t size, size_t offset )
     setup_dat_ws( wsd, size, offset, ga,          gas_src   ) ;
     setup_wsd_ws( wsd, size, offset, offsets_dst, sizes_dst ) ;
 ///
-    myrank     = acp_rank() ;
 #ifdef DEBUG
+    int myrank = acp_rank() ;
     {
         double *dp = ( double * ) acp_query_address( ga ) ;
         fprintf( stderr, "data: addr dp = %p\n", dp ) ;

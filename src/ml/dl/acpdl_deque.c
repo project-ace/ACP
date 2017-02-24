@@ -962,7 +962,7 @@ acp_pair_t acp_dereference_deque_it(acp_deque_it_t it, size_t size)
     pair.second.ga = ACP_GA_NULL;
     pair.second.size = 0;
     
-    if (it.index < 0 || size < 0) return pair;
+    if (it.index < 0) return pair;
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return pair;

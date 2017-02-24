@@ -41,7 +41,7 @@ static void iacp_clear_list_multiset(volatile uint64_t* list, acp_ga_t buf_elem,
     
     /*** local buffer variables ***/
     
-    uint64_t size_list      = 24;
+//  uint64_t size_list      = 24;
     uint64_t size_elem      = 32;
     
     /*** clear slot ***/
@@ -651,6 +651,11 @@ void acp_clear_multiset(acp_multiset_t set)
 
 acp_set_t acp_collapse_multiset(acp_multiset_t set)
 {
+    acp_set_t ret;
+    ret.ga = set.ga;
+    ret.num_ranks = set.num_ranks;
+    ret.num_slots = set.num_slots;
+    
     /*** local buffer variables ***/
     
     uint64_t size_directory = set.num_ranks * 8;
@@ -664,7 +669,7 @@ acp_set_t acp_collapse_multiset(acp_multiset_t set)
     uint64_t size_buf         = offset_elem      + size_elem;
     
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
-    if (buf == ACP_GA_NULL) return;
+    if (buf == ACP_GA_NULL) return ret;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
@@ -715,10 +720,6 @@ acp_set_t acp_collapse_multiset(acp_multiset_t set)
     }
     
     acp_free(buf);
-    acp_set_t ret;
-    ret.ga = set.ga;
-    ret.num_ranks = set.num_ranks;
-    ret.num_slots = set.num_slots;
     return ret;
 }
 
@@ -2260,12 +2261,12 @@ acp_multiset_it_t acp_increment_multiset_it(acp_multiset_it_t it)
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
     if (buf == ACP_GA_NULL) return iacp_null_multiset_it(it.set);
     acp_ga_t buf_directory = buf + offset_directory;
-    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+//  acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
     uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
-    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+//  volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
     volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
     

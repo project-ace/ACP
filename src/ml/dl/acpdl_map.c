@@ -41,7 +41,7 @@ static void iacp_clear_list_map(volatile uint64_t* list, acp_ga_t buf_elem, vola
     
     /*** local buffer variables ***/
     
-    uint64_t size_list      = 24;
+//  uint64_t size_list      = 24;
     uint64_t size_elem      = 32;
     
     /*** clear slot ***/
@@ -2147,12 +2147,12 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
     if (buf == ACP_GA_NULL) return iacp_null_map_it(it.map);
     acp_ga_t buf_directory = buf + offset_directory;
-    acp_ga_t buf_lock_var  = buf + offset_lock_var;
+//  acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
     uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
-    volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
+//  volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
     volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
     

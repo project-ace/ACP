@@ -219,8 +219,8 @@ void acp_clear_list(acp_list_t list)
     volatile acp_ga_t* list_tail = (volatile acp_ga_t*)(ptr + 8);
     volatile uint64_t* list_num  = (volatile uint64_t*)(ptr + 16);
     volatile acp_ga_t* elem_next = (volatile acp_ga_t*)(ptr + 24);
-    volatile acp_ga_t* elem_prev = (volatile acp_ga_t*)(ptr + 32);
-    volatile uint64_t* elem_size = (volatile uint64_t*)(ptr + 40);
+//  volatile acp_ga_t* elem_prev = (volatile acp_ga_t*)(ptr + 32);
+//  volatile uint64_t* elem_size = (volatile uint64_t*)(ptr + 40);
     
     acp_copy(buf, list.ga, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
@@ -284,8 +284,8 @@ void acp_destroy_list(acp_list_t list)
     volatile acp_ga_t* list_tail = (volatile acp_ga_t*)(ptr + 8);
     volatile uint64_t* list_num  = (volatile uint64_t*)(ptr + 16);
     volatile acp_ga_t* elem_next = (volatile acp_ga_t*)(ptr + 24);
-    volatile acp_ga_t* elem_prev = (volatile acp_ga_t*)(ptr + 32);
-    volatile uint64_t* elem_size = (volatile uint64_t*)(ptr + 40);
+//  volatile acp_ga_t* elem_prev = (volatile acp_ga_t*)(ptr + 32);
+//  volatile uint64_t* elem_size = (volatile uint64_t*)(ptr + 40);
     
     acp_copy(buf, list.ga, 24, ACP_HANDLE_NULL);
     acp_complete(ACP_HANDLE_ALL);
@@ -1297,7 +1297,7 @@ void acp_splice_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t 
     acp_ga_t tmp_prev2 = *elem2_prev;
     
     acp_ga_t tmp_next3 = tmp_next2;
-    acp_ga_t tmp_prev3 = tmp_prev2;
+//  acp_ga_t tmp_prev3 = tmp_prev2;
     *elem3_next = tmp_next2;
     *elem3_prev = tmp_prev2;
     acp_ga_t prev = start.elem;
@@ -1307,7 +1307,7 @@ void acp_splice_range_list(acp_list_it_t it, acp_list_it_t start, acp_list_it_t 
         acp_copy(buf + 80, tmp_next3, 16, ACP_HANDLE_NULL);
         acp_complete(ACP_HANDLE_ALL);
         tmp_next3 = *elem2_next;
-        tmp_prev3 = *elem2_prev;
+//      tmp_prev3 = *elem2_prev;
         n++;
     }
     
@@ -1405,7 +1405,7 @@ void acp_unique_list(acp_list_t list)
     volatile acp_ga_t* elem_next = (volatile acp_ga_t*)(ptr + 24);
     volatile acp_ga_t* elem_prev = (volatile acp_ga_t*)(ptr + 32);
     volatile uint64_t* elem_size = (volatile uint64_t*)(ptr + 40);
-    volatile acp_ga_t* prev_next = (volatile acp_ga_t*)(ptr + 48);
+//  volatile acp_ga_t* prev_next = (volatile acp_ga_t*)(ptr + 48);
     volatile acp_ga_t* prev_prev = (volatile acp_ga_t*)(ptr + 56);
     
     acp_copy(buf, list.ga, 24, ACP_HANDLE_NULL);

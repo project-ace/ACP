@@ -190,7 +190,7 @@ static int match_acp_option( char *arg )
 static int copy_arg( char *opt, char *optarg, int ir )
 {
     if ( option_list[ ir ].type == arg_uint || option_list[ ir ].type == arg_uint_metric ) {
-        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
         ptr->value = strtoul( optarg, NULL, 0 ) ;
         if ( ptr->min > ptr->value || ptr->max < ptr->value ) {
             print_error_argument( ir, &ptr->value, stderr ) ;

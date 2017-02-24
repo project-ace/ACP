@@ -199,7 +199,7 @@ void acp_assign_local_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -340,7 +340,7 @@ void acp_assign_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -472,7 +472,7 @@ acp_map_it_t acp_begin_local_map(acp_map_t map)
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -531,7 +531,7 @@ acp_map_it_t acp_begin_map(acp_map_t map)
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -591,7 +591,7 @@ void acp_clear_local_map(acp_map_t map)
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -647,7 +647,7 @@ void acp_clear_map(acp_map_t map)
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -700,7 +700,7 @@ acp_map_t acp_create_map(int num_ranks, const int* ranks, int num_slots, int ran
     if (buf == ACP_GA_NULL) return map;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_table     = buf + offset_table;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* table     = (volatile uint64_t*)(ptr + offset_table);
     
@@ -761,7 +761,7 @@ void acp_destroy_map(acp_map_t map)
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -811,7 +811,7 @@ int acp_empty_local_map(acp_map_t map)
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -865,7 +865,7 @@ int acp_empty_map(acp_map_t map)
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -917,7 +917,7 @@ acp_map_it_t acp_end_local_map(acp_map_t map)
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -992,7 +992,7 @@ acp_map_it_t acp_find_map(acp_map_t map, acp_element_t key)
     acp_ga_t buf_elem      = buf + offset_elem;
     acp_ga_t buf_new_key   = buf + offset_new_key;
     acp_ga_t buf_elem_key  = buf + offset_elem_key;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -1095,7 +1095,7 @@ int acp_insert_map(acp_map_t map, acp_pair_t pair)
     acp_ga_t buf_new_key   = buf + offset_new_key;
     acp_ga_t buf_new_value = buf + offset_new_value;
     acp_ga_t buf_elem_key  = buf + offset_elem_key;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -1226,7 +1226,7 @@ void acp_merge_local_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -1343,7 +1343,7 @@ void acp_merge_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -1458,7 +1458,7 @@ void acp_move_local_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -1585,7 +1585,7 @@ void acp_move_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem2     = buf + offset_elem2;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* lock_var   = (volatile uint64_t*)(ptr + offset_lock_var);
@@ -1715,7 +1715,7 @@ void acp_remove_map(acp_map_t map, acp_element_t key)
     acp_ga_t buf_elem      = buf + offset_elem;
     acp_ga_t buf_new_key   = buf + offset_new_key;
     acp_ga_t buf_elem_key  = buf + offset_elem_key;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -1837,7 +1837,7 @@ size_t acp_retrieve_map(acp_map_t map, acp_pair_t pair)
     acp_ga_t buf_elem      = buf + offset_elem;
     acp_ga_t buf_new_key   = buf + offset_new_key;
     acp_ga_t buf_elem_key  = buf + offset_elem_key;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);
@@ -1919,7 +1919,7 @@ size_t acp_size_local_map(acp_map_t map)
     if (buf == ACP_GA_NULL) return ret;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_table     = buf + offset_table;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* table     = (volatile uint64_t*)(ptr + offset_table);
     
@@ -1960,7 +1960,7 @@ size_t acp_size_map(acp_map_t map)
     if (buf == ACP_GA_NULL) return ret;
     acp_ga_t buf_directory = buf + offset_directory;
     acp_ga_t buf_table     = buf + offset_table;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* table     = (volatile uint64_t*)(ptr + offset_table);
     
@@ -2009,7 +2009,7 @@ void acp_swap_map(acp_map_t map1, acp_map_t map2)
     acp_ga_t buf_lock_var   = buf + offset_lock_var;
     acp_ga_t buf_list       = buf + offset_list;
     acp_ga_t buf_elem       = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory  = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile acp_ga_t* directory2 = (volatile acp_ga_t*)(ptr + offset_directory2);
     volatile uint64_t* table      = (volatile uint64_t*)(ptr + offset_table);
@@ -2109,7 +2109,7 @@ acp_pair_t acp_dereference_map_it(acp_map_it_t it)
     acp_ga_t buf = acp_malloc(size_buf, acp_rank());
     if (buf == ACP_GA_NULL) return pair;
     acp_ga_t buf_elem      = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile uint64_t* elem      = (volatile uint64_t*)(ptr + offset_elem);
     
     /*** translate element into pair ***/
@@ -2150,7 +2150,7 @@ acp_map_it_t acp_increment_map_it(acp_map_it_t it)
     acp_ga_t buf_lock_var  = buf + offset_lock_var;
     acp_ga_t buf_list      = buf + offset_list;
     acp_ga_t buf_elem      = buf + offset_elem;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* directory = (volatile acp_ga_t*)(ptr + offset_directory);
     volatile uint64_t* lock_var  = (volatile uint64_t*)(ptr + offset_lock_var);
     volatile uint64_t* list      = (volatile uint64_t*)(ptr + offset_list);

@@ -31,7 +31,7 @@ void acp_assign_deque(acp_deque_t deque1, acp_deque_t deque2)
 {
     acp_ga_t buf = acp_malloc(64, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf1_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf1_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf1_size   = (volatile uint64_t*)(ptr + 16);
@@ -99,7 +99,7 @@ void acp_assign_range_deque(acp_deque_t deque, acp_deque_it_t start, acp_deque_i
     
     acp_ga_t buf = acp_malloc(64, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf1_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf1_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf1_size   = (volatile uint64_t*)(ptr + 16);
@@ -170,7 +170,7 @@ acp_ga_t acp_at_deque(acp_deque_t deque, int index)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return ACP_GA_NULL;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -200,7 +200,7 @@ acp_deque_it_t acp_begin_deque(acp_deque_t deque)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return it;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -223,7 +223,7 @@ size_t acp_capacity_deque(acp_deque_t deque)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return 0;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -245,7 +245,7 @@ void acp_clear_deque(acp_deque_t deque)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -275,7 +275,7 @@ acp_deque_t acp_create_deque(size_t size, int rank)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return deque;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -316,7 +316,7 @@ void acp_destroy_deque(acp_deque_t deque)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -340,7 +340,7 @@ int acp_empty_deque(acp_deque_t deque)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return 1;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -367,7 +367,7 @@ acp_deque_it_t acp_end_deque(acp_deque_t deque)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return it;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -393,7 +393,7 @@ acp_deque_it_t acp_erase_deque(acp_deque_it_t it, size_t size)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return it;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -459,7 +459,7 @@ acp_deque_it_t acp_insert_deque(acp_deque_it_t it, const acp_ga_t ga, size_t siz
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return it;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -586,7 +586,7 @@ void acp_pop_back_deque(acp_deque_t deque, size_t size)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -612,7 +612,7 @@ void acp_pop_front_deque(acp_deque_t deque, size_t size)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -643,7 +643,7 @@ void acp_push_back_deque(acp_deque_t deque, const acp_ga_t ga, size_t size)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -714,7 +714,7 @@ void acp_push_front_deque(acp_deque_t deque, const acp_ga_t ga, size_t size)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -786,7 +786,7 @@ void acp_reserve_deque(acp_deque_t deque, size_t size)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -847,7 +847,7 @@ size_t acp_size_deque(acp_deque_t deque)
 {
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return 0;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);
@@ -869,7 +869,7 @@ void acp_swap_deque(acp_deque_t deque1, acp_deque_t deque2)
 {
     acp_ga_t buf = acp_malloc(64, acp_rank());
     if (buf == ACP_GA_NULL) return;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf1_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf1_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf1_size   = (volatile uint64_t*)(ptr + 16);
@@ -966,7 +966,7 @@ acp_pair_t acp_dereference_deque_it(acp_deque_it_t it, size_t size)
     
     acp_ga_t buf = acp_malloc(32, acp_rank());
     if (buf == ACP_GA_NULL) return pair;
-    uintptr_t ptr = acp_query_address(buf);
+    uintptr_t ptr = (uintptr_t)acp_query_address(buf);
     volatile acp_ga_t* buf_ga     = (volatile acp_ga_t*)ptr;
     volatile uint64_t* buf_offset = (volatile uint64_t*)(ptr + 8);
     volatile uint64_t* buf_size   = (volatile uint64_t*)(ptr + 16);

@@ -99,11 +99,11 @@ static int print_usage( char *comm, FILE *fout )
 static int print_error_argument( int ir, void *curr, FILE *fout )
 {
     if ( option_list[ ir ].type == arg_uint || option_list[ ir ].type == arg_uint_metric ) {
-        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
         fprintf( fout, "Error argument value: %lu, !( %lu <= value <= %lu ).\n",
             *(( uint64_t * ) curr), ptr->min, ptr->max ) ;
     } else if ( option_list[ ir ].type == arg_double ) {
-        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
         fprintf( fout, "Error argument value: %e, ( %e <= value < %e ).\n",
             *(( double * ) curr), ptr->min, ptr->max ) ;
     } else if ( option_list[ ir ].type == arg_string ) {
@@ -197,14 +197,14 @@ static int copy_arg( char *opt, char *optarg, int ir )
             exit( EXIT_FAILURE ) ;
         }
     } else if ( option_list[ ir ].type == arg_double ) {
-        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
         ptr->value = strtod( optarg, NULL ) ;
         if ( ptr->min > ptr->value || ptr->max < ptr->value ) {
             print_error_argument( ir, &ptr->value, stderr ) ;
             exit( EXIT_FAILURE ) ;
         }
     } else if ( option_list[ ir ].type == arg_string ) {
-        iacpbl_option_string_t* ptr = (iacpbl_option_string_t*)((void*)&iacpbl_option + option_list[ ir ].offset) ;
+        iacpbl_option_string_t* ptr = (iacpbl_option_string_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
         sscanf( optarg, "%s", ptr->string ) ;
         if ( strlen( ptr->string ) <= 0 ) {
             print_error_argument( ir, ptr->string, stderr ) ;
@@ -215,7 +215,7 @@ static int copy_arg( char *opt, char *optarg, int ir )
 
 static int mygetopt_long_only( int *argc, char ***argv )
 {
-    int i, ir, ind ;
+    int ir, ind ;
     int c = 0 ;
     char** v = *argv ;
 ///
@@ -254,9 +254,9 @@ static int mygetopt_long_only( int *argc, char ***argv )
 
 int iacpbl_interpret_option( int *argc, char ***argv )
 {
-    int  i ;
-
     mygetopt_long_only( argc, argv ) ;
+///    int  i ;
+///
 ///    fprintf( stderr, "%4d: ", *argc ) ;
 ///    for ( i = 0 ; i < *argc ; i++ ) {
 ///        fprintf( stderr, "\"%s\" ", (*argv)[ i ] ) ;

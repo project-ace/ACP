@@ -581,7 +581,7 @@ acp_ga_t acp_malloc(size_t size, int rank)
         
         /* go to the next entry */
         prev_ptr = ptr;
-        ptr = tmp[0];
+        ptr = next_ptr;
     }
     
     /* there is no sufficient free block */
@@ -593,7 +593,7 @@ acp_ga_t acp_malloc(size_t size, int rank)
 
 void acp_free(acp_ga_t ga)
 {
-    acp_ga_t var_ga, global_heap, local_heap, head_ga, ptr;
+    acp_ga_t var_ga, global_heap, local_heap, head_ga;
     uint64_t prec_size, this_size, succ_size;
     acp_atkey_t atkey;
     volatile uint64_t var;

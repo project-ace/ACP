@@ -24,8 +24,6 @@
 extern "C" {
 #endif
 
-void iacpcl_progress_ch(void);
-
 void iacpcl_progress(void);
 
 

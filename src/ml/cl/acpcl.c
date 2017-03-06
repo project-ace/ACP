@@ -24,6 +24,1295 @@
 #include "acpbl_sync.h"
 #include "acpcl_progress.h"
 
+// #define DEBUG
+
+/* global variables */
+int iacp_enable_hybrid = 0; // Flag to permit multiple threads to call the functions in this file
+
+/* static global variables */
+static int crbsz; // Size of CRB for Channels
+static int crqsz; // Size of CRQ for Segbufs
+static acp_ga_t trashboxga; // GA of trashbox used as a dummy target of remote atomic operations
+static volatile uint64_t chlk; // Lock
+static int iacp_initialized_cl = 0; // Flag to check if initialization has been done once or not
+
+/* external global variables */
+extern size_t iacp_starter_memory_size_cl;
+
+/* structs of lists */
+typedef struct listitem {
+    struct listitem *prev;
+    struct listitem *next;
+} listitem_t;
+
+typedef struct listobj {
+    struct listitem *head;
+    struct listitem *tail;
+} listobj_t;
+
+/* functions */
+/* handling locks */
+static inline void ch_lock(void)
+{
+    if (iacp_enable_hybrid == 1)
+        while (sync_val_compare_and_swap_8(&chlk, 0, 1)) ;
+}
+
+static inline void ch_unlock(void)
+{
+    if (iacp_enable_hybrid == 1) {
+        sync_synchronize();
+        chlk = 0;
+    }
+}
+
+/* handling lists */
+static void list_init(listobj_t *list)
+{
+    list->head = NULL;
+    list->tail = NULL;
+}
+
+static void list_add(listobj_t *list, listitem_t *item)
+{
+    if (list->head == NULL) {
+        item->prev = NULL;
+        item->next = NULL;
+        list->head = item; 
+        list->tail = item; 
+    } else {
+        item->prev = list->tail;
+        item->next = NULL;
+        list->tail->next = item;
+        list->tail = item;
+    }
+}
+
+static void list_remove(listobj_t *list, listitem_t *item)
+{
+    if ((item->next == NULL) && (item->prev == NULL)) {
+        list->head = NULL;
+        list->tail = NULL;
+    } else {
+        if (item->next == NULL) {
+            list->tail = item->prev;
+            item->prev->next = item->next;
+        } else if (item->prev == NULL) {
+            list->head = item->next;
+            item->next->prev = item->prev;
+        } else {
+            item->prev->next = item->next;
+            item->next->prev = item->prev;
+        }
+    }
+}
+
+static int list_isempty(listobj_t *list)
+{
+    return list->head == NULL;
+}
+
+static void list_show(listobj_t *list)
+{
+    listitem_t *item;
+
+    item = list->head;
+    while (item != NULL) {
+        printf(" %p", item);
+        item = item->next;
+    }
+    printf("\n");
+}
+
+
+/*** 
+ ***
+ *** Segmented Buffer (Segbuf)
+ ***
+ *** - Overview
+ ***  Interfaces for handling a pair of Segbufs (= Segmented buffers).
+ ***  It supports pipelined data transfer between two processes, the source and the destination.
+ ***  Each segment of the buffer on the source rank will be mirrored to the buffer on 
+ ***  the destination rank, and the destination rank can notify that a segment is ready
+ ***  to be overwritten to the source rank. 
+ ***
+ *** - Creation and connection of Segbuf
+ ***  Segbufs are created on the source side and the destination side via acp_create_segbuf_src() 
+ ***  function and acp_create_segbuf_dst() function, respectively.
+ ***  In addition to the starting address, the segment size and the number of segments are 
+ ***  specified at the creation.
+ ***  After creation, Segbufs need to be connected to each other before it can perform Ack
+ ***  and Ready.
+ ***
+ *** - Ack and Ready operations on Segbuf
+ ***  Each segment of the buffer on the source rank will be mirrored to the buffer on 
+ ***  the destination rank, via Ack operation (= acp_ack_segbuf() function).
+ ***  After the destination rank consumed the data in a segment of the buffer, it can 
+ ***  notify that the segment is ready to be overwritten by the source, via 
+ ***  Ready operation (= acp_ready_segbuf() function).
+ ***  Ack and Ready operations on segments are performed one by one, in-order through the buffer.
+ ***  The buffer is handled in ring style.
+ ***  Ack operation fails if the buffer is full and no segment is ready.
+ ***  Ready operation fails if the buffer is empty.
+ ***
+ ***               Source rank                                    Destination rank
+ ***              
+ ***  +  + Size   +---------------------------+                  +---------------------------+
+ ***  |  | of     
+ ***  |  + Segment+---------------------------+                  +---------------------------+
+ ***  |                DATA0                    <-Head    Head->      DATA0
+ ***  |           +---------------------------+                  +---------------------------+
+ ***  Number           DATA1                                          DATA1
+ ***  of          +---------------------------+                  +---------------------------+
+ ***  segments         DATA2                    <-Sent    Tail->      DATA2
+ ***  |           +---------------------------+                  +---------------------------+
+ ***  |                DATA3                    <-Tail    (Tail will be updated after DATA3 arrives)  
+ ***  |           +---------------------------+                  +---------------------------+
+ ***  |           
+ ***  +           +---------------------------+                  +---------------------------+
+ ***
+ *** - Head, Tail and Sent indecies of Segbuf
+ ***  Current status of a Segbuf is represented by three indecies: Head, Tail and Sent.
+ ***  All of the three indeces are initialized to point to the top of the Segbuf on each side of 
+ ***  ranks.
+ ***  An Ack operation on the source starts to copy a segment at the Tail index of the local Segbuf 
+ ***  to the destination, and increments the local Tail index by one.
+ ***  After the completion of the copy, the Tail index of the destination is also incremented to 
+ ***  notify that the data transfer of one segment has been completed.
+ ***  An Ready operation on the destination increments the Head index on both side of ranks by one.
+ ***  Therefore, segments in the region between the Head and the Tail may consist data.
+ ***  The Sent index always points to the segment in this region and represents the position
+ ***  up to where the data has been copied to the destination.
+ ***  This index is used to examine if the source rank can overwrite a segment in the region of 
+ ***  the local Segbuf without causing inconsistency of Ack operations performed previously.
+ ***  The Head and the Tail indecies are retrieved by the ranks on both side via functions, 
+ ***  acp_query_segbuf_head() and acp_query_segbuf_tail(), respectively.
+ ***  The Sent index can be referred only from the source rank via acp_query_segbuf_sent() function.
+ ***
+ *** - Disconnetion and freeing of Segbuf
+ ***  A Segbuf can be disconnected via acp_disconnect_segbuf() function.
+ ***  After disconnection, only acp_free_segbuf() function, which frees the Segbuf, can be applied to 
+ ***  the Segbuf.
+ ***/
+
+/* structs */
+typedef struct con_segbuf_peer {
+    struct con_segbuf_peer *prev;
+    struct con_segbuf_peer *next;
+    int rank;
+    char *conninfos;
+} con_segbuf_peer_t;
+
+struct segbufitem {
+    char *ctlla;
+    acp_ga_t ctlga;
+    char *bufla;
+    acp_atkey_t bufkey;
+    acp_ga_t bufga;
+    acp_ga_t remotectlga;
+    acp_ga_t remotebufga;
+    acp_ga_t remoteconsegbufga;
+    size_t segsize;
+    size_t segnum;
+    int state;
+};
+
+/* global variables */
+static char *crq_top; // Start of CRQ region
+static volatile int64_t *crq_head; // Head index of CRQ
+static volatile int64_t *crq_tail; // Tail index of CRQ
+static acp_ga_t *crq; // Body of CRQ
+static int crq_num_slots=10; // Number of slots of CRQ
+static int crq_num_free_con_segbuf_peers=10; // Number of free con_segbuf_peers struct
+static int crq_num_free_con_segbufs=10; // Number of free con_segbuf_info 
+static int num_free_segbuf_ctls=100; // Number of free segbuf_ctl
+static con_segbuf_peer_t *con_segbuf_peer_items; // Free con_segbuf_peers 
+static char *con_segbuf_items; // Free con_segbufs
+static acp_atkey_t con_segbuf_items_key;
+static acp_ga_t con_segbuf_items_ga;
+static char *segbuf_ctl_table; // Free_segbuf_ctls
+static acp_atkey_t segbuf_ctl_table_key;
+static acp_ga_t segbuf_ctl_table_ga;
+
+/* lists of structs */
+static listobj_t con_src_segbuf_list;
+static listobj_t con_dst_segbuf_list;
+
+static con_segbuf_peer_t *free_con_segbuf_peer_list;
+
+/* lists of data structures */
+static char *free_con_segbuf_list;
+static char *con_dst_waitga_segbuf_list;
+static char *con_dst_waitcomp_segbuf_list;
+
+/** macros for data structures 
+ *
+ * - CRQ (Connection Request Queue) 
+ * 
+ *      Starter memory
+ *      +---------------------------+ +
+ *      | Connection Request Buffer | | 
+ *      | for Channels              | | crbsz
+ *      |                           | | 
+ *      +---------------------------+ +
+ *      | CRQ Head (8B)             |
+ *      +---------------------------+
+ *      | CRQ_Tail (8B)             |
+ *      +---------------------------+ +
+ *      | Body of CRQ               | |
+ *      +- (crq_num_slots       ----+ | crq_num_slots
+ *      |   * sizeof(acp_ga_t))     | |
+ *      +---------------------------+ +
+ *      | Trashbox                  |
+ *      +---------------------------+
+ * 
+ * - segbuf_info
+ *
+ *      +---------------------------+
+ *      | crq_head (8B)             |
+ *      +---------------------------+ 
+ *      | crq_tail (8B)             |
+ *      +---------------------------+ 
+ *      | ctlga    (8B)             |
+ *      +---------------------------+ 
+ *      | bufga    (8B)             |
+ *      +---------------------------+ 
+ *      | segsize  (8B)             |
+ *      +---------------------------+ 
+ *      | segnum   (8B)             |
+ *      +---------------------------+ 
+ *      | thisga   (8B)             |
+ *      +---------------------------+ 
+ *      | state    (4B)             |
+ *      +---------------------------+ 
+ *      | segbuf   (8B)             |
+ *      +---------------------------+ 
+ *      | handle   (8B)             |
+ *      +---------------------------+ 
+ *      | next     (8B)             |
+ *      +---------------------------+ 
+ *      | segsize  (8B)             |
+ *      +---------------------------+ 
+ *
+ * - segbuf_ctl
+ *
+ *      +---------------------------+
+ *      | head     (8B)             |
+ *      +---------------------------+ 
+ *      | tail     (8B)             |
+ *      +---------------------------+ 
+ *      | sent     (8B)             |
+ *      +---------------------------+ 
+ *      | state    (4B)             |
+ *      +---------------------------+ 
+ *
+ **/
+#define CRQ_TOP_OFFSET (crbsz)
+#define CRQ_OFFSET_HEAD      0
+#define CRQ_OFFSET_TAIL      8
+#define CRQ_OFFSET_QBODY    16
+
+#define CON_SEGBUF_SIZE (76+sizeof(acp_handle_t))
+#define CON_SEGBUF_OFFSET_HEAD    0
+#define CON_SEGBUF_OFFSET_TAIL    8
+#define CON_SEGBUF_OFFSET_CTLGA  16
+#define CON_SEGBUF_OFFSET_BUFGA  24
+#define CON_SEGBUF_OFFSET_SEGSZ  32
+#define CON_SEGBUF_OFFSET_SEGNUM 40
+#define CON_SEGBUF_OFFSET_THISGA 48
+#define CON_SEGBUF_OFFSET_STATE  56
+#define CON_SEGBUF_OFFSET_SEGBUF 60
+#define CON_SEGBUF_OFFSET_HANDLE 68
+#define CON_SEGBUF_OFFSET_NEXT   (68+sizeof(acp_handle_t))
+
+#define CON_SEGBUF_HEAD(addr)   (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_HEAD)))
+#define CON_SEGBUF_TAIL(addr)   (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_TAIL)))
+#define CON_SEGBUF_CTLGA(addr)  (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_CTLGA)))
+#define CON_SEGBUF_BUFGA(addr)  (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_BUFGA)))
+#define CON_SEGBUF_SEGSZ(addr)  (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGSZ)))
+#define CON_SEGBUF_SEGNUM(addr) (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGNUM)))
+#define CON_SEGBUF_THISGA(addr) (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_THISGA)))
+#define CON_SEGBUF_STATE(addr)  (*((int *)((char *)addr+CON_SEGBUF_OFFSET_STATE)))
+#define CON_SEGBUF_SEGBUF(addr) (*((acp_segbuf_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGBUF)))
+#define CON_SEGBUF_HANDLE(addr) (*((acp_handle_t *)((char *)addr+CON_SEGBUF_OFFSET_HANDLE)))
+#define CON_SEGBUF_NEXT(addr)   (*((char **)((char *)addr+CON_SEGBUF_OFFSET_NEXT)))
+
+#define SEGBUFCTL_SIZE 28
+#define SEGBUFCTL_OFFSET_HEAD    0
+#define SEGBUFCTL_OFFSET_SENT    8
+#define SEGBUFCTL_OFFSET_TAIL   16
+#define SEGBUFCTL_OFFSET_STATE  24
+
+#define SEGBUFCTL_HEAD(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_HEAD)))
+#define SEGBUFCTL_SENT(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_SENT)))
+#define SEGBUFCTL_TAIL(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_TAIL)))
+#define SEGBUFCTL_STATE(addr)  (*((int *)((char *)addr+SEGBUFCTL_OFFSET_STATE)))
+
+#define CON_SEGBUF_STAT_NOUSE -1
+#define CON_SEGBUF_STAT_INIT  0
+#define CON_SEGBUF_STAT_WTHD  1
+#define CON_SEGBUF_STAT_WTAVL 2
+#define CON_SEGBUF_STAT_WTCON 3
+#define CON_SEGBUF_STAT_INV   4
+#define CON_SEGBUF_STAT_CON   5
+
+#define SEGBUF_STAT_NOUSE  -1
+#define SEGBUF_STAT_INIT   0
+#define SEGBUF_STAT_CON    1
+#define SEGBUF_STAT_DISCON 2
+
+static int clear_con_segbuf(char *item)
+{
+    CON_SEGBUF_HEAD(item) = 0;
+    CON_SEGBUF_TAIL(item) = 0;
+    CON_SEGBUF_CTLGA(item) = ACP_GA_NULL;
+    CON_SEGBUF_BUFGA(item) = ACP_GA_NULL;
+    CON_SEGBUF_SEGSZ(item) = -1;
+    CON_SEGBUF_SEGNUM(item) = -1;
+    CON_SEGBUF_STATE(item) = CON_SEGBUF_STAT_NOUSE;
+    CON_SEGBUF_SEGBUF(item) = NULL;
+    CON_SEGBUF_HANDLE(item) = ACP_HANDLE_NULL;
+}
+
+static int init_segbuf()
+{
+    int myrank, i;
+    con_segbuf_peer_t *peer_item;
+    char *item;
+    int *tmp;
+
+    myrank = acp_rank();
+
+    /* size of crq region */
+    crq_top = (char *)acp_query_address(iacp_query_starter_ga_cl(myrank)) + CRQ_TOP_OFFSET;
+    crq_head = (int64_t *)(crq_top + CRQ_OFFSET_HEAD);
+    crq_tail = (int64_t *)(crq_top + CRQ_OFFSET_TAIL);
+    crq = (acp_ga_t *)(crq_top + CRQ_OFFSET_QBODY);
+
+    *crq_head = 0LL;
+    *crq_tail = 0LL;
+
+    /* initialize crq body */
+    for (i = 0; i < crq_num_slots; i++)
+        crq[i] = ACP_GA_NULL;
+
+    /* initialize empty lists of structures */
+    list_init(&con_src_segbuf_list);
+    list_init(&con_dst_segbuf_list);
+
+    /* initialize empty lists of data arrays */
+    con_dst_waitga_segbuf_list = NULL;
+    con_dst_waitcomp_segbuf_list = NULL;
+    
+    /* initialize free lists of structures */
+    con_segbuf_peer_items = malloc(crq_num_free_con_segbuf_peers * sizeof(con_segbuf_peer_t));
+    for (i = 0; i < crq_num_free_con_segbuf_peers - 1; i++) {
+        peer_item = &(con_segbuf_peer_items[i]);
+        peer_item->prev = NULL;
+        peer_item->next = &(con_segbuf_peer_items[i+1]);
+        peer_item->rank = -1;
+        peer_item->conninfos = NULL;
+    }
+    con_segbuf_peer_items[crq_num_free_con_segbuf_peers - 1].prev = NULL;
+    con_segbuf_peer_items[crq_num_free_con_segbuf_peers - 1].next = NULL;
+    con_segbuf_peer_items[crq_num_free_con_segbuf_peers - 1].rank = -1;
+    con_segbuf_peer_items[crq_num_free_con_segbuf_peers - 1].next = NULL;
+    free_con_segbuf_peer_list = &(con_segbuf_peer_items[0]);
+
+    /* initialize free lists of data arrays */
+      // con_segbuf: connection information
+    con_segbuf_items = malloc(crq_num_free_con_segbufs * CON_SEGBUF_SIZE);
+    con_segbuf_items_key = acp_register_memory(con_segbuf_items, crq_num_free_con_segbufs * CON_SEGBUF_SIZE, 0);
+    con_segbuf_items_ga = acp_query_ga(con_segbuf_items_key, con_segbuf_items);
+    for (i = 0; i < crq_num_free_con_segbufs; i++) {
+        item = con_segbuf_items + i * CON_SEGBUF_SIZE;
+        clear_con_segbuf(item);
+        CON_SEGBUF_THISGA(item) = con_segbuf_items_ga + i * CON_SEGBUF_SIZE;
+    }
+    for (i = 0; i < crq_num_free_con_segbufs - 1; i++) {
+        item = con_segbuf_items + i * CON_SEGBUF_SIZE;
+        CON_SEGBUF_NEXT(item) = con_segbuf_items + (i+1) * CON_SEGBUF_SIZE;
+    }
+    item = con_segbuf_items + (crq_num_free_con_segbufs - 1) * CON_SEGBUF_SIZE;
+    CON_SEGBUF_NEXT(item) = NULL;
+    free_con_segbuf_list = con_segbuf_items;
+
+      // segbuf_ctl_table: segbuf control
+    segbuf_ctl_table = malloc(num_free_segbuf_ctls * SEGBUFCTL_SIZE);
+    segbuf_ctl_table_key = acp_register_memory(segbuf_ctl_table, num_free_segbuf_ctls * SEGBUFCTL_SIZE, 0);
+    segbuf_ctl_table_ga = acp_query_ga(segbuf_ctl_table_key, segbuf_ctl_table);
+    for (i = 0; i < num_free_segbuf_ctls; i++) {
+        item = segbuf_ctl_table + i * SEGBUFCTL_SIZE;
+        SEGBUFCTL_HEAD(item) = 0;
+        SEGBUFCTL_SENT(item) = 0;
+        SEGBUFCTL_TAIL(item) = 0;
+        SEGBUFCTL_STATE(item) = SEGBUF_STAT_NOUSE;
+    }
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: init_segbuf starter %lx crq_top %p crq %p con_segbuf_items %p con_segbuf_items_ga %lx segbuf_ctl_table %p segbuf_ctl_table_ga %lx crq_tail %ld crq_head %ld\n", 
+            myrank, iacp_query_starter_ga_cl(myrank), crq_top, crq, con_segbuf_items, con_segbuf_items_ga, segbuf_ctl_table, segbuf_ctl_table_ga, *crq_tail, *crq_head);
+#endif
+}
+
+static int finalize_segbuf()
+{
+    ch_lock();
+    acp_unregister_memory(con_segbuf_items_key);
+    acp_unregister_memory(segbuf_ctl_table_key);
+    free(con_segbuf_peer_items);
+    free(con_segbuf_items);
+    free(segbuf_ctl_table);
+    ch_unlock();
+}
+
+static int add_fetch_crqtail(char *item, int peer)
+{
+    acp_ga_t dst_crqga, dst_crq_tailga;
+    int myrank;
+
+    myrank = acp_rank();
+
+    dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
+    dst_crq_tailga = dst_crqga + CRQ_OFFSET_TAIL;
+    /* start fetch and add8 crq_tail on peer to crq_tail in con_segbuf_info */
+    acp_add8(CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_TAIL, 
+             dst_crq_tailga, 1LL, ACP_HANDLE_NULL);
+#ifdef DEBUG
+    fprintf(stderr, "%d: add_fetch_crqtail %d %lx %lx dst_crqga %lx CRQ_TOP_OFFSET %d starter_cl %lx starter_dl %lx starter %lx\n", 
+            myrank, peer, CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_TAIL, dst_crq_tailga, dst_crqga, CRQ_TOP_OFFSET, iacp_query_starter_ga_cl(peer), iacp_query_starter_ga_dl(peer), acp_query_starter_ga(peer)); 
+#endif
+}
+
+static int get_crqhead(char *item, int peer)
+{
+    acp_ga_t dst_crqga, dst_crq_headga;
+    int myrank;
+
+    myrank = acp_rank();
+
+
+    dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
+    dst_crq_headga = dst_crqga + CRQ_OFFSET_HEAD;
+    /* handle = start get crq_head on peer to crq_head in con_segbuf_info */
+    CON_SEGBUF_HANDLE(item) = acp_copy(CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_HEAD,
+                                       dst_crq_headga, sizeof(int64_t), ACP_HANDLE_NULL);
+#ifdef DEBUG
+    fprintf(stderr, "%d: get_crqhead : %lx %lx\n", 
+            myrank, CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_HEAD, dst_crq_headga);
+#endif
+}
+
+static int check_crq_tail(char *item)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (acp_inquire(CON_SEGBUF_HANDLE(item)) == 0) {
+        /* acp_add8 is "Fetch and add" operation. Its result is the index
+         * of the entry where this_info should be put connection request in 
+         * the CRQ. So, use the result of acp_add8 as it is.
+         */
+        CON_SEGBUF_STATE(item) = CON_SEGBUF_STAT_WTAVL;
+#ifdef DEBUG
+    fprintf(stderr, "%d: check_crq_tail: Tail arrived %ld state %d\n", 
+            myrank, CON_SEGBUF_TAIL(item), CON_SEGBUF_STATE(item));
+#endif
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
+static int send_conreq(char *info, int peer)
+{
+    acp_ga_t dst_crqga, src_thisgaga;
+    int idx;
+    int myrank;
+
+    myrank = acp_rank();
+
+    dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
+    idx = CON_SEGBUF_TAIL(info) % crq_num_slots;
+    src_thisgaga = CON_SEGBUF_THISGA(info) + CON_SEGBUF_OFFSET_THISGA;
+    acp_copy(dst_crqga + CRQ_OFFSET_QBODY + idx*sizeof(acp_ga_t),
+             src_thisgaga, sizeof(acp_ga_t), ACP_HANDLE_NULL);
+}
+
+static int check_avail(char *item, int peer)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (acp_inquire(CON_SEGBUF_HANDLE(item)) == 0) {
+        if ((CON_SEGBUF_TAIL(item) - CON_SEGBUF_HEAD(item) + 1) < crq_num_slots) {
+            CON_SEGBUF_STATE(item) = CON_SEGBUF_STAT_WTCON;
+            send_conreq(item, peer);
+            return 0;
+        } else {
+            get_crqhead(item, peer);
+        }
+    }
+    return 1;
+}
+
+static void progress_src_con_segbuf()
+{
+    con_segbuf_peer_t *this_peer, *next_peer;
+    char *this_item, *next_item, *this_segbuf_ctl;
+    int myrank, this_state;
+    acp_segbuf_t this_segbuf;
+
+    myrank = acp_rank();
+    this_peer = (con_segbuf_peer_t *)(con_src_segbuf_list.head);
+    
+    while (this_peer != NULL) {
+        this_item = this_peer->conninfos;
+        this_state = CON_SEGBUF_STATE(this_item);
+        next_peer = this_peer->next;
+        switch (this_state) {
+        case CON_SEGBUF_STAT_WTHD:
+            if (check_crq_tail(this_item) == 0) 
+                check_avail(this_item, this_peer->rank);
+            break;
+        case CON_SEGBUF_STAT_WTAVL:
+            check_avail(this_item, this_peer->rank);
+            break;
+        case CON_SEGBUF_STAT_WTCON:
+            /* do nothing */
+            break;
+        case CON_SEGBUF_STAT_INV:
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_src_con_segbuf : request invalidated %p\n", 
+            myrank, this_item);
+#endif
+            CON_SEGBUF_STATE(this_item) = CON_SEGBUF_STAT_WTHD;
+            add_fetch_crqtail(this_item, this_peer->rank);
+            get_crqhead(this_item, this_peer->rank);
+            if (check_crq_tail(this_item) == 0) 
+                check_avail(this_item, this_peer->rank);
+            break;
+        case CON_SEGBUF_STAT_CON:
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_src_con_segbuf : connected %p\n", 
+            myrank, this_item);
+#endif
+            next_item = CON_SEGBUF_NEXT(this_item);
+            if (next_item != NULL) {
+                /* start connection for next item, as son as possible */
+                CON_SEGBUF_STATE(next_item) = CON_SEGBUF_STAT_WTHD;
+                add_fetch_crqtail(next_item, this_peer->rank);
+                get_crqhead(next_item, this_peer->rank);
+            } 
+
+            /* set parameters of segbuf_t */
+            this_segbuf = CON_SEGBUF_SEGBUF(this_item);
+            this_segbuf->remotebufga = CON_SEGBUF_BUFGA(this_item);
+            this_segbuf->remotectlga = CON_SEGBUF_CTLGA(this_item);
+            this_segbuf->state = SEGBUF_STAT_CON;
+            /* set state of segbuf_ctl to SEGBUF_STAT_CON */
+            this_segbuf_ctl = this_segbuf->ctlla;
+            SEGBUFCTL_STATE(this_segbuf_ctl) = SEGBUF_STAT_CON;
+            /* free this_item */
+            clear_con_segbuf(this_item);
+            CON_SEGBUF_NEXT(this_item) = free_con_segbuf_list;
+            free_con_segbuf_list = this_item;
+
+            if (next_item != NULL) {
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_src_con_segbuf : remove con_segbuf from peer. next = %p\n", 
+            myrank, next_item);
+#endif
+                /* update this_peer */
+                this_peer->conninfos = next_item;
+
+                /* progress next_item, if possible */
+                if (check_crq_tail(next_item) == 0) 
+                    check_avail(next_item, this_peer->rank);
+            } else {
+                /* no pending connection with this peer. free this_peer */
+                list_remove(&con_src_segbuf_list, (listitem_t *)this_peer);
+                this_peer->next = free_con_segbuf_peer_list;
+                free_con_segbuf_peer_list = this_peer;
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_src_con_segbuf : remove peer. con_src_segbuf_list.head = %p\n", 
+            myrank, con_src_segbuf_list.head);
+#endif
+            }
+
+            break;
+        default:
+            fprintf(stderr, "progress_src_con_segbuf: %d : wrong state %d\n", myrank, this_state);
+        }
+        this_peer = next_peer;
+    }
+}
+
+static int progress_dst_con_segbuf()
+{
+    int64_t this_head, this_tail, head1, head2;
+    int headidx, idx1, idx2, myrank;
+    acp_ga_t rem_con_segbuf_ga, this_item_ga;
+    int peer_rank;
+    con_segbuf_peer_t *this_peer;
+    char *this_item, *prev_item, *next_item;
+    acp_segbuf_t this_segbuf;
+
+    myrank = acp_rank();
+
+    /* traverse requests in CRQ */
+    this_tail = *crq_tail;
+    this_head = *crq_head;
+    while ((this_tail - this_head) > 0) {
+        headidx = this_head % crq_num_slots;
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_dst_con_segbuf tail %ld head %ld headidx %d\n", 
+            myrank, this_tail, this_head, headidx);
+#endif
+        /* if the request matches with a local request */
+//        rem_con_segbuf_ga = *((acp_ga_t *)(crq[headidx]));
+        rem_con_segbuf_ga = crq[headidx];
+        if (rem_con_segbuf_ga == ACP_GA_NULL) // GA for this CRQ entry has not arrived yet
+            break;
+        peer_rank = acp_query_rank(rem_con_segbuf_ga);
+        this_peer = (con_segbuf_peer_t *)(con_dst_segbuf_list.head);
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_dst_con_segbuf : check peer_rank %d with peer in list %d \n", 
+            myrank, peer_rank, this_peer->rank);
+#endif
+        while ((this_peer != NULL) && (this_peer->rank != peer_rank))
+            this_peer = this_peer->next;
+
+        if (this_peer != NULL) {
+            /* match with a local connection request */
+            this_item = this_peer->conninfos;
+            this_item_ga = CON_SEGBUF_THISGA(this_item);
+            this_segbuf = CON_SEGBUF_SEGBUF(this_item);
+            this_segbuf->remoteconsegbufga = rem_con_segbuf_ga;
+            /* clear this entry of CRQ */
+            crq[headidx] = ACP_GA_NULL;
+            /* start get ctlga(8B), bufga(8B), segsize(8B), segnum(8B) from peer */
+            CON_SEGBUF_HANDLE(this_item) = acp_copy(this_item_ga + CON_SEGBUF_OFFSET_CTLGA,
+                                                    rem_con_segbuf_ga + CON_SEGBUF_OFFSET_CTLGA,
+                                                    32, ACP_HANDLE_NULL);
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_dst_con_segbuf : get info from src %lx %lx \n", 
+            myrank, this_item_ga + CON_SEGBUF_OFFSET_CTLGA, rem_con_segbuf_ga + CON_SEGBUF_OFFSET_CTLGA);
+#endif
+            /* retrieve this con_segbuf from this_peer */
+            this_peer->conninfos = CON_SEGBUF_NEXT(this_item);
+            if (this_peer->conninfos == NULL) {
+                /* no pending connection with this peer. free this_peer */
+                list_remove(&con_dst_segbuf_list, (listitem_t *)this_peer);
+                this_peer->next = free_con_segbuf_peer_list;
+                free_con_segbuf_peer_list = this_peer;
+            }
+            /* move the local request to waitGA list */
+            CON_SEGBUF_NEXT(this_item) = con_dst_waitga_segbuf_list;
+            con_dst_waitga_segbuf_list = this_item;
+        }
+        this_head++;
+    }
+
+    /* pack sparse entries in CRQ, and update crq_head */
+    head1 = this_head-1;
+    while (head1 >= *crq_head) {
+        idx1 = head1 % crq_num_slots;
+        if (crq[idx1] == ACP_GA_NULL)
+            break;
+        head1--;
+    }
+    head2 = head1 - 1;
+    while (head2 >= *crq_head) {
+        idx2 = head2 % crq_num_slots;
+        if (crq[idx2] != ACP_GA_NULL) {
+            crq[idx1] = crq[idx2];
+            head1--;
+            idx1 = head1 % crq_num_slots;
+        }
+        head2--;
+    }
+    *crq_head = head1 + 1;
+    
+    /* handle requests in waitGA list */
+    this_item = con_dst_waitga_segbuf_list;
+    prev_item = NULL;
+    while (this_item != NULL) {
+        if (acp_inquire(CON_SEGBUF_HANDLE(this_item)) == 0) {
+            /* remote GAs and sizes have arrived */
+            this_segbuf = CON_SEGBUF_SEGBUF(this_item);
+            if ((CON_SEGBUF_SEGSZ(this_item) != this_segbuf->segsize) ||
+                (CON_SEGBUF_SEGNUM(this_item) != this_segbuf->segnum)) {
+                fprintf(stderr, "progress_dst_con_segbuf: %d : CRQ (segsize %d , segnum %d)  local request (segsize %d , segnum %d)\n", 
+                        CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item), this_segbuf->segsize, this_segbuf->segnum);
+            }
+
+            /* copy remote GAs to local segbuf_t */
+            this_segbuf->remotectlga = CON_SEGBUF_CTLGA(this_item);
+            this_segbuf->remotebufga = CON_SEGBUF_BUFGA(this_item);
+
+            /* copy local GAs to con_segbuf */
+            CON_SEGBUF_CTLGA(this_item) = this_segbuf->ctlga;
+            CON_SEGBUF_BUFGA(this_item) = this_segbuf->bufga;
+
+#ifdef DEBUG
+    fprintf(stderr, "%d:progress_dst_con_segbuf : src info arrived %lx %lx %ld %ld\n", 
+            myrank, this_segbuf->remotectlga, this_segbuf->remotebufga, CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item));
+#endif
+            /* sendback ctlga and bufga */
+            acp_copy(this_segbuf->remoteconsegbufga + CON_SEGBUF_OFFSET_CTLGA,
+                     CON_SEGBUF_THISGA(this_item) + CON_SEGBUF_OFFSET_CTLGA, 2*sizeof(acp_ga_t), 
+                     ACP_HANDLE_NULL);
+
+            /* set states to CONNECTED */
+            CON_SEGBUF_STATE(this_item) = CON_SEGBUF_STAT_CON;
+            this_segbuf->state = SEGBUF_STAT_CON;
+            SEGBUFCTL_STATE(this_segbuf->ctlla) = SEGBUF_STAT_CON;
+            CON_SEGBUF_HANDLE(this_item) = acp_swap4(trashboxga, this_segbuf->remoteconsegbufga + CON_SEGBUF_OFFSET_STATE,
+                                                     CON_SEGBUF_STAT_CON, ACP_HANDLE_NULL);
+
+            /* move this request to waitcomp list */
+            next_item = CON_SEGBUF_NEXT(this_item);
+            if (prev_item == NULL) {
+                con_dst_waitga_segbuf_list = next_item; // remove head item from the waitGA list
+            } else {
+                CON_SEGBUF_NEXT(prev_item) = next_item;
+            }
+            CON_SEGBUF_NEXT(this_item) = con_dst_waitcomp_segbuf_list;
+            con_dst_waitcomp_segbuf_list = this_item;
+            this_item = next_item;
+        } else {
+            prev_item = this_item;
+            this_item = CON_SEGBUF_NEXT(this_item);
+        }
+    }
+
+    /* handle requests in waitcomp list */
+    this_item = con_dst_waitcomp_segbuf_list;
+    prev_item = NULL;
+    while (this_item != NULL) {
+        next_item = CON_SEGBUF_NEXT(this_item);
+        if (acp_inquire(CON_SEGBUF_HANDLE(this_item)) == 0) {
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_dst_con_segbuf : connected\n", 
+            myrank);
+#endif
+            /* connection complete. free connection request. */
+            if (prev_item == NULL) {
+                con_dst_waitcomp_segbuf_list = next_item; // remove head item from the waitGA list
+            } else {
+                CON_SEGBUF_NEXT(prev_item) = next_item;
+            }
+            CON_SEGBUF_NEXT(this_item) = free_con_segbuf_list;
+            free_con_segbuf_list = this_item;
+            clear_con_segbuf(this_item);
+        } else {
+            prev_item = this_item;
+        }
+        this_item = next_item;
+    }
+
+    /* if CRQ is full */
+    if ((*crq_tail - *crq_head) >= crq_num_slots) {
+        /* invalidate request at the head of CRQ */
+        headidx = *crq_head % crq_num_slots;
+        rem_con_segbuf_ga = *((acp_ga_t *)(crq[headidx]));
+        acp_swap4(trashboxga, rem_con_segbuf_ga + CON_SEGBUF_OFFSET_STATE, 
+                  CON_SEGBUF_STAT_INV, ACP_HANDLE_NULL);
+        crq[headidx] = ACP_GA_NULL;
+        (*crq_head)++;
+#ifdef DEBUG
+    fprintf(stderr, "%d: progress_dst_con_segbuf : invalidate request %lx\n", 
+            myrank, rem_con_segbuf_ga);
+#endif
+
+    }
+}
+
+/* progress */
+void iacpcl_progress_segbuf()
+{
+    // progress src segbuf connection: con_src_segbuf_list
+    progress_src_con_segbuf();
+
+    // progress dst segbuf connection: con_dst_segbuf_list
+    progress_dst_con_segbuf();
+}
+
+acp_segbuf_t acp_create_src_segbuf(int dst_rank, void *buf, size_t segsize, size_t segnum)
+{
+    int i, myrank;
+    char *this_segbuf_ctl, *this_con_segbuf, *tmp_item;
+    acp_segbuf_t this_segbuf;
+    con_segbuf_peer_t *this_peer;
+
+    myrank = acp_rank();
+
+    /* prepare segbuf_t */
+    this_segbuf = (acp_segbuf_t)malloc(sizeof(struct segbufitem));
+    this_segbuf->bufla = buf;
+    this_segbuf->bufkey = acp_register_memory(buf, segsize*segnum, 0);     // register buf 
+    this_segbuf->bufga = acp_query_ga(this_segbuf->bufkey, buf);
+    this_segbuf->segsize = segsize;
+    this_segbuf->segnum = segnum;
+    this_segbuf->state = SEGBUF_STAT_INIT;
+
+    /* retrieve segbuf_ctl from segbuf_ctl_table */
+    for (i = 0; i < num_free_segbuf_ctls; i++) {
+        this_segbuf_ctl = segbuf_ctl_table + i * SEGBUFCTL_SIZE;
+        if (SEGBUFCTL_STATE(this_segbuf_ctl) == SEGBUF_STAT_NOUSE)
+            break;
+    }
+    if (SEGBUFCTL_STATE(this_segbuf_ctl) != SEGBUF_STAT_NOUSE) {
+        fprintf(stderr, "acp_create_src_segbuf : %d : Number of segbuf_ctls has been exceeded the limit\n", myrank);
+        free(this_segbuf);
+        return NULL;
+    }
+    SEGBUFCTL_STATE(this_segbuf_ctl) = SEGBUF_STAT_INIT;
+    this_segbuf->ctlla = this_segbuf_ctl;
+    this_segbuf->ctlga = segbuf_ctl_table_ga + (this_segbuf_ctl - segbuf_ctl_table);
+
+    /* retrieve con_segbuf from free_con_segbuf_list */
+    this_con_segbuf = free_con_segbuf_list;
+    if (this_con_segbuf == NULL) {
+        fprintf(stderr, "acp_create_src_segbuf : %d : Number of con_segbuf has been exceeded the limit\n", myrank);
+        free(this_segbuf);
+        return NULL;
+    }
+
+    /* set parameters for con_segbuf */
+    CON_SEGBUF_HEAD(this_con_segbuf) = -1LL;
+    CON_SEGBUF_TAIL(this_con_segbuf) = -1LL;
+    CON_SEGBUF_CTLGA(this_con_segbuf) = this_segbuf->ctlga;
+    CON_SEGBUF_BUFGA(this_con_segbuf) = this_segbuf->bufga;
+    CON_SEGBUF_SEGSZ(this_con_segbuf) = segsize;
+    CON_SEGBUF_SEGNUM(this_con_segbuf) = segnum;
+    CON_SEGBUF_SEGBUF(this_con_segbuf) = this_segbuf;
+    CON_SEGBUF_HANDLE(this_con_segbuf) = ACP_HANDLE_NULL;
+
+    this_peer = (con_segbuf_peer_t *)(con_src_segbuf_list.head);
+    while (this_peer != NULL) {
+        if (this_peer->rank == dst_rank) 
+            break;
+        this_peer = this_peer->next;
+    }
+
+    if (this_peer == NULL) {
+        /* no other pending connection request to this dst_rank */
+        this_peer = free_con_segbuf_peer_list;
+        if (this_peer == NULL) {
+            fprintf(stderr, "acp_create_src_segbuf : %d : Number of con_segbuf_peer has been exceeded the limit\n", myrank);
+            free(this_segbuf);
+            return NULL;
+        }
+
+        this_peer->rank = dst_rank;
+        this_peer->conninfos = this_con_segbuf;
+        CON_SEGBUF_NEXT(this_con_segbuf) = NULL;
+        list_add(&con_src_segbuf_list, (listitem_t *)this_peer);
+
+        /* start connection for this segbuf */
+        CON_SEGBUF_STATE(this_con_segbuf) = CON_SEGBUF_STAT_WTHD;
+        add_fetch_crqtail(this_con_segbuf, dst_rank);
+        get_crqhead(this_con_segbuf, dst_rank);
+    } else {
+        /* there are other pending connection requests to this dst_rank */
+        CON_SEGBUF_STATE(this_con_segbuf) = CON_SEGBUF_STAT_INIT;
+        tmp_item = this_peer->conninfos;
+        if (tmp_item == NULL) {
+            fprintf(stderr, "acp_create_src_segbuf : %d : empty con_segbuf_peer\n", myrank);
+            free(this_segbuf);
+            return NULL;
+        }
+        while (CON_SEGBUF_NEXT(tmp_item) != NULL) {
+            tmp_item = CON_SEGBUF_NEXT(tmp_item);
+        }
+        CON_SEGBUF_NEXT(tmp_item) = this_con_segbuf;
+        CON_SEGBUF_NEXT(this_con_segbuf) = NULL;
+    }
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_create_src_segbuf ctl %p %lx con %p %lx peer %p stat %d\n", 
+            myrank, this_segbuf->ctlla, this_segbuf->ctlga, this_con_segbuf, CON_SEGBUF_THISGA(this_con_segbuf), this_peer, CON_SEGBUF_STATE(this_con_segbuf));
+#endif
+    iacpcl_progress();
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_create_src_segbuf done\n", 
+            myrank);
+#endif
+
+    return this_segbuf;
+}
+
+acp_segbuf_t acp_create_dst_segbuf(int src_rank, void *buf, size_t segsize, size_t segnum)
+{
+    int i, myrank;
+    char *this_segbuf_ctl, *this_con_segbuf, *tmp_item;
+    acp_segbuf_t this_segbuf;
+    con_segbuf_peer_t *this_peer;
+
+    myrank = acp_rank();
+
+    /* prepare segbuf_t */
+    this_segbuf = (acp_segbuf_t)malloc(sizeof(struct segbufitem));
+    this_segbuf->bufla = buf;
+    this_segbuf->bufkey = acp_register_memory(buf, segsize*segnum, 0);     // register buf 
+    this_segbuf->bufga = acp_query_ga(this_segbuf->bufkey, buf);
+    this_segbuf->segsize = segsize;
+    this_segbuf->segnum = segnum;
+    this_segbuf->state = SEGBUF_STAT_INIT;
+
+    /* retrieve segbuf_ctl from segbuf_ctl_table */
+    for (i = 0; i < num_free_segbuf_ctls; i++) {
+        this_segbuf_ctl = segbuf_ctl_table + i * SEGBUFCTL_SIZE;
+        if (SEGBUFCTL_STATE(this_segbuf_ctl) == SEGBUF_STAT_NOUSE)
+            break;
+    }
+    if (SEGBUFCTL_STATE(this_segbuf_ctl) != SEGBUF_STAT_NOUSE) {
+        fprintf(stderr, "acp_create_dst_segbuf : %d : Number of segbuf_ctls has been exceeded the limit\n", myrank);
+        free(this_segbuf);
+        return NULL;
+    }
+    SEGBUFCTL_STATE(this_segbuf_ctl) = SEGBUF_STAT_INIT;
+    this_segbuf->ctlla = this_segbuf_ctl;
+    this_segbuf->ctlga = segbuf_ctl_table_ga + (this_segbuf_ctl - segbuf_ctl_table);
+
+    /* retrieve con_segbuf from free_con_segbuf_list */
+    this_con_segbuf = free_con_segbuf_list;
+    if (this_con_segbuf == NULL) {
+        fprintf(stderr, "acp_create_dst_segbuf : %d : Number of con_segbuf has been exceeded the limit\n", myrank);
+        free(this_segbuf);
+        return NULL;
+    }
+
+    /* set parameters for con_segbuf */
+    CON_SEGBUF_HEAD(this_con_segbuf) = -1LL;
+    CON_SEGBUF_TAIL(this_con_segbuf) = -1LL;
+    CON_SEGBUF_CTLGA(this_con_segbuf) = this_segbuf->ctlga;
+    CON_SEGBUF_BUFGA(this_con_segbuf) = this_segbuf->bufga;
+    CON_SEGBUF_SEGSZ(this_con_segbuf) = segsize;
+    CON_SEGBUF_SEGNUM(this_con_segbuf) = segnum;
+    CON_SEGBUF_SEGBUF(this_con_segbuf) = this_segbuf;
+    CON_SEGBUF_HANDLE(this_con_segbuf) = ACP_HANDLE_NULL;
+
+    this_peer = (con_segbuf_peer_t *)(con_dst_segbuf_list.head);
+    while (this_peer != NULL) {
+        if (this_peer->rank == src_rank) 
+            break;
+        this_peer = this_peer->next;
+    }
+
+    if (this_peer == NULL) {
+        /* no other pending connection request to this dst_rank */
+        this_peer = free_con_segbuf_peer_list;
+        if (this_peer == NULL) {
+            fprintf(stderr, "acp_create_dst_segbuf : %d : Number of con_segbuf_peer has been exceeded the limit\n", myrank);
+            free(this_segbuf);
+            return NULL;
+        }
+
+        this_peer->rank = src_rank;
+        this_peer->conninfos = this_con_segbuf;
+        CON_SEGBUF_NEXT(this_con_segbuf) = NULL;
+        list_add(&con_dst_segbuf_list, (listitem_t *)this_peer);
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_create_dst_segbuf add a new peer %d to con_dst_segbuf_list \n", 
+            myrank, ((con_segbuf_peer_t *)(con_dst_segbuf_list.head))->rank);
+#endif
+
+    } else {
+        /* there are other pending connection requests to this dst_rank */
+        tmp_item = this_peer->conninfos;
+        if (tmp_item == NULL) {
+            fprintf(stderr, "acp_create_dst_segbuf : %d : empty con_segbuf_peer\n", myrank);
+            free(this_segbuf);
+            return NULL;
+        }
+        while (CON_SEGBUF_NEXT(tmp_item) != NULL) {
+            tmp_item = CON_SEGBUF_NEXT(tmp_item);
+        }
+        CON_SEGBUF_NEXT(tmp_item) = this_con_segbuf;
+        CON_SEGBUF_NEXT(this_con_segbuf) = NULL;
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_create_dst_segbuf add a new entry to the tail of peer %d to con_dst_segbuf_list \n", 
+            myrank, this_peer->rank);
+#endif
+    }
+    CON_SEGBUF_STATE(this_con_segbuf) = CON_SEGBUF_STAT_WTCON;
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_create_dst_segbuf ctl %p %lx con %p %lx peer %p stat %d\n", 
+            myrank, this_segbuf->ctlla, this_segbuf->ctlga, this_con_segbuf, CON_SEGBUF_THISGA(this_con_segbuf), this_peer, CON_SEGBUF_STATE(this_con_segbuf));
+#endif
+
+    iacpcl_progress();
+
+    return this_segbuf;
+}
+
+int acp_connect_segbuf(acp_segbuf_t segbuf)
+{
+    volatile char *ctl;
+    int myrank;
+
+    myrank = acp_rank();
+
+    ctl = segbuf->ctlla;
+
+    if ((segbuf->state == SEGBUF_STAT_NOUSE) ||
+        (segbuf->state == SEGBUF_STAT_DISCON) ||
+        (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_NOUSE) || 
+        (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_DISCON)) {
+        fprintf(stderr, "acp_connect_segbuf : %d : segbuf is in a wrong state %d %d\n", myrank, segbuf->state, SEGBUFCTL_STATE(ctl));
+        return -1;
+    }
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_connect_segbuf ctl %p stat %d\n", 
+            myrank, ctl, SEGBUFCTL_STATE(ctl));
+#endif
+
+    while (SEGBUFCTL_STATE(ctl) != SEGBUF_STAT_CON) 
+        iacpcl_progress();
+
+#ifdef DEBUG
+    fprintf(stderr, "%d: acp_connect_segbuf done\n", 
+            myrank, ctl, SEGBUFCTL_STATE(ctl));
+#endif
+
+    return 0;
+}
+
+int acp_isconnected_segbuf(acp_segbuf_t segbuf)
+{
+    volatile char *ctl;
+    int myrank;
+
+    myrank = acp_rank();
+    
+    ctl = segbuf->ctlla;
+
+    if ((segbuf->state == SEGBUF_STAT_NOUSE) ||
+        (segbuf->state == SEGBUF_STAT_DISCON) ||
+        (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_NOUSE) || 
+        (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_DISCON)) {
+        fprintf(stderr, "acp_isconnected_segbuf : %d : segbuf is in a wrong state %d\n", myrank, SEGBUFCTL_STATE(ctl));
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    if (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_CON) 
+        return 0;
+    else 
+        return 1;
+}
+
+int acp_ready_segbuf(acp_segbuf_t segbuf)
+{
+    char *ctl;
+    int myrank;
+    int64_t head, tail;
+    
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_ready_segbuf : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    ctl = segbuf->ctlla;
+    head = SEGBUFCTL_HEAD(ctl);
+    tail = SEGBUFCTL_TAIL(ctl);
+
+    if (tail <= head) {
+        fprintf(stderr, "acp_ready_segbuf : %d : segbuf is empty %lx %lx\n", myrank, head, tail);
+        return -1;
+    }
+
+    /* increment head */
+    head++;
+    SEGBUFCTL_HEAD(ctl) = head;
+    acp_copy(segbuf->remotectlga + SEGBUFCTL_OFFSET_HEAD,
+             segbuf->ctlga + SEGBUFCTL_OFFSET_HEAD,
+             sizeof(int64_t), ACP_HANDLE_NULL);
+    iacpcl_progress();
+}
+
+int acp_ack_segbuf(acp_segbuf_t segbuf)
+{
+    char *ctl;
+    int myrank, tailidx;
+    int64_t head, tail;
+    acp_handle_t handle0, handle1;
+    
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_ack_segbuf : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    ctl = segbuf->ctlla;
+    head = SEGBUFCTL_HEAD(ctl);
+    tail = SEGBUFCTL_TAIL(ctl);
+
+    if ((tail - head) >= segbuf->segnum) {
+        fprintf(stderr, "acp_ack_segbuf : %d : segbuf is full %lx %lx\n", myrank, head, tail);
+        return -1;
+    }
+
+    /* put a segment at tail to dst */
+    tailidx = tail % segbuf->segnum;
+    handle0 = acp_copy(segbuf->remotebufga + segbuf->segsize * tailidx, 
+                      segbuf->bufga + segbuf->segsize * tailidx, segbuf->segsize, ACP_HANDLE_NULL);
+    /* increment tail */
+    tail++;
+    SEGBUFCTL_TAIL(ctl) = tail;
+    handle1 = acp_copy(segbuf->remotectlga + SEGBUFCTL_OFFSET_TAIL,
+             segbuf->ctlga + SEGBUFCTL_OFFSET_TAIL,
+             sizeof(int64_t), handle0); 
+//             sizeof(int64_t), ACP_HANDLE_NULL); // shall we wait for "handle0" of the previous acp_copy???
+
+    /* add8 to local SENT index by 1 after handle to update sentidx */
+    acp_add8(trashboxga, segbuf->ctlga + SEGBUFCTL_OFFSET_SENT, 1LL, handle0);
+
+    iacpcl_progress();
+}
+
+int acp_isready_segbuf(acp_segbuf_t segbuf)
+{
+    int myrank;
+    char *ctl;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_query_segbuf_head : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    if ((SEGBUFCTL_TAIL(ctl) - SEGBUFCTL_HEAD(ctl)) < segbuf->segnum)
+        return 0; // one or more segments are available in the destination buffer
+    else
+        return 1; // destination buffer is full
+}
+
+int acp_isacked_segbuf(acp_segbuf_t segbuf)
+{
+    int myrank;
+    char *ctl;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_query_segbuf_head : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    if (SEGBUFCTL_TAIL(ctl) > SEGBUFCTL_HEAD(ctl))
+        return 0;
+    else
+        return 1;
+}
+
+int64_t acp_query_segbuf_head(acp_segbuf_t segbuf)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_query_segbuf_head : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    return (SEGBUFCTL_HEAD(segbuf->ctlla) % segbuf->segnum);
+}
+
+int64_t acp_query_segbuf_tail(acp_segbuf_t segbuf)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_query_segbuf_tail : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    return (SEGBUFCTL_TAIL(segbuf->ctlla) % segbuf->segnum);
+}
+int64_t acp_query_segbuf_sent(acp_segbuf_t segbuf)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_query_segbuf_sent : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    return (SEGBUFCTL_SENT(segbuf->ctlla) % segbuf->segnum);
+}
+
+int acp_disconnect_segbuf(acp_segbuf_t segbuf)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_CON) {
+        fprintf(stderr, "acp_disconnect_segbuf : %d : segbuf is not connected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    iacpcl_progress();
+
+    segbuf->state = SEGBUF_STAT_DISCON;
+    acp_swap4(trashboxga, segbuf->remotectlga + SEGBUFCTL_OFFSET_STATE, SEGBUF_STAT_DISCON, ACP_HANDLE_NULL);
+}
+
+int acp_free_segbuf(volatile acp_segbuf_t segbuf)
+{
+    int myrank;
+
+    myrank = acp_rank();
+
+    if (segbuf->state != SEGBUF_STAT_DISCON) {
+        fprintf(stderr, "acp_free_segbuf : %d : segbuf is not disconnected %d\n", myrank, segbuf->state);
+        return -1;
+    }
+
+    while (SEGBUFCTL_STATE(segbuf->ctlla) != SEGBUF_STAT_DISCON)
+        iacpcl_progress();
+
+    acp_unregister_memory(segbuf->bufkey);
+    free(segbuf);
+}
+
+
+/*** 
+ ***
+ *** Channels 
+ ***
+ ***/
+
 /** macros **/
 
 /* default parameters */
@@ -88,6 +1377,12 @@
 #define CRBSTINUSE 0  
 #define CRBSTFREE  1
 
+/*   - structure of crb:
+ *        head: head of the connection request queue, uint64_t
+ *        tail: tail of the connection request queue, uint64_t
+ *        iacpci_crb_entrynum*crbmsg: body of the queue
+ *        iacpci_crb_entrynum: table of flags to check the arrivals of connection requests
+ */
 /* macros for CRB */
 #define CRB_TAIL_OFFSET  (sizeof(int64_t))  
 #define CRB_TABLE_OFFSET (2 * sizeof(int64_t))
@@ -99,19 +1394,6 @@
 #define CONNINFO_REMGA_OFFSET (sizeof(int64_t) * 2 + sizeof(crbmsg_t))
 #define CONNINFO_STATE_OFFSET (sizeof(int64_t) * 2 + sizeof(crbmsg_t) + sizeof(acp_ga_t))
 #define CRBFLG_OFFSET (sizeof(conninfo_t))
-
-/** structs **/
-
-/* structs of lists */
-typedef struct listitem {
-    struct listitem *prev;
-    struct listitem *next;
-} listitem_t;
-
-typedef struct listobj {
-    struct listitem *head;
-    struct listitem *tail;
-} listobj_t;
 
 /* struct of channel endpoint */
 typedef struct chitem {
@@ -176,8 +1458,6 @@ typedef struct conninfo {
 } conninfo_t;
 
 /** local variables **/
-static volatile uint64_t chlk;
-static int iacp_initialized_cl = 0;
 static char *crbreqmsg;      /* buffer used for sending connection request  */
 static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
 
@@ -194,27 +1474,11 @@ static char *crbreqmsg;      /* buffer used for sending connection request  */
 static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
 
 /** global variables **/
-extern size_t iacp_starter_memory_size_cl;
 int iacpci_eager_limit = ACPCI_DEFAULT_EAGER_LIMIT;
 int iacpci_crb_entrynum = ACPCI_DEFAULT_CRB_ENTRYNUM;
 int iacpci_reqnum = ACPCI_DEFAULT_REQNUM;
 int iacpci_sbnumslots = ACPCI_DEFAULT_SBNUMSLOTS;
 int iacpci_rbnumslots = ACPCI_DEFAULT_RBNUMSLOTS;
-
-/** inline functions **/
-
-/* global lock */
-static inline void ch_lock(void)
-{
-    while (sync_val_compare_and_swap_8(&chlk, 0, 1)) ;
-}
-
-/* global unlock */
-static inline void ch_unlock(void)
-{
-    sync_synchronize();
-    chlk = 0;
-}
 
 /* query for the local address of the local slot specified by idx */
 static inline void *localslotaddr(acp_ch_t ch, int idx)
@@ -276,64 +1540,6 @@ static inline int64_t *localtailla(acp_ch_t ch, int sbidx)
 static inline acp_ga_t localtailga(acp_ch_t ch, int sbidx)
 {
     return (ch->localga + CHSLOTOFFSET + ch->sbuf_entrynum * (ch->buf_entrysz + MSGHDRSZ) + sbidx * sizeof(int64_t));
-}
-
-/* functions for handling lists */
-static void list_init(listobj_t *list)
-{
-    list->head = NULL;
-    list->tail = NULL;
-}
-
-static void list_add(listobj_t *list, listitem_t *item)
-{
-    if (list->head == NULL) {
-        item->prev = NULL;
-        item->next = NULL;
-        list->head = item; 
-        list->tail = item; 
-    } else {
-        item->prev = list->tail;
-        item->next = NULL;
-        list->tail->next = item;
-        list->tail = item;
-    }
-}
-
-static void list_remove(listobj_t *list, listitem_t *item)
-{
-    if ((item->next == NULL) && (item->prev == NULL)) {
-        list->head = NULL;
-        list->tail = NULL;
-    } else {
-        if (item->next == NULL) {
-            list->tail = item->prev;
-            item->prev->next = item->next;
-        } else if (item->prev == NULL) {
-            list->head = item->next;
-            item->next->prev = item->prev;
-        } else {
-            item->prev->next = item->next;
-            item->next->prev = item->prev;
-        }
-    }
-}
-
-static int list_isempty(listobj_t *list)
-{
-    return list->head == NULL;
-}
-
-static void list_show(listobj_t *list)
-{
-    listitem_t *item;
-
-    item = list->head;
-    while (item != NULL) {
-        printf(" %p", item);
-        item = item->next;
-    }
-    printf("\n");
 }
 
 /* initialize connection info
@@ -966,6 +2172,7 @@ void iacpcl_progress_ch(void)
 
     /* check requesting channels */
     handl_reqchlist();
+
 }
 
 /* int iacp_init_cl(void)
@@ -980,46 +2187,17 @@ void iacpcl_progress_ch(void)
  *  - synchronize among processes
  * 
  */
-int iacp_init_cl(void) 
+static int init_ch(void)
 {
-    int crbsz;
     int myrank;
 
-    ch_lock();
-    if (iacp_initialized_cl != 0){
-        ch_unlock();
-        return 0;
-    }
-    iacp_initialized_cl = 1;
-
     myrank = acp_rank();
-
-    /* prepare crb (connection request buffer) 
-     *   - check the size of the starter memory 
-     *   - structure of crb:
-     *        head: head of the connection request queue, uint64_t
-     *        tail: tail of the connection request queue, uint64_t
-     *        iacpci_crb_entrynum*crbmsg: body of the queue
-     *        iacpci_crb_entrynum: table of flags to check the arrivals of connection requests
-     *        trashbox: used as a dummy target of remote atomic operation, uint64_t
-     */
-    crbsz = 2 * (sizeof(int64_t)) + iacpci_crb_entrynum * sizeof(crbmsg_t) 
-             + iacpci_crb_entrynum + sizeof(int64_t);
-    if (iacp_starter_memory_size_cl < crbsz) {
-        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %lu is smaller than crbsz %d\n",
-                myrank, iacp_starter_memory_size_cl, crbsz);
-        iacp_abort_cl();
-    }
-#ifdef DEBUG
-    fprintf(stderr, "%d: iacp_init_cl: crbsz %d \n", myrank, crbsz);
-#endif
 
     /* set addresses of crb */
     crbhead = (int64_t *)acp_query_address(iacp_query_starter_ga_cl(myrank));
     crbtail = (int64_t *)((char *)crbhead + CRB_TAIL_OFFSET);
     crbtbl = (crbmsg_t *)((char *)crbhead + CRB_TABLE_OFFSET);
     crbflgtbl = (char *)crbhead + CRB_FLGTABLE_OFFSET;
-    trashboxga = iacp_query_starter_ga_cl(myrank) + CRB_TRASHBOX_OFFSET;
 
 #ifdef DEBUG
     fprintf(stderr, "%d: iacp_init_cl: crbhead %p, crbtail %p, crbtbl %p, trashboxga %p\n", 
@@ -1043,6 +2221,42 @@ int iacp_init_cl(void)
     list_init(&idlech_list);
     list_init(&reqch_list);
 
+}
+
+int iacp_init_cl(void) 
+{
+    int myrank;
+
+    ch_lock();
+    if (iacp_initialized_cl != 0){
+        ch_unlock();
+        return 0;
+    }
+    iacp_initialized_cl = 1;
+
+    myrank = acp_rank();
+
+    /* crb (connection request buffer for Channel) */
+    crbsz = 2 * (sizeof(int64_t)) + iacpci_crb_entrynum * sizeof(crbmsg_t) + iacpci_crb_entrynum;
+    /* crq (connection request queue for Segbuf) */
+    crqsz = 16 + crq_num_slots * sizeof(acp_ga_t);
+
+    /* starter_memory_cl = crb + crq + trashbox */
+    if (iacp_starter_memory_size_cl < (crbsz + crqsz + sizeof(acp_ga_t))) {
+        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %lu is too small for %d + %d + %d\n",
+                myrank, iacp_starter_memory_size_cl, crbsz, crqsz, sizeof(acp_ga_t));
+        iacp_abort_cl();
+    }
+#ifdef DEBUG
+    fprintf(stderr, "%d: iacp_init_cl: crbsz %d crqsz %d\n", myrank, crbsz, crqsz);
+#endif
+
+    trashboxga = iacp_query_starter_ga_cl(myrank) + crbsz + crqsz;
+
+    init_ch();
+
+    init_segbuf();
+
     /* synchronize */
     acp_sync();
   
@@ -1051,19 +2265,9 @@ int iacp_init_cl(void)
     return 0; 
 };
 
-int iacp_finalize_cl(void) 
+static int finalize_ch(void)
 {
     acp_ch_t ch;
-
-    ch_lock();
-
-    if (iacp_initialized_cl == 0){
-        ch_unlock();
-        return 0;
-    }
-    iacp_initialized_cl = 0;
-    ch_unlock();
-
     /* wait until lists conch_list, reqch_list and disconnch_list becomes empty
      *  (all channel endpoints must be disconnected or in idle list
      */
@@ -1087,6 +2291,22 @@ int iacp_finalize_cl(void)
         ch = (acp_ch_t)idlech_list.head;
     }
     ch_unlock();
+}
+
+int iacp_finalize_cl(void) 
+{
+    ch_lock();
+
+    if (iacp_initialized_cl == 0){
+        ch_unlock();
+        return 0;
+    }
+    iacp_initialized_cl = 0;
+    ch_unlock();
+
+    finalize_ch();
+    finalize_segbuf();
+
 #ifdef DEBUG
     fprintf(stderr, "finalize: done \n");
 #endif

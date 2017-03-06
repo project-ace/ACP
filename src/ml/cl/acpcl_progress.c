@@ -21,8 +21,12 @@
 #include <acp.h>
 #include "acpcl_progress.h"
 
+extern void iacpcl_progress_ch(void);
+
+extern void iacpcl_progress_segbuf(void);
 
 void iacpcl_progress(void)
 {
     iacpcl_progress_ch();
+    iacpcl_progress_segbuf();
 }

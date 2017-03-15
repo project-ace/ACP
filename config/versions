@@ -3,7 +3,8 @@
 
 libacpbl_udp_version=2:0:0
 libacpbl_ib_version=2:0:0
+libacpbl_tofu_version=2:0:0
 libacpml_version=2:0:0
 
 # acp date for man
-ACP_DATE='Dec 14, 2016'
+ACP_DATE='Mar 14, 2017'

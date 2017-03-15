@@ -27,26 +27,34 @@ EXTRA_DIST += acpcc.in
 install-exec-hook-always:
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
 	(cd $(DESTDIR)$(bindir); rm -f acpgcc; $(LN_S) acpcc acpgcc)
+	(cd $(DESTDIR)$(bindir); rm -f acpfccpx; $(LN_S) acpcc acpfccpx)
 	(cd $(DESTDIR)$(bindir); rm -f acpc++; $(LN_S) acpcc acpc++)
 	(cd $(DESTDIR)$(bindir); rm -f acpcxx; $(LN_S) acpcc acpcxx)
+	(cd $(DESTDIR)$(bindir); rm -f acpFCCpx; $(LN_S) acpcc acpFCCpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpcc; $(LN_S) acpcc macpcc)
 	(cd $(DESTDIR)$(bindir); rm -f macpgcc; $(LN_S) acpcc macpgcc)
+	(cd $(DESTDIR)$(bindir); rm -f macpfccpx; $(LN_S) acpcc macpfccpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpc++; $(LN_S) acpcc macpc++)
 	(cd $(DESTDIR)$(bindir); rm -f macpg++; $(LN_S) acpcc macpg++)
 	(cd $(DESTDIR)$(bindir); rm -f macpcxx; $(LN_S) acpcc macpcxx)
 	(cd $(DESTDIR)$(bindir); rm -f macpgxx; $(LN_S) acpcc macpgxx)
+	(cd $(DESTDIR)$(bindir); rm -f macpFCCpx; $(LN_S) acpcc macpFCCpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpCC; $(LN_S) acpcc macpCC)
 
 uninstall-local-always:
 	rm -f $(DESTDIR)$(bindir)/acpgcc \
+	$(DESTDIR)$(bindir)/acpfccpx \
 	$(DESTDIR)$(bindir)/acpc++ \
 	$(DESTDIR)$(bindir)/acpcxx \
+	$(DESTDIR)$(bindir)/acpFCCpx \
 	$(DESTDIR)$(bindir)/macpcc \
 	$(DESTDIR)$(bindir)/macpgcc \
+	$(DESTDIR)$(bindir)/macpfccpx \
 	$(DESTDIR)$(bindir)/macpc++ \
 	$(DESTDIR)$(bindir)/macpg++ \
 	$(DESTDIR)$(bindir)/macpcxx \
 	$(DESTDIR)$(bindir)/macpgxx \
+	$(DESTDIR)$(bindir)/macpFCCpx \
 	$(DESTDIR)$(bindir)/macpCC
 
 install-exec-hook: install-exec-hook-always

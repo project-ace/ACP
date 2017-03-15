@@ -15,9 +15,10 @@
 @SET_MAKE@
 
 #
-# Copyright (c) 2012-2014 ACE Project
+# Copyright (c) 2012-2017 ACE Project
 # $COPYRIGHT$
 #
+
 
 VPATH = @srcdir@
 am__is_gnu_make = { \
@@ -93,7 +94,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-subdir = src/ml/dl
+noinst_PROGRAMS = atomic$(EXEEXT) inifini$(EXEEXT) \
+	remote2remote$(EXEEXT)
+subdir = sample/bl/tofu
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
 	$(top_srcdir)/config/ltoptions.m4 \
@@ -107,16 +110,21 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-LTLIBRARIES = $(noinst_LTLIBRARIES)
-libacpml_dl_la_DEPENDENCIES =
-am_libacpml_dl_la_OBJECTS = acpdl.lo acpdl_malloc.lo acpdl_vector.lo \
-	acpdl_deque.lo acpdl_list.lo acpdl_set.lo acpdl_multiset.lo \
-	acpdl_map.lo acpdl_ws.lo
-libacpml_dl_la_OBJECTS = $(am_libacpml_dl_la_OBJECTS)
+PROGRAMS = $(noinst_PROGRAMS)
+am_atomic_OBJECTS = atomic.$(OBJEXT)
+atomic_OBJECTS = $(am_atomic_OBJECTS)
+atomic_LDADD = $(LDADD)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_inifini_OBJECTS = inifini.$(OBJEXT)
+inifini_OBJECTS = $(am_inifini_OBJECTS)
+inifini_LDADD = $(LDADD)
+am_remote2remote_OBJECTS = remote2remote.$(OBJEXT)
+remote2remote_OBJECTS = $(am_remote2remote_OBJECTS)
+remote2remote_LDADD = $(LDADD)
+SCRIPTS = $(noinst_SCRIPTS)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -151,8 +159,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(libacpml_dl_la_SOURCES)
-DIST_SOURCES = $(libacpml_dl_la_SOURCES)
+SOURCES = $(atomic_SOURCES) $(inifini_SOURCES) \
+	$(remote2remote_SOURCES)
+DIST_SOURCES = $(atomic_SOURCES) $(inifini_SOURCES) \
+	$(remote2remote_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -320,22 +330,22 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
-noinst_LTLIBRARIES = libacpml_dl.la
-libacpml_dl_la_LIBADD = -ldl
-libacpml_dl_la_SOURCES = \
-			 acpdl.c \
-			 acpdl.h \
-		 	 acpdl_malloc.c \
-			 acpdl_malloc.h \
-			 acpdl_vector.c \
-			 acpdl_deque.c \
-			 acpdl_list.c \
-			 acpdl_set.c \
-			 acpdl_multiset.c \
-			 acpdl_map.c \
-			 acpdl_ws.c \
-			 acpbl.h
+LDADD = \
+	$(top_builddir)/src/bl/ib/libacpbl_tofu.la \
+	$(top_builddir)/src/ml/libacpml.la
 
+noinst_SCRIPTS = \
+	      run_127nodes.sh \
+	      run_128nodes.sh \
+	      run_2nodes.sh \
+	      run_3nodes.sh
+
+atomic_DEPENDENCIES = $(LDADD)
+atomic_SOURCES = atomic.c acp.h
+inifini_DEPENDENCIES = $(LDADD)
+inifini_SOURCES = inifini.c acp.h
+remote2remote_DEPENDENCIES = $(LDADD)
+remote2remote_SOURCES = remote2remote.c acp.h
 all: all-am
 
 .SUFFIXES:
@@ -349,9 +359,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/ml/dl/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/bl/tofu/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu src/ml/dl/Makefile
+	  $(AUTOMAKE) --gnu sample/bl/tofu/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -370,19 +380,26 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-clean-noinstLTLIBRARIES:
-	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; \
-	locs=`for p in $$list; do echo $$p; done | \
-	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
-	      sort -u`; \
-	test -z "$$locs" || { \
-	  echo rm -f $${locs}; \
-	  rm -f $${locs}; \
-	}
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
 
-libacpml_dl.la: $(libacpml_dl_la_OBJECTS) $(libacpml_dl_la_DEPENDENCIES) $(EXTRA_libacpml_dl_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(LINK)  $(libacpml_dl_la_OBJECTS) $(libacpml_dl_la_LIBADD) $(LIBS)
+atomic$(EXEEXT): $(atomic_OBJECTS) $(atomic_DEPENDENCIES) $(EXTRA_atomic_DEPENDENCIES) 
+	@rm -f atomic$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(atomic_OBJECTS) $(atomic_LDADD) $(LIBS)
+
+inifini$(EXEEXT): $(inifini_OBJECTS) $(inifini_DEPENDENCIES) $(EXTRA_inifini_DEPENDENCIES) 
+	@rm -f inifini$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(inifini_OBJECTS) $(inifini_LDADD) $(LIBS)
+
+remote2remote$(EXEEXT): $(remote2remote_OBJECTS) $(remote2remote_DEPENDENCIES) $(EXTRA_remote2remote_DEPENDENCIES) 
+	@rm -f remote2remote$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(remote2remote_OBJECTS) $(remote2remote_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -390,15 +407,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_deque.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_list.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_malloc.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_map.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_multiset.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_set.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_vector.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpdl_ws.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/atomic.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inifini.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote2remote.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -511,7 +522,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES)
+all-am: Makefile $(PROGRAMS) $(SCRIPTS)
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -545,7 +556,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstLTLIBRARIES \
+clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -617,7 +628,7 @@ uninstall-am:
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstLTLIBRARIES cscopelist-am ctags \
+	clean-libtool clean-noinstPROGRAMS cscopelist-am ctags \
 	ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \

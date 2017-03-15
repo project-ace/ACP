@@ -746,8 +746,8 @@ static int progress_dst_con_segbuf()
             this_segbuf = CON_SEGBUF_SEGBUF(this_item);
             if ((CON_SEGBUF_SEGSZ(this_item) != this_segbuf->segsize) ||
                 (CON_SEGBUF_SEGNUM(this_item) != this_segbuf->segnum)) {
-                fprintf(stderr, "progress_dst_con_segbuf: %d : CRQ (segsize %d , segnum %d)  local request (segsize %d , segnum %d)\n", 
-                        CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item), this_segbuf->segsize, this_segbuf->segnum);
+                fprintf(stderr, "progress_dst_con_segbuf: %zu : CRQ (segsize %zu , segnum %zu)  local request (segsize %zu , segnum %zu)\n", 
+                        CON_SEGBUF_HANDLE(this_item), CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item), this_segbuf->segsize, this_segbuf->segnum);
             }
 
             /* copy remote GAs to local segbuf_t */
@@ -1130,7 +1130,7 @@ int acp_ready_segbuf(acp_segbuf_t segbuf)
     tail = SEGBUFCTL_TAIL(ctl);
 
     if (tail <= head) {
-        fprintf(stderr, "acp_ready_segbuf : %d : segbuf is empty %lx %lx\n", myrank, head, tail);
+        fprintf(stderr, "acp_ready_segbuf : %d : segbuf is empty %llx %llx\n", myrank, head, tail);
         return -1;
     }
 
@@ -1162,7 +1162,7 @@ int acp_ack_segbuf(acp_segbuf_t segbuf)
     tail = SEGBUFCTL_TAIL(ctl);
 
     if ((tail - head) >= segbuf->segnum) {
-        fprintf(stderr, "acp_ack_segbuf : %d : segbuf is full %lx %lx\n", myrank, head, tail);
+        fprintf(stderr, "acp_ack_segbuf : %d : segbuf is full %llx %llx\n", myrank, head, tail);
         return -1;
     }
 
@@ -2243,7 +2243,7 @@ int iacp_init_cl(void)
 
     /* starter_memory_cl = crb + crq + trashbox */
     if (iacp_starter_memory_size_cl < (crbsz + crqsz + sizeof(acp_ga_t))) {
-        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %lu is too small for %d + %d + %d\n",
+        fprintf(stderr, "iacp_init_cl: %d : Error iacp_starter_memory_size_cl %lu is too small for %d + %d + %zu\n",
                 myrank, iacp_starter_memory_size_cl, crbsz, crqsz, sizeof(acp_ga_t));
         iacp_abort_cl();
     }

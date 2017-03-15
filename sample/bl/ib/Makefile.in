@@ -304,6 +304,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 have_mpi = @have_mpi@
+have_tofu = @have_tofu@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@

@@ -100,7 +100,7 @@ static int print_error_argument( int ir, void *curr, FILE *fout )
 {
     if ( option_list[ ir ].type == arg_uint || option_list[ ir ].type == arg_uint_metric ) {
         iacpbl_option_uint_t* ptr = (iacpbl_option_uint_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;
-        fprintf( fout, "Error argument value: %lu, !( %lu <= value <= %lu ).\n",
+        fprintf( fout, "Error argument value: %llu, !( %llu <= value <= %llu ).\n",
             *(( uint64_t * ) curr), ptr->min, ptr->max ) ;
     } else if ( option_list[ ir ].type == arg_double ) {
         iacpbl_option_double_t* ptr = (iacpbl_option_double_t*)((uintptr_t)&iacpbl_option + option_list[ ir ].offset) ;

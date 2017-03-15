@@ -9,7 +9,7 @@
 # This software is released under the BSD License, see LICENSE. 
 
 AC_PREREQ(2.60)
-AC_INIT(ACP, 2.1.0, [http://ace.cc.kyushu-u.ac.jp])
+AC_INIT(ACP, 2.2.0, [http://ace.cc.kyushu-u.ac.jp])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
@@ -24,10 +24,9 @@ AC_CANONICAL_HOST
 
 # Checks for programs.
 AM_PROG_AR
-AC_PROG_CC
-AC_PROG_CXX
+AC_PROG_CC([fccpx icc gcc clang cc])
+AC_PROG_CXX([FCCpx icpc g++ clang++ c++])
 AC_PROG_MAKE_SET
-AC_PROG_LIBTOOL
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
@@ -35,6 +34,23 @@ AC_PROG_LN_S
 #AX_PROG_RUBY_VERSION([1.8.7], [:], [AC_MSG_ERROR([cannot find ruby ver 1.8.7 or above])])
 #AC_PATH_PROG([RUBY], ruby)
 #AC_SUBST([RUBY])
+
+# Check for Tofu
+AC_DEFUN([AC_PROG_FCCPX],
+[AC_CHECK_PROG(have_tofu,fccpx,yes)])
+AC_PROG_FCCPX
+AM_CONDITIONAL([HAVE_TOFU], [test "${have_tofu}" = 'yes'])
+if test "${have_tofu}" = "yes" ; then
+  # reset CC and CFLAGS for FX cross compile
+  AC_SUBST(CC,"fccpx")
+  AC_SUBST(CXX,"FCCpx")
+  CFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
+  CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
+  AC_SUBST(CFLAGS)
+  AC_SUBST(CXXFLAGS)
+fi
+
+AC_PROG_LIBTOOL
 
 # for mpiacp
 AC_ARG_WITH(mpi,
@@ -46,38 +62,38 @@ fi,
 try_mpi=yes)
 
 AC_ARG_VAR(MPICC, path to MPI compiler wrapper)
+AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
 have_mpi="no"
 
 dnl Check for MPI apparatus?
 if test "$try_mpi" = "yes" ; then
-  if test x"${MPICC}" = x ; then 
-    AC_DEFUN([AC_PROG_MPICC],
-    [AC_CHECK_PROG(HAVE_MPICC,mpicc,yes)])
-
-    AC_PROG_MPICC
-  else
-    HAVE_MPICC="yes"
-  fi
-  if test "x${HAVE_MPICC}" = "xyes" ; then
-    AC_ARG_VAR(MPI_CPPFLAGS, flags added when compiling for MPI)
+  AC_DEFUN([AC_PROG_MPICC],
+  [AC_CHECK_PROGS(HAVE_MPICC,mpifccpx mpicc,yes)])
+  AC_PROG_MPICC
+fi
+case "${HAVE_MPICC}" in
+  "mpicc")
+    AC_PATH_PROG(MPICC,mpicc)
     mpi_cppflags="`mpicc -showme:compile ||:`"
     if test x"${mpi_cppflags}" = x ; then
       incdir=
-      for i in `mpicc -show ||:`
+	for i in `mpicc -show ||:`
       do
-        incdir="${incdir} `echo $i | grep -e '^-I'`"
+	incdir="${incdir} `echo $i | grep -e '^-I'`"
       done
       mpi_cppflags="${incdir}"
     fi
-    if test x"${mpi_cppflags}" = x ; then 
-      AC_MSG_NOTICE([mpicc is found but cannot get MPI_CPPFLAGS])
-    else
-      AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")
-      have_mpi="yes"
-      AC_PATH_PROG(MPICC,mpicc)
-#      AC_C_MPI
-    fi
-  fi
+    ;;
+  "mpifccpx")
+    AC_PATH_PROG(MPICC,mpifccpx)
+    mpi_cppflags="`mpifccpx -showme:compile ||:`"
+    ;;
+esac
+if test x"${mpi_cppflags}" = x ; then 
+  AC_MSG_NOTICE([mpicc is found but cannot get MPI_CPPFLAGS])
+else
+  AC_SUBST(MPI_CPPFLAGS,"$mpi_cppflags")
+  have_mpi="yes"
 fi
 
 AC_SUBST(have_mpi)
@@ -111,10 +127,12 @@ AC_CHECK_LIB([ibverbs], [ibv_get_device_list], [
 AM_CONDITIONAL(WITH_INFINIBAND, test "${ibverbs_libs}" = 'yes')
 
 AC_ARG_WITH(ndev, AC_HELP_STRING([--with-ndev=NAME],
-	    [the priority order of default network device [ib, udp]]))
+	    [the priority order of default network device [ib, tofu, udp]]))
 
 if test x"$with_ndev" = x'udp'; then
 	AC_SUBST(NETDEV,'UDP')
+elif test "${have_tofu}" = 'yes'; then
+	AC_SUBST(NETDEV,'TOFU')
 elif test "${ibverbs_libs}" = 'yes'; then
 	AC_SUBST(NETDEV,'IB')
 else
@@ -160,22 +178,25 @@ if test "$top_acp_builddir" != "$top_acp_srcdir"; then
 fi
 
 AC_CONFIG_FILES([Makefile
-                 sample/Makefile
-                 sample/bl/Makefile
-                 sample/bl/ib/Makefile
-                 sample/bl/udp/Makefile
-                 sample/ml/Makefile
-                 sample/ml/cl/Makefile
-                 sample/ml/dl/Makefile
-                 scripts/Makefile
                  src/Makefile
                  src/bl/Makefile
+                 src/bl/common/Makefile
+                 src/bl/tofu/Makefile
                  src/bl/ib/Makefile
                  src/bl/udp/Makefile
                  src/include/Makefile
                  src/ml/Makefile
                  src/ml/cl/Makefile
                  src/ml/dl/Makefile
+                 sample/Makefile
+                 sample/bl/Makefile
+                 sample/bl/ib/Makefile
+                 sample/bl/tofu/Makefile
+                 sample/bl/udp/Makefile
+                 sample/ml/Makefile
+                 sample/ml/cl/Makefile
+                 sample/ml/dl/Makefile
+                 scripts/Makefile
                  test/Makefile
                  test/bl/Makefile
                  test/ml/Makefile

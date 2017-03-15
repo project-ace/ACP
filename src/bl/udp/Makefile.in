@@ -15,7 +15,7 @@
 @SET_MAKE@
 
 #
-# Copyright (c) 2012-2016 ACE Project
+# Copyright (c) 2012-2017 ACE Project
 # $COPYRIGHT$
 #
 
@@ -94,6 +94,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 @HAVE_MPICC_TRUE@am__append_1 = libacpbl_udp_mpi.la
+@HAVE_MPICC_FALSE@libacpbl_udp_mpi_la_DEPENDENCIES =
 subdir = src/bl/udp
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
@@ -137,9 +138,8 @@ am__uninstall_files_from_dir = { \
   }
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
-libacpbl_udp_la_DEPENDENCIES =
 am_libacpbl_udp_la_OBJECTS = acpbl_udp.lo acpbl_udp_gmm.lo \
-	acpbl_udp_gma.lo acpbl_input.lo
+	acpbl_udp_gma.lo
 libacpbl_udp_la_OBJECTS = $(am_libacpbl_udp_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -149,16 +149,13 @@ libacpbl_udp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_udp_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
-libacpbl_udp_mpi_la_DEPENDENCIES =
 am__libacpbl_udp_mpi_la_SOURCES_DIST = acpbl_udp.c acpbl_udp_gmm.c \
-	acpbl_udp_gma.c ../common/acpbl_input.c acpbl.h acpbl_sync.h \
-	acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h \
-	../common/acpbl_input.h
+	acpbl_udp_gma.c acpbl.h acpbl_sync.h acpbl_udp.h \
+	acpbl_udp_gmm.h acpbl_udp_gma.h
 @HAVE_MPICC_TRUE@am_libacpbl_udp_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_udp.lo \
 @HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_udp_gmm.lo \
-@HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_udp_gma.lo \
-@HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_input.lo
+@HAVE_MPICC_TRUE@	libacpbl_udp_mpi_la-acpbl_udp_gma.lo
 libacpbl_udp_mpi_la_OBJECTS = $(am_libacpbl_udp_mpi_la_OBJECTS)
 libacpbl_udp_mpi_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
@@ -330,6 +327,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 have_mpi = @have_mpi@
+have_tofu = @have_tofu@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -369,17 +367,19 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_udp.la $(am__append_1)
-libacpbl_udp_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c ../common/acpbl_input.c \
-	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h ../common/acpbl_input.h
+libacpbl_udp_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
+libacpbl_udp_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c \
+	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h
 
-libacpbl_udp_la_LDFLAGS = -version-info $(libacpbl_udp_version)
-libacpbl_udp_la_LIBADD = -lpthread
-@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c ../common/acpbl_input.c \
-@HAVE_MPICC_TRUE@	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h ../common/acpbl_input.h
+libacpbl_udp_la_LDFLAGS = -version-info $(libacpbl_udp_version) -L$(top_builddir)/src/bl/common/
+libacpbl_udp_la_LIBADD = -lacpbl_common -lpthread
+@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
+@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_SOURCES = acpbl_udp.c acpbl_udp_gmm.c acpbl_udp_gma.c \
+@HAVE_MPICC_TRUE@	acpbl.h acpbl_sync.h acpbl_udp.h acpbl_udp_gmm.h acpbl_udp_gma.h
 
 @HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
-@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_LDFLAGS = -version-info $(libacpbl_udp_version)
-@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_LIBADD = -lpthread
+@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_LDFLAGS = -version-info $(libacpbl_udp_version) -L$(top_builddir)/src/bl/common/
+@HAVE_MPICC_TRUE@libacpbl_udp_mpi_la_LIBADD = -lacpbl_common -lpthread
 all: all-am
 
 .SUFFIXES:
@@ -461,11 +461,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_input.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_udp_gmm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp_gmm.Plo@am__quote@
@@ -491,13 +489,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
 
-acpbl_input.lo: ../common/acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT acpbl_input.lo -MD -MP -MF $(DEPDIR)/acpbl_input.Tpo -c -o acpbl_input.lo `test -f '../common/acpbl_input.c' || echo '$(srcdir)/'`../common/acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/acpbl_input.Tpo $(DEPDIR)/acpbl_input.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../common/acpbl_input.c' object='acpbl_input.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o acpbl_input.lo `test -f '../common/acpbl_input.c' || echo '$(srcdir)/'`../common/acpbl_input.c
-
 libacpbl_udp_mpi_la-acpbl_udp.lo: acpbl_udp.c
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_udp_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_udp_mpi_la-acpbl_udp.lo -MD -MP -MF $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp.Tpo -c -o libacpbl_udp_mpi_la-acpbl_udp.lo `test -f 'acpbl_udp.c' || echo '$(srcdir)/'`acpbl_udp.c
 @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp.Tpo $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_udp.Plo
@@ -518,13 +509,6 @@ libacpbl_udp_mpi_la-acpbl_udp_gma.lo: acpbl_udp_gma.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_udp_gma.c' object='libacpbl_udp_mpi_la-acpbl_udp_gma.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_udp_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_udp_mpi_la-acpbl_udp_gma.lo `test -f 'acpbl_udp_gma.c' || echo '$(srcdir)/'`acpbl_udp_gma.c
-
-libacpbl_udp_mpi_la-acpbl_input.lo: ../common/acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_udp_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_udp_mpi_la-acpbl_input.lo -MD -MP -MF $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Tpo -c -o libacpbl_udp_mpi_la-acpbl_input.lo `test -f '../common/acpbl_input.c' || echo '$(srcdir)/'`../common/acpbl_input.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Tpo $(DEPDIR)/libacpbl_udp_mpi_la-acpbl_input.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='../common/acpbl_input.c' object='libacpbl_udp_mpi_la-acpbl_input.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_udp_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_udp_mpi_la-acpbl_input.lo `test -f '../common/acpbl_input.c' || echo '$(srcdir)/'`../common/acpbl_input.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

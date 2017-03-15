@@ -1231,7 +1231,7 @@ int acp_inquire(acp_handle_t handle)
 
 acp_handle_t acp_copy(acp_ga_t dst, acp_ga_t src, size_t size, acp_handle_t order)
 {
-    debug printf("rank %d - main acp_copy(0x%016" PRIx64 ",  0x%016" PRIx64 ", %d, 0x%016" PRIx64 ");\n", MY_RANK, dst, src, size, order);
+    debug printf("rank %d - main acp_copy(0x%016" PRIx64 ",  0x%016" PRIx64 ", %zu, 0x%016" PRIx64 ");\n", MY_RANK, dst, src, size, order);
     int p = cq_open_entry(dst, src, order);
     cq[p].type = COPY;
     cq[p].size = size;
@@ -2437,7 +2437,7 @@ static void* comm_thread_func(void *param)
                     check_wait |= 2;
                     if (dq[pos].gateway == MY_GATEWAY) {
                         if (ibuf_vc1_free_ack_count(dq[pos].inum) >= dqwait[pos]) {
-                            debug printf("rank %d - protocol dq[%d] got ack from ibuf inum =%d vc1 ack_count = %d\n", MY_RANK, pos, dq[pos].inum, dqwait[pos]);
+                            debug printf("rank %d - protocol dq[%d] got ack from ibuf inum =%d vc1 ack_count = %llu\n", MY_RANK, pos, dq[pos].inum, dqwait[pos]);
                             if (dq[pos].rank != MY_RANK) {
                                 dq[pos].stat = DQSTAT_NOTIFY;
                                 dq[pos].inum = INUM_TABLE[dq[pos].rank];
@@ -2612,7 +2612,7 @@ static void* comm_thread_func(void *param)
                         } else { /* check_cont == 0 */
                             if (dq[pos].gateway == MY_GATEWAY) {
                                 dqwait[pos] = ibuf_vc1_push_dg(dq[pos].inum, elem_id);
-                                debug printf("rank %d - protocol Dq %d wait for ibuf vc1 ack_count %d\n", MY_RANK, pos, dqwait[pos]);
+                                debug printf("rank %d - protocol Dq %d wait for ibuf vc1 ack_count %llu\n", MY_RANK, pos, dqwait[pos]);
                             } else {
                                 txbuf[MY_INUM].vc1.list[elem_id].dq_pos = pos;
                                 txbuf_vc1_push_dg(elem_id);

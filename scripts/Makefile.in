@@ -266,6 +266,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 have_mpi = @have_mpi@
+have_tofu = @have_tofu@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -306,9 +307,10 @@ top_srcdir = @top_srcdir@
 bin_SCRIPTS = acprun macprun acpcc
 CLEANFILES = macprun acpcc acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 EXTRA_DIST = macprun.in acpcc.in
+libacpbl_tofu_version = 2:0:0
 
 # acp date for man
-ACP_DATE = 'Dec 14, 2016'
+ACP_DATE = 'Mar 14, 2017'
 man_MANS = acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 all: all-am
 
@@ -602,26 +604,34 @@ acpcc: acpcc.in
 install-exec-hook-always:
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
 	(cd $(DESTDIR)$(bindir); rm -f acpgcc; $(LN_S) acpcc acpgcc)
+	(cd $(DESTDIR)$(bindir); rm -f acpfccpx; $(LN_S) acpcc acpfccpx)
 	(cd $(DESTDIR)$(bindir); rm -f acpc++; $(LN_S) acpcc acpc++)
 	(cd $(DESTDIR)$(bindir); rm -f acpcxx; $(LN_S) acpcc acpcxx)
+	(cd $(DESTDIR)$(bindir); rm -f acpFCCpx; $(LN_S) acpcc acpFCCpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpcc; $(LN_S) acpcc macpcc)
 	(cd $(DESTDIR)$(bindir); rm -f macpgcc; $(LN_S) acpcc macpgcc)
+	(cd $(DESTDIR)$(bindir); rm -f macpfccpx; $(LN_S) acpcc macpfccpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpc++; $(LN_S) acpcc macpc++)
 	(cd $(DESTDIR)$(bindir); rm -f macpg++; $(LN_S) acpcc macpg++)
 	(cd $(DESTDIR)$(bindir); rm -f macpcxx; $(LN_S) acpcc macpcxx)
 	(cd $(DESTDIR)$(bindir); rm -f macpgxx; $(LN_S) acpcc macpgxx)
+	(cd $(DESTDIR)$(bindir); rm -f macpFCCpx; $(LN_S) acpcc macpFCCpx)
 	(cd $(DESTDIR)$(bindir); rm -f macpCC; $(LN_S) acpcc macpCC)
 
 uninstall-local-always:
 	rm -f $(DESTDIR)$(bindir)/acpgcc \
+	$(DESTDIR)$(bindir)/acpfccpx \
 	$(DESTDIR)$(bindir)/acpc++ \
 	$(DESTDIR)$(bindir)/acpcxx \
+	$(DESTDIR)$(bindir)/acpFCCpx \
 	$(DESTDIR)$(bindir)/macpcc \
 	$(DESTDIR)$(bindir)/macpgcc \
+	$(DESTDIR)$(bindir)/macpfccpx \
 	$(DESTDIR)$(bindir)/macpc++ \
 	$(DESTDIR)$(bindir)/macpg++ \
 	$(DESTDIR)$(bindir)/macpcxx \
 	$(DESTDIR)$(bindir)/macpgxx \
+	$(DESTDIR)$(bindir)/macpFCCpx \
 	$(DESTDIR)$(bindir)/macpCC
 
 install-exec-hook: install-exec-hook-always

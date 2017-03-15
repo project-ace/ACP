@@ -15,7 +15,7 @@
 @SET_MAKE@
 
 #
-# Copyright (c) 2012-2014 ACE Project
+# Copyright (c) 2012-2017 ACE Project
 # $COPYRIGHT$
 #
 VPATH = @srcdir@
@@ -160,7 +160,7 @@ am__define_uniq_tagged_files = \
   done | $(am__uniquify_input)`
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = udp ib
+DIST_SUBDIRS = common udp ib tofu
 am__DIST_COMMON = $(srcdir)/Makefile.in
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 am__relativize = \
@@ -290,6 +290,7 @@ docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 have_mpi = @have_mpi@
+have_tofu = @have_tofu@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -328,7 +329,8 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 @WITH_INFINIBAND_TRUE@IBDIR = ib
-SUBDIRS = udp $(IBDIR)
+@HAVE_TOFU_TRUE@TOFUDIR = tofu
+SUBDIRS = common udp $(IBDIR) $(TOFUDIR)
 all: all-recursive
 
 .SUFFIXES:

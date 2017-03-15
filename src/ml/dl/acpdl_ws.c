@@ -98,7 +98,7 @@ acp_wsd_t acp_create_ws( size_t size_ws )
 
     ////////////////////////////////////////////////
     if ( (proc_start_global + wsd->ngas) > nprocs ) {
-        fprintf( stderr, "acp_create_ws: Error: rank%4d : (proc_start_global%8lu + n_ws%8lu ) > nprocs%4d:\n",
+        fprintf( stderr, "acp_create_ws: Error: rank%4d : (proc_start_global%8lld + n_ws%8lu ) > nprocs%4d:\n",
                  myrank, proc_start_global, wsd->ngas, nprocs ) ;
         exit ( 1 ) ;
     }

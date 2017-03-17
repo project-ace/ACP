@@ -622,6 +622,10 @@ acp_ga_t iacp_query_starter_ga_cl(int rank)
 acp_atkey_t acp_register_memory(void* addr, size_t size, int color)
 {
   int localtag;
+  int head_padding = (uintptr_t)addr & 255;
+  int tail_padding = (~((uintptr_t)addr + size) + 1) & 255;
+  addr -= head_padding;
+  size += head_padding + tail_padding;
 
   // !! should be thread safed
   localtag = _acpblTofu_register_memory(addr, size, color, NON, MEMTYPE_USER);

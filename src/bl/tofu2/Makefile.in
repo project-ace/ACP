@@ -19,7 +19,6 @@
 # $COPYRIGHT$
 #
 
-
 VPATH = @srcdir@
 am__is_gnu_make = { \
   if test -z '$(MAKELEVEL)'; then \
@@ -94,9 +93,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = atomic$(EXEEXT) inifini$(EXEEXT) \
-	remote2remote$(EXEEXT)
-subdir = sample/bl/tofu
+@HAVE_MPICC_TRUE@am__append_1 = libacpbl_tofu2_mpi.la
+@HAVE_MPICC_FALSE@libacpbl_tofu2_mpi_la_DEPENDENCIES =
+subdir = src/bl/tofu2
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
 	$(top_srcdir)/config/ltoptions.m4 \
@@ -110,21 +109,62 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-PROGRAMS = $(noinst_PROGRAMS)
-am_atomic_OBJECTS = atomic.$(OBJEXT)
-atomic_OBJECTS = $(am_atomic_OBJECTS)
-atomic_LDADD = $(LDADD)
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__uninstall_files_from_dir = { \
+  test -z "$$files" \
+    || { test ! -d "$$dir" && test ! -f "$$dir" && test ! -r "$$dir"; } \
+    || { echo " ( cd '$$dir' && rm -f" $$files ")"; \
+         $(am__cd) "$$dir" && rm -f $$files; }; \
+  }
+am__installdirs = "$(DESTDIR)$(libdir)"
+LTLIBRARIES = $(lib_LTLIBRARIES)
+am_libacpbl_tofu2_la_OBJECTS = acpbl_tofu2.lo acpbl_tofu2_gma.lo \
+	acpbl_tofu2_gmm.lo acpbl_tofu2_thread.lo acpbl_tofu2_sys.lo
+libacpbl_tofu2_la_OBJECTS = $(am_libacpbl_tofu2_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
-am_inifini_OBJECTS = inifini.$(OBJEXT)
-inifini_OBJECTS = $(am_inifini_OBJECTS)
-inifini_LDADD = $(LDADD)
-am_remote2remote_OBJECTS = remote2remote.$(OBJEXT)
-remote2remote_OBJECTS = $(am_remote2remote_OBJECTS)
-remote2remote_LDADD = $(LDADD)
-SCRIPTS = $(noinst_SCRIPTS)
+libacpbl_tofu2_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_tofu2_la_LDFLAGS) $(LDFLAGS) \
+	-o $@
+am__libacpbl_tofu2_mpi_la_SOURCES_DIST = acpbl_tofu2.c acpbl_tofu2.h \
+	acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c \
+	acpbl_tofu2_sys.c acpbl.h acpbl_sync.h ./tofu2/tofu.h \
+	./tofu2/tlib_rank.h
+@HAVE_MPICC_TRUE@am_libacpbl_tofu2_mpi_la_OBJECTS =  \
+@HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2.lo \
+@HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo \
+@HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo \
+@HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo \
+@HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo
+libacpbl_tofu2_mpi_la_OBJECTS = $(am_libacpbl_tofu2_mpi_la_OBJECTS)
+libacpbl_tofu2_mpi_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_tofu2_mpi_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
+@HAVE_MPICC_TRUE@am_libacpbl_tofu2_mpi_la_rpath = -rpath $(libdir)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -159,10 +199,10 @@ AM_V_CCLD = $(am__v_CCLD_@AM_V@)
 am__v_CCLD_ = $(am__v_CCLD_@AM_DEFAULT_V@)
 am__v_CCLD_0 = @echo "  CCLD    " $@;
 am__v_CCLD_1 = 
-SOURCES = $(atomic_SOURCES) $(inifini_SOURCES) \
-	$(remote2remote_SOURCES)
-DIST_SOURCES = $(atomic_SOURCES) $(inifini_SOURCES) \
-	$(remote2remote_SOURCES)
+SOURCES = $(libacpbl_tofu2_la_SOURCES) \
+	$(libacpbl_tofu2_mpi_la_SOURCES)
+DIST_SOURCES = $(libacpbl_tofu2_la_SOURCES) \
+	$(am__libacpbl_tofu2_mpi_la_SOURCES_DIST)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -331,23 +371,19 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
-LDADD = \
-	$(top_builddir)/src/bl/tofu/libacpbl_tofu.la \
-	$(top_builddir)/src/ml/libacpml.la
-
-noinst_SCRIPTS = \
-	      run_127nodes.sh \
-	      run_128nodes.sh \
-	      run_2nodes.sh \
-	      run_3nodes.sh
-
-atomic_DEPENDENCIES = $(LDADD)
-atomic_SOURCES = atomic.c acp.h
-inifini_DEPENDENCIES = $(LDADD)
-inifini_SOURCES = inifini.c acp.h
-remote2remote_DEPENDENCIES = $(LDADD)
-remote2remote_SOURCES = remote2remote.c acp.h
+AM_CPPFLAGS = -I./tofu2 -I$(top_srcdir)/src/include
+lib_LTLIBRARIES = libacpbl_tofu2.la $(am__append_1)
+libacpbl_tofu2_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
+libacpbl_tofu2_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl_tofu2_sys.c acpbl.h acpbl_sync.h ./tofu2/tofu.h ./tofu2/tlib_rank.h
+#libacpbl_tofu2_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64
+libacpbl_tofu2_la_LDFLAGS = -version-info $(libacpbl_tofu2_version) -L$(top_builddir)/src/bl/common/
+libacpbl_tofu2_la_LIBADD = -lacpbl_common -lc -lpthread
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl_tofu2_sys.c acpbl.h acpbl_sync.h ./tofu2/tofu.h ./tofu2/tlib_rank.h
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
+#libacpbl_tofu2_mpi_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_LDFLAGS = -version-info $(libacpbl_tofu2_version) -L$(top_builddir)/src/bl/common/
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_LIBADD = -lacpbl_common -lc -lpthread
 all: all-am
 
 .SUFFIXES:
@@ -361,9 +397,9 @@ $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__confi
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu sample/bl/tofu/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu src/bl/tofu2/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu sample/bl/tofu/Makefile
+	  $(AUTOMAKE) --gnu src/bl/tofu2/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \
@@ -382,26 +418,46 @@ $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(MKDIR_P) '$(DESTDIR)$(libdir)'"; \
+	  $(MKDIR_P) "$(DESTDIR)$(libdir)" || exit 1; \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
 
-atomic$(EXEEXT): $(atomic_OBJECTS) $(atomic_DEPENDENCIES) $(EXTRA_atomic_DEPENDENCIES) 
-	@rm -f atomic$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(atomic_OBJECTS) $(atomic_LDADD) $(LIBS)
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
+	done
 
-inifini$(EXEEXT): $(inifini_OBJECTS) $(inifini_DEPENDENCIES) $(EXTRA_inifini_DEPENDENCIES) 
-	@rm -f inifini$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(inifini_OBJECTS) $(inifini_LDADD) $(LIBS)
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; \
+	locs=`for p in $$list; do echo $$p; done | \
+	      sed 's|^[^/]*$$|.|; s|/[^/]*$$||; s|$$|/so_locations|' | \
+	      sort -u`; \
+	test -z "$$locs" || { \
+	  echo rm -f $${locs}; \
+	  rm -f $${locs}; \
+	}
 
-remote2remote$(EXEEXT): $(remote2remote_OBJECTS) $(remote2remote_DEPENDENCIES) $(EXTRA_remote2remote_DEPENDENCIES) 
-	@rm -f remote2remote$(EXEEXT)
-	$(AM_V_CCLD)$(LINK) $(remote2remote_OBJECTS) $(remote2remote_LDADD) $(LIBS)
+libacpbl_tofu2.la: $(libacpbl_tofu2_la_OBJECTS) $(libacpbl_tofu2_la_DEPENDENCIES) $(EXTRA_libacpbl_tofu2_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libacpbl_tofu2_la_LINK) -rpath $(libdir) $(libacpbl_tofu2_la_OBJECTS) $(libacpbl_tofu2_la_LIBADD) $(LIBS)
+
+libacpbl_tofu2_mpi.la: $(libacpbl_tofu2_mpi_la_OBJECTS) $(libacpbl_tofu2_mpi_la_DEPENDENCIES) $(EXTRA_libacpbl_tofu2_mpi_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libacpbl_tofu2_mpi_la_LINK) $(am_libacpbl_tofu2_mpi_la_rpath) $(libacpbl_tofu2_mpi_la_OBJECTS) $(libacpbl_tofu2_mpi_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -409,9 +465,16 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/atomic.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/inifini.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/remote2remote.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu2.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu2_gma.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu2_gmm.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu2_sys.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu2_thread.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -433,6 +496,41 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LTCOMPILE) -c -o $@ $<
+
+libacpbl_tofu2_mpi_la-acpbl_tofu2.lo: acpbl_tofu2.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu2_mpi_la-acpbl_tofu2.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2.Tpo -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2.lo `test -f 'acpbl_tofu2.c' || echo '$(srcdir)/'`acpbl_tofu2.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2.Tpo $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu2.c' object='libacpbl_tofu2_mpi_la-acpbl_tofu2.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2.lo `test -f 'acpbl_tofu2.c' || echo '$(srcdir)/'`acpbl_tofu2.c
+
+libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo: acpbl_tofu2_gma.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.Tpo -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo `test -f 'acpbl_tofu2_gma.c' || echo '$(srcdir)/'`acpbl_tofu2_gma.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.Tpo $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu2_gma.c' object='libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo `test -f 'acpbl_tofu2_gma.c' || echo '$(srcdir)/'`acpbl_tofu2_gma.c
+
+libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo: acpbl_tofu2_gmm.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.Tpo -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo `test -f 'acpbl_tofu2_gmm.c' || echo '$(srcdir)/'`acpbl_tofu2_gmm.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.Tpo $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu2_gmm.c' object='libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_gmm.lo `test -f 'acpbl_tofu2_gmm.c' || echo '$(srcdir)/'`acpbl_tofu2_gmm.c
+
+libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo: acpbl_tofu2_thread.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.Tpo -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo `test -f 'acpbl_tofu2_thread.c' || echo '$(srcdir)/'`acpbl_tofu2_thread.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.Tpo $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu2_thread.c' object='libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_thread.lo `test -f 'acpbl_tofu2_thread.c' || echo '$(srcdir)/'`acpbl_tofu2_thread.c
+
+libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo: acpbl_tofu2_sys.c
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.Tpo -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo `test -f 'acpbl_tofu2_sys.c' || echo '$(srcdir)/'`acpbl_tofu2_sys.c
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.Tpo $(DEPDIR)/libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu2_sys.c' object='libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu2_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu2_mpi_la-acpbl_tofu2_sys.lo `test -f 'acpbl_tofu2_sys.c' || echo '$(srcdir)/'`acpbl_tofu2_sys.c
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -524,8 +622,11 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(PROGRAMS) $(SCRIPTS)
+all-am: Makefile $(LTLIBRARIES)
 installdirs:
+	for dir in "$(DESTDIR)$(libdir)"; do \
+	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
+	done
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -558,7 +659,7 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-am
 
-clean-am: clean-generic clean-libtool clean-noinstPROGRAMS \
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
 	mostlyclean-am
 
 distclean: distclean-am
@@ -585,7 +686,7 @@ install-dvi: install-dvi-am
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-am
 
@@ -625,23 +726,23 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am:
+uninstall-am: uninstall-libLTLIBRARIES
 
 .MAKE: install-am install-strip
 
 .PHONY: CTAGS GTAGS TAGS all all-am check check-am clean clean-generic \
-	clean-libtool clean-noinstPROGRAMS cscopelist-am ctags \
+	clean-libLTLIBRARIES clean-libtool cscopelist-am ctags \
 	ctags-am distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	install-info-am install-libLTLIBRARIES install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-am uninstall uninstall-am
+	tags tags-am uninstall uninstall-am uninstall-libLTLIBRARIES
 
 .PRECIOUS: Makefile
 

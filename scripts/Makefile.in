@@ -265,8 +265,8 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+have_fccpx = @have_fccpx@
 have_mpi = @have_mpi@
-have_tofu = @have_tofu@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -277,6 +277,8 @@ includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
 libacpbl_ib_version = 2:0:0
+libacpbl_tofu2_version = 2:0:0
+libacpbl_tofu_version = 2:0:0
 libacpbl_udp_version = 2:0:0
 libacpml_version = 2:0:0
 libdir = @libdir@
@@ -307,7 +309,6 @@ top_srcdir = @top_srcdir@
 bin_SCRIPTS = acprun macprun acpcc
 CLEANFILES = macprun acpcc acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 EXTRA_DIST = macprun.in acpcc.in
-libacpbl_tofu_version = 2:0:0
 
 # acp date for man
 ACP_DATE = 'Mar 14, 2017'

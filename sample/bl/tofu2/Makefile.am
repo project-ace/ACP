@@ -5,7 +5,7 @@
 
 AM_CPPFLAGS = -I$(top_builddir)/src/include -I$(top_srcdir)/src/include
 LDADD = \
-	$(top_builddir)/src/bl/tofu/libacpbl_tofu.la \
+	$(top_builddir)/src/bl/tofu2/libacpbl_tofu2.la \
 	$(top_builddir)/src/ml/libacpml.la
 
 noinst_PROGRAMS = \
@@ -14,10 +14,7 @@ noinst_PROGRAMS = \
 	       remote2remote
 
 noinst_SCRIPTS = \
-	      run_127nodes.sh \
-	      run_128nodes.sh \
-	      run_2nodes.sh \
-	      run_3nodes.sh
+	      run_2nodes.sh
 
 atomic_DEPENDENCIES = $(LDADD)
 atomic_SOURCES = atomic.c acp.h

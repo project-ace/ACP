@@ -6,4 +6,10 @@
 if WITH_INFINIBAND
 IBDIR = ib
 endif
-SUBDIRS = udp $(IBDIR)
+if HAVE_TOFU
+TOFUDIR = tofu
+endif
+if HAVE_TOFU2
+TOFU2DIR = tofu2
+endif
+SUBDIRS = udp $(IBDIR) $(TOFUDIR) $(TOFU2DIR)

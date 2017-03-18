@@ -9,7 +9,7 @@
 # This software is released under the BSD License, see LICENSE. 
 
 AC_PREREQ(2.60)
-AC_INIT(ACP, 2.2.0, [http://ace.cc.kyushu-u.ac.jp])
+AC_INIT(ACP, 3.0.0, [http://ace.cc.kyushu-u.ac.jp])
 
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR(config)
@@ -36,19 +36,48 @@ AC_PROG_LN_S
 #AC_SUBST([RUBY])
 
 # Check for Tofu
+AC_ARG_WITH(tofu,
+[  --with-tofu             include TOFU support [[default=no]]],
+if test "$withval" = "yes"
+then
+  with_tofu=yes
+fi,
+with_tofu=no)
+AC_ARG_WITH(tofu2,
+[  --with-tofu2            include TOFU2 support [[default=no]]],
+if test "$withval" = "yes"
+then
+  with_tofu2=yes
+fi,
+with_tofu2=no)
 AC_DEFUN([AC_PROG_FCCPX],
-[AC_CHECK_PROG(have_tofu,fccpx,yes)])
+[AC_CHECK_PROG(have_fccpx,fccpx,yes)])
 AC_PROG_FCCPX
-AM_CONDITIONAL([HAVE_TOFU], [test "${have_tofu}" = 'yes'])
-if test "${have_tofu}" = "yes" ; then
-  # reset CC and CFLAGS for FX cross compile
-  AC_SUBST(CC,"fccpx")
-  AC_SUBST(CXX,"FCCpx")
-  CFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
-  CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
-  AC_SUBST(CFLAGS)
-  AC_SUBST(CXXFLAGS)
+if test "${have_fccpx}" = "yes" ; then
+  if test "${with_tofu}" = "yes" ; then
+    # reset CC and CFLAGS for FX cross compile
+    AC_SUBST(CC,"fccpx")
+    AC_SUBST(CXX,"FCCpx")
+    CFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
+    CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
+    AC_SUBST(CFLAGS)
+    AC_SUBST(CXXFLAGS)
+  fi
+  if test "${with_tofu2}" = "yes" ; then
+    # reset CC and CFLAGS for FX cross compile
+    AC_SUBST(CC,"fccpx")
+    AC_SUBST(CXX,"FCCpx")
+    CFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64'
+    CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64'
+    AC_SUBST(CFLAGS)
+    AC_SUBST(CXXFLAGS)
+  fi
+else
+with_tofu=no
+with_tofu2=no
 fi
+AM_CONDITIONAL([HAVE_TOFU], [test "${with_tofu}" = 'yes'])
+AM_CONDITIONAL([HAVE_TOFU2], [test "${with_tofu2}" = 'yes'])
 
 AC_PROG_LIBTOOL
 
@@ -131,7 +160,9 @@ AC_ARG_WITH(ndev, AC_HELP_STRING([--with-ndev=NAME],
 
 if test x"$with_ndev" = x'udp'; then
 	AC_SUBST(NETDEV,'UDP')
-elif test "${have_tofu}" = 'yes'; then
+elif test "${with_tofu}" = 'yes'; then
+	AC_SUBST(NETDEV,'TOFU')
+elif test "${with_tofu2}" = 'yes'; then
 	AC_SUBST(NETDEV,'TOFU')
 elif test "${ibverbs_libs}" = 'yes'; then
 	AC_SUBST(NETDEV,'IB')
@@ -162,6 +193,8 @@ AC_CHECK_FUNCS([clock_gettime gethostbyname inet_ntoa memset socket strdup strto
 . config/versions
 AC_SUBST(libacpbl_udp_version)
 AC_SUBST(libacpbl_ib_version)
+AC_SUBST(libacpbl_tofu_version)
+AC_SUBST(libacpbl_tofu2_version)
 AC_SUBST(libacpml_version)
 
 top_acp_builddir="`pwd`"
@@ -182,6 +215,7 @@ AC_CONFIG_FILES([Makefile
                  src/bl/Makefile
                  src/bl/common/Makefile
                  src/bl/tofu/Makefile
+                 src/bl/tofu2/Makefile
                  src/bl/ib/Makefile
                  src/bl/udp/Makefile
                  src/include/Makefile
@@ -192,6 +226,7 @@ AC_CONFIG_FILES([Makefile
                  sample/bl/Makefile
                  sample/bl/ib/Makefile
                  sample/bl/tofu/Makefile
+                 sample/bl/tofu2/Makefile
                  sample/bl/udp/Makefile
                  sample/ml/Makefile
                  sample/ml/cl/Makefile

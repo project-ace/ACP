@@ -3,7 +3,7 @@
 # $COPYRIGHT$
 #
 
-AM_CPPFLAGS = -I$(top_srcdir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include -fPIC
 
 noinst_LIBRARIES = libacpbl_common.a
 

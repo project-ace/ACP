@@ -283,7 +283,7 @@ static char *con_dst_waitcomp_segbuf_list;
  *      +---------------------------+ 
  *      | thisga   (8B)             |
  *      +---------------------------+ 
- *      | state    (4B)             |
+ *      | state    (8B)             |
  *      +---------------------------+ 
  *      | segbuf   (8B)             |
  *      +---------------------------+ 
@@ -312,7 +312,7 @@ static char *con_dst_waitcomp_segbuf_list;
 #define CRQ_OFFSET_TAIL      8
 #define CRQ_OFFSET_QBODY    16
 
-#define CON_SEGBUF_SIZE (76+sizeof(acp_handle_t))
+#define CON_SEGBUF_SIZE (80+sizeof(acp_handle_t))
 #define CON_SEGBUF_OFFSET_HEAD    0
 #define CON_SEGBUF_OFFSET_TAIL    8
 #define CON_SEGBUF_OFFSET_CTLGA  16
@@ -321,9 +321,9 @@ static char *con_dst_waitcomp_segbuf_list;
 #define CON_SEGBUF_OFFSET_SEGNUM 40
 #define CON_SEGBUF_OFFSET_THISGA 48
 #define CON_SEGBUF_OFFSET_STATE  56
-#define CON_SEGBUF_OFFSET_SEGBUF 60
-#define CON_SEGBUF_OFFSET_HANDLE 68
-#define CON_SEGBUF_OFFSET_NEXT   (68+sizeof(acp_handle_t))
+#define CON_SEGBUF_OFFSET_SEGBUF 64
+#define CON_SEGBUF_OFFSET_HANDLE 72
+#define CON_SEGBUF_OFFSET_NEXT   (72+sizeof(acp_handle_t))
 
 #define CON_SEGBUF_HEAD(addr)   (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_HEAD)))
 #define CON_SEGBUF_TAIL(addr)   (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_TAIL)))
@@ -332,12 +332,12 @@ static char *con_dst_waitcomp_segbuf_list;
 #define CON_SEGBUF_SEGSZ(addr)  (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGSZ)))
 #define CON_SEGBUF_SEGNUM(addr) (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGNUM)))
 #define CON_SEGBUF_THISGA(addr) (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_THISGA)))
-#define CON_SEGBUF_STATE(addr)  (*((int *)((char *)addr+CON_SEGBUF_OFFSET_STATE)))
+#define CON_SEGBUF_STATE(addr)  (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_STATE)))
 #define CON_SEGBUF_SEGBUF(addr) (*((acp_segbuf_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGBUF)))
 #define CON_SEGBUF_HANDLE(addr) (*((acp_handle_t *)((char *)addr+CON_SEGBUF_OFFSET_HANDLE)))
 #define CON_SEGBUF_NEXT(addr)   (*((char **)((char *)addr+CON_SEGBUF_OFFSET_NEXT)))
 
-#define SEGBUFCTL_SIZE 28
+#define SEGBUFCTL_SIZE 32
 #define SEGBUFCTL_OFFSET_HEAD    0
 #define SEGBUFCTL_OFFSET_SENT    8
 #define SEGBUFCTL_OFFSET_TAIL   16
@@ -346,7 +346,7 @@ static char *con_dst_waitcomp_segbuf_list;
 #define SEGBUFCTL_HEAD(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_HEAD)))
 #define SEGBUFCTL_SENT(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_SENT)))
 #define SEGBUFCTL_TAIL(addr)   (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_TAIL)))
-#define SEGBUFCTL_STATE(addr)  (*((int *)((char *)addr+SEGBUFCTL_OFFSET_STATE)))
+#define SEGBUFCTL_STATE(addr)  (*((int64_t *)((char *)addr+SEGBUFCTL_OFFSET_STATE)))
 
 #define CON_SEGBUF_STAT_NOUSE -1
 #define CON_SEGBUF_STAT_INIT  0
@@ -562,7 +562,8 @@ static void progress_src_con_segbuf()
 {
     con_segbuf_peer_t *this_peer, *next_peer;
     char *this_item, *next_item, *this_segbuf_ctl;
-    int myrank, this_state;
+    int myrank;
+    int64_t this_state;
     acp_segbuf_t this_segbuf;
 
     myrank = acp_rank();
@@ -644,7 +645,7 @@ static void progress_src_con_segbuf()
 
             break;
         default:
-            fprintf(stderr, "progress_src_con_segbuf: %d : wrong state %d\n", myrank, this_state);
+            fprintf(stderr, "progress_src_con_segbuf: %d : wrong state %ld\n", myrank, this_state);
         }
         this_peer = next_peer;
     }
@@ -771,7 +772,7 @@ static int progress_dst_con_segbuf()
             CON_SEGBUF_STATE(this_item) = CON_SEGBUF_STAT_CON;
             this_segbuf->state = SEGBUF_STAT_CON;
             SEGBUFCTL_STATE(this_segbuf->ctlla) = SEGBUF_STAT_CON;
-            CON_SEGBUF_HANDLE(this_item) = acp_swap4(trashboxga, this_segbuf->remoteconsegbufga + CON_SEGBUF_OFFSET_STATE,
+            CON_SEGBUF_HANDLE(this_item) = acp_swap8(trashboxga, this_segbuf->remoteconsegbufga + CON_SEGBUF_OFFSET_STATE,
                                                      CON_SEGBUF_STAT_CON, ACP_HANDLE_NULL);
 
             /* move this request to waitcomp list */
@@ -820,7 +821,7 @@ static int progress_dst_con_segbuf()
         /* invalidate request at the head of CRQ */
         headidx = *crq_head % crq_num_slots;
         rem_con_segbuf_ga = *((acp_ga_t *)(crq[headidx]));
-        acp_swap4(trashboxga, rem_con_segbuf_ga + CON_SEGBUF_OFFSET_STATE, 
+        acp_swap8(trashboxga, rem_con_segbuf_ga + CON_SEGBUF_OFFSET_STATE, 
                   CON_SEGBUF_STAT_INV, ACP_HANDLE_NULL);
         crq[headidx] = ACP_GA_NULL;
         (*crq_head)++;
@@ -935,7 +936,7 @@ acp_segbuf_t acp_create_src_segbuf(int dst_rank, void *buf, size_t segsize, size
     }
 
 #ifdef DEBUG
-    fprintf(stderr, "%d: acp_create_src_segbuf ctl %p %lx con %p %lx peer %p stat %d\n", 
+    fprintf(stderr, "%d: acp_create_src_segbuf ctl %p %lx con %p %lx peer %p stat %ld\n", 
             myrank, this_segbuf->ctlla, this_segbuf->ctlga, this_con_segbuf, CON_SEGBUF_THISGA(this_con_segbuf), this_peer, CON_SEGBUF_STATE(this_con_segbuf));
 #endif
     iacpcl_progress();
@@ -1045,7 +1046,7 @@ acp_segbuf_t acp_create_dst_segbuf(int src_rank, void *buf, size_t segsize, size
     CON_SEGBUF_STATE(this_con_segbuf) = CON_SEGBUF_STAT_WTCON;
 
 #ifdef DEBUG
-    fprintf(stderr, "%d: acp_create_dst_segbuf ctl %p %lx con %p %lx peer %p stat %d\n", 
+    fprintf(stderr, "%d: acp_create_dst_segbuf ctl %p %lx con %p %lx peer %p stat %ld\n", 
             myrank, this_segbuf->ctlla, this_segbuf->ctlga, this_con_segbuf, CON_SEGBUF_THISGA(this_con_segbuf), this_peer, CON_SEGBUF_STATE(this_con_segbuf));
 #endif
 
@@ -1067,12 +1068,12 @@ int acp_connect_segbuf(acp_segbuf_t segbuf)
         (segbuf->state == SEGBUF_STAT_DISCON) ||
         (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_NOUSE) || 
         (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_DISCON)) {
-        fprintf(stderr, "acp_connect_segbuf : %d : segbuf is in a wrong state %d %d\n", myrank, segbuf->state, SEGBUFCTL_STATE(ctl));
+        fprintf(stderr, "acp_connect_segbuf : %d : segbuf is in a wrong state %d %ld\n", myrank, segbuf->state, SEGBUFCTL_STATE(ctl));
         return -1;
     }
 
 #ifdef DEBUG
-    fprintf(stderr, "%d: acp_connect_segbuf ctl %p stat %d\n", 
+    fprintf(stderr, "%d: acp_connect_segbuf ctl %p stat %ld\n", 
             myrank, ctl, SEGBUFCTL_STATE(ctl));
 #endif
 
@@ -1081,7 +1082,7 @@ int acp_connect_segbuf(acp_segbuf_t segbuf)
 
 #ifdef DEBUG
     fprintf(stderr, "%d: acp_connect_segbuf done\n", 
-            myrank, ctl, SEGBUFCTL_STATE(ctl));
+            myrank);
 #endif
 
     return 0;
@@ -1100,7 +1101,7 @@ int acp_isconnected_segbuf(acp_segbuf_t segbuf)
         (segbuf->state == SEGBUF_STAT_DISCON) ||
         (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_NOUSE) || 
         (SEGBUFCTL_STATE(ctl) == SEGBUF_STAT_DISCON)) {
-        fprintf(stderr, "acp_isconnected_segbuf : %d : segbuf is in a wrong state %d\n", myrank, SEGBUFCTL_STATE(ctl));
+        fprintf(stderr, "acp_isconnected_segbuf : %d : segbuf is in a wrong state %ld\n", myrank, SEGBUFCTL_STATE(ctl));
         return -1;
     }
 
@@ -1285,7 +1286,7 @@ int acp_disconnect_segbuf(acp_segbuf_t segbuf)
     iacpcl_progress();
 
     segbuf->state = SEGBUF_STAT_DISCON;
-    acp_swap4(trashboxga, segbuf->remotectlga + SEGBUFCTL_OFFSET_STATE, SEGBUF_STAT_DISCON, ACP_HANDLE_NULL);
+    acp_swap8(trashboxga, segbuf->remotectlga + SEGBUFCTL_OFFSET_STATE, SEGBUF_STAT_DISCON, ACP_HANDLE_NULL);
 }
 
 int acp_free_segbuf(volatile acp_segbuf_t segbuf)

@@ -112,6 +112,7 @@ static int list_isempty(listobj_t *list)
     return list->head == NULL;
 }
 
+#ifdef DEBUG
 static void list_show(listobj_t *list)
 {
     listitem_t *item;
@@ -123,6 +124,7 @@ static void list_show(listobj_t *list)
     }
     printf("\n");
 }
+#endif
 
 
 /*** 
@@ -329,8 +331,8 @@ static char *con_dst_waitcomp_segbuf_list;
 #define CON_SEGBUF_TAIL(addr)   (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_TAIL)))
 #define CON_SEGBUF_CTLGA(addr)  (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_CTLGA)))
 #define CON_SEGBUF_BUFGA(addr)  (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_BUFGA)))
-#define CON_SEGBUF_SEGSZ(addr)  (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGSZ)))
-#define CON_SEGBUF_SEGNUM(addr) (*((size_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGNUM)))
+#define CON_SEGBUF_SEGSZ(addr)  (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGSZ)))
+#define CON_SEGBUF_SEGNUM(addr) (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGNUM)))
 #define CON_SEGBUF_THISGA(addr) (*((acp_ga_t *)((char *)addr+CON_SEGBUF_OFFSET_THISGA)))
 #define CON_SEGBUF_STATE(addr)  (*((int64_t *)((char *)addr+CON_SEGBUF_OFFSET_STATE)))
 #define CON_SEGBUF_SEGBUF(addr) (*((acp_segbuf_t *)((char *)addr+CON_SEGBUF_OFFSET_SEGBUF)))
@@ -372,6 +374,8 @@ static int clear_con_segbuf(char *item)
     CON_SEGBUF_STATE(item) = CON_SEGBUF_STAT_NOUSE;
     CON_SEGBUF_SEGBUF(item) = NULL;
     CON_SEGBUF_HANDLE(item) = ACP_HANDLE_NULL;
+
+    return 0;
 }
 
 static int init_segbuf()
@@ -379,7 +383,6 @@ static int init_segbuf()
     int myrank, i;
     con_segbuf_peer_t *peer_item;
     char *item;
-    int *tmp;
 
     myrank = acp_rank();
 
@@ -453,6 +456,8 @@ static int init_segbuf()
     fprintf(stderr, "%d: init_segbuf starter %lx crq_top %p crq %p con_segbuf_items %p con_segbuf_items_ga %lx segbuf_ctl_table %p segbuf_ctl_table_ga %lx crq_tail %ld crq_head %ld\n", 
             myrank, iacp_query_starter_ga_cl(myrank), crq_top, crq, con_segbuf_items, con_segbuf_items_ga, segbuf_ctl_table, segbuf_ctl_table_ga, *crq_tail, *crq_head);
 #endif
+
+    return 0;
 }
 
 static int finalize_segbuf()
@@ -464,6 +469,8 @@ static int finalize_segbuf()
     free(con_segbuf_items);
     free(segbuf_ctl_table);
     ch_unlock();
+
+    return 0;
 }
 
 static int add_fetch_crqtail(char *item, int peer)
@@ -482,14 +489,18 @@ static int add_fetch_crqtail(char *item, int peer)
     fprintf(stderr, "%d: add_fetch_crqtail %d %lx %lx dst_crqga %lx CRQ_TOP_OFFSET %d starter_cl %lx starter_dl %lx starter %lx\n", 
             myrank, peer, CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_TAIL, dst_crq_tailga, dst_crqga, CRQ_TOP_OFFSET, iacp_query_starter_ga_cl(peer), iacp_query_starter_ga_dl(peer), acp_query_starter_ga(peer)); 
 #endif
+
+    return 0;
 }
 
 static int get_crqhead(char *item, int peer)
 {
     acp_ga_t dst_crqga, dst_crq_headga;
+#ifdef DEBUG
     int myrank;
-
     myrank = acp_rank();
+#endif
+
 
 
     dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
@@ -505,9 +516,10 @@ static int get_crqhead(char *item, int peer)
 
 static int check_crq_tail(char *item)
 {
+#ifdef DEBUG
     int myrank;
-
     myrank = acp_rank();
+#endif
 
     if (acp_inquire(CON_SEGBUF_HANDLE(item)) == 0) {
         /* acp_add8 is "Fetch and add" operation. Its result is the index
@@ -529,23 +541,18 @@ static int send_conreq(char *info, int peer)
 {
     acp_ga_t dst_crqga, src_thisgaga;
     int idx;
-    int myrank;
-
-    myrank = acp_rank();
 
     dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
     idx = CON_SEGBUF_TAIL(info) % crq_num_slots;
     src_thisgaga = CON_SEGBUF_THISGA(info) + CON_SEGBUF_OFFSET_THISGA;
     acp_copy(dst_crqga + CRQ_OFFSET_QBODY + idx*sizeof(acp_ga_t),
              src_thisgaga, sizeof(acp_ga_t), ACP_HANDLE_NULL);
+
+    return 0;
 }
 
 static int check_avail(char *item, int peer)
 {
-    int myrank;
-
-    myrank = acp_rank();
-
     if (acp_inquire(CON_SEGBUF_HANDLE(item)) == 0) {
         if ((CON_SEGBUF_TAIL(item) - CON_SEGBUF_HEAD(item) + 1) < crq_num_slots) {
             CON_SEGBUF_STATE(item) = CON_SEGBUF_STAT_WTCON;
@@ -747,8 +754,8 @@ static int progress_dst_con_segbuf()
             this_segbuf = CON_SEGBUF_SEGBUF(this_item);
             if ((CON_SEGBUF_SEGSZ(this_item) != this_segbuf->segsize) ||
                 (CON_SEGBUF_SEGNUM(this_item) != this_segbuf->segnum)) {
-                fprintf(stderr, "progress_dst_con_segbuf: %zu : CRQ (segsize %zu , segnum %zu)  local request (segsize %zu , segnum %zu)\n", 
-                        CON_SEGBUF_HANDLE(this_item), CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item), this_segbuf->segsize, this_segbuf->segnum);
+                fprintf(stderr, "progress_dst_con_segbuf: %d: %zu : CRQ (segsize %zu , segnum %zu)  local request (segsize %zu , segnum %zu)\n", 
+                        myrank, CON_SEGBUF_HANDLE(this_item), CON_SEGBUF_SEGSZ(this_item), CON_SEGBUF_SEGNUM(this_item), this_segbuf->segsize, this_segbuf->segnum);
             }
 
             /* copy remote GAs to local segbuf_t */
@@ -831,6 +838,8 @@ static int progress_dst_con_segbuf()
 #endif
 
     }
+
+    return 0;
 }
 
 /* progress */
@@ -1142,6 +1151,8 @@ int acp_ready_segbuf(acp_segbuf_t segbuf)
              segbuf->ctlga + SEGBUFCTL_OFFSET_HEAD,
              sizeof(int64_t), ACP_HANDLE_NULL);
     iacpcl_progress();
+
+    return 0;
 }
 
 int acp_ack_segbuf(acp_segbuf_t segbuf)
@@ -1149,7 +1160,7 @@ int acp_ack_segbuf(acp_segbuf_t segbuf)
     char *ctl;
     int myrank, tailidx;
     int64_t head, tail;
-    acp_handle_t handle0, handle1;
+    acp_handle_t handle;
     
     myrank = acp_rank();
 
@@ -1169,20 +1180,21 @@ int acp_ack_segbuf(acp_segbuf_t segbuf)
 
     /* put a segment at tail to dst */
     tailidx = tail % segbuf->segnum;
-    handle0 = acp_copy(segbuf->remotebufga + segbuf->segsize * tailidx, 
+    handle = acp_copy(segbuf->remotebufga + segbuf->segsize * tailidx, 
                       segbuf->bufga + segbuf->segsize * tailidx, segbuf->segsize, ACP_HANDLE_NULL);
     /* increment tail */
     tail++;
     SEGBUFCTL_TAIL(ctl) = tail;
-    handle1 = acp_copy(segbuf->remotectlga + SEGBUFCTL_OFFSET_TAIL,
+    acp_copy(segbuf->remotectlga + SEGBUFCTL_OFFSET_TAIL,
              segbuf->ctlga + SEGBUFCTL_OFFSET_TAIL,
-             sizeof(int64_t), handle0); 
-//             sizeof(int64_t), ACP_HANDLE_NULL); // shall we wait for "handle0" of the previous acp_copy???
+             sizeof(int64_t), handle); 
 
     /* add8 to local SENT index by 1 after handle to update sentidx */
-    acp_add8(trashboxga, segbuf->ctlga + SEGBUFCTL_OFFSET_SENT, 1LL, handle0);
+    acp_add8(trashboxga, segbuf->ctlga + SEGBUFCTL_OFFSET_SENT, 1LL, handle);
 
     iacpcl_progress();
+
+    return 0;
 }
 
 int acp_isready_segbuf(acp_segbuf_t segbuf)
@@ -1191,6 +1203,8 @@ int acp_isready_segbuf(acp_segbuf_t segbuf)
     char *ctl;
 
     myrank = acp_rank();
+
+    ctl = segbuf->ctlla;
 
     if (segbuf->state != SEGBUF_STAT_CON) {
         fprintf(stderr, "acp_query_segbuf_head : %d : segbuf is not connected %d\n", myrank, segbuf->state);
@@ -1211,6 +1225,8 @@ int acp_isacked_segbuf(acp_segbuf_t segbuf)
     char *ctl;
 
     myrank = acp_rank();
+
+    ctl = segbuf->ctlla;
 
     if (segbuf->state != SEGBUF_STAT_CON) {
         fprintf(stderr, "acp_query_segbuf_head : %d : segbuf is not connected %d\n", myrank, segbuf->state);
@@ -1287,6 +1303,8 @@ int acp_disconnect_segbuf(acp_segbuf_t segbuf)
 
     segbuf->state = SEGBUF_STAT_DISCON;
     acp_swap8(trashboxga, segbuf->remotectlga + SEGBUFCTL_OFFSET_STATE, SEGBUF_STAT_DISCON, ACP_HANDLE_NULL);
+
+    return 0;
 }
 
 int acp_free_segbuf(volatile acp_segbuf_t segbuf)
@@ -1305,6 +1323,8 @@ int acp_free_segbuf(volatile acp_segbuf_t segbuf)
 
     acp_unregister_memory(segbuf->bufkey);
     free(segbuf);
+
+    return 0;
 }
 
 
@@ -1427,7 +1447,7 @@ typedef struct chreqitem {
     struct chreqitem *next;
     acp_ch_t ch;
     int status;
-    void *addr;
+    char *addr;
     size_t size;
     size_t receivedsize;
     acp_handle_t hdl;
@@ -1459,9 +1479,6 @@ typedef struct conninfo {
 } conninfo_t;
 
 /** local variables **/
-static char *crbreqmsg;      /* buffer used for sending connection request  */
-static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
-
 static listobj_t conch_list;  /* connecting channel list */
 static listobj_t idlech_list; /* idle channel list */
 static listobj_t reqch_list;  /* requesting channel list */
@@ -1471,8 +1488,6 @@ static int64_t *crbtail;   /* tail of the receive queue of CRB  */
 static crbmsg_t *crbtbl;    /* table used as the receive queue of CRB */
 static char *crbflgtbl;     /* table for flags of the entries of CRB */
 static acp_ga_t trashboxga; /* dummy GA used as a target of remote atomics  */
-static char *crbreqmsg;      /* buffer used for sending connection request  */
-static acp_ga_t crbreqmsgga; /* global address of crbreqmsg  */
 
 /** global variables **/
 int iacpci_eager_limit = ACPCI_DEFAULT_EAGER_LIMIT;
@@ -1550,9 +1565,10 @@ static inline acp_ga_t localtailga(acp_ch_t ch, int sbidx)
 static void init_conninfo(acp_ch_t ch)
 {
     conninfo_t *conninfo;
+#ifdef DEBUG
     int myrank;
-
     myrank = acp_rank();
+#endif
 
     conninfo = (conninfo_t *)(ch->chbody);
     conninfo->state = CONNSTVALID;
@@ -1587,7 +1603,7 @@ static int handl_conchlist(void)
 {
     acp_ch_t ch, nextch, tmpch;
     conninfo_t *conninfo;
-    int myrank, idx, offset;
+    int myrank, idx;
     int64_t head, tail, crbidx;
     crbmsg_t *msg;
     acp_handle_t hdl;
@@ -1782,10 +1798,12 @@ static void handl_crb(int numpendingrch)
     int64_t crbidx, tail;
     crbmsg_t *msg;
     int idx;
+#ifdef DEBUG
     int myrank;
+    myrank = acp_rank();
+#endif
 
     ch_lock();
-    myrank = acp_rank();
 
     tail = *crbtail;
     crbidx = *crbhead;
@@ -1862,9 +1880,10 @@ static void initreq(acp_ch_t ch)
 static chreqitem_t *newreq(acp_ch_t ch)
 {
     chreqitem_t *req;
+#ifdef DEBUG
     int myrank;
-
     myrank = acp_rank();
+#endif
 
     /* check one request entry from free request list */
     req = ch->freereqs;
@@ -1908,12 +1927,11 @@ static int freereq(chreqitem_t *req)
 static void progress_send(acp_ch_t ch)
 {
     chreqitem_t *req, *nextreq;
-    int sbidx, rbidx;
+    int sbidx;
     int myrank;
     char *msg;
     size_t thissize;
     acp_ga_t targetga;
-    acp_handle_t hdl;
 
     myrank = acp_rank();
     req = (chreqitem_t *)(ch->reqs.head);
@@ -1951,7 +1969,7 @@ static void progress_send(acp_ch_t ch)
     fprintf(stderr, "%d: progress_send: acp_copy target %p source %p size %d req->size %d\n", 
             myrank, targetga, localslotga(ch, sbidx), thissize + MSGHDRSZ, req->size);
 #endif
-            hdl = acp_copy(targetga, localslotga(ch, sbidx), thissize + MSGHDRSZ, ACP_HANDLE_NULL);
+            acp_copy(targetga, localslotga(ch, sbidx), thissize + MSGHDRSZ, ACP_HANDLE_NULL);
 // NO ATOMIC            ch->rbtail++;
 #ifdef DEBUG
     fprintf(stderr, "%d: progress_send: acp_add8 target %p source %p \n", 
@@ -1984,7 +2002,7 @@ static void progress_send(acp_ch_t ch)
             *(int64_t *)msg = mkmsghdr(MSGTYDISCONN, 0);
 // NO ATOMIC            targetga = remoteslotga(ch, ch->rbtail % ch->rbuf_entrynum);
             targetga = remoteslotga(ch, *((int64_t *)ch->chbody + 1) % ch->rbuf_entrynum);
-            hdl = acp_copy(targetga, localslotga(ch, sbidx), MSGHDRSZ, ACP_HANDLE_NULL);
+            acp_copy(targetga, localslotga(ch, sbidx), MSGHDRSZ, ACP_HANDLE_NULL);
 // NO ATOMIC            ch->rbtail++;
 // NO ATOMIC            acp_add8(trashboxga, ch->remotega, 1LL, ch->shdl[sbidx]);
             (*((int64_t *)ch->chbody + 1))++;
@@ -2222,6 +2240,7 @@ static int init_ch(void)
     list_init(&idlech_list);
     list_init(&reqch_list);
 
+    return 0;
 }
 
 int iacp_init_cl(void) 
@@ -2292,6 +2311,8 @@ static int finalize_ch(void)
         ch = (acp_ch_t)idlech_list.head;
     }
     ch_unlock();
+
+    return 0;
 }
 
 int iacp_finalize_cl(void) 

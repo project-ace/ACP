@@ -22,6 +22,7 @@
 #include "acpbl.h"
 #include "acpbl_sync.h"
 #include "acpbl_tofu2.h"
+#include "acpbl_input.h"
 #include <sys/time.h>
 
 size_t iacp_starter_memory_size_dl = 64 * 1024 * 1024;
@@ -554,26 +555,11 @@ int acp_init(int* argc, char*** argv)
 {
   int rc;
 
-  if (*argc < 8) return -1;
+  iacpbl_interpret_option(argc, argv);
 
-  /*** acpbl argments ***
-   (*argv)[1] = my rank number (myrank)
-   (*argv)[2] = number of prodcesses (num_procs)
-   (*argv)[3] = task id (jobid)
-   (*argv)[4] = starter memory size (starter_size)
-   (*argv)[5] = my port
-   (*argv)[6] = parent port
-   (*argv)[7] = parent address
-
-   only starter memory size is effective in this tofu implementation.
-   myrank, num_procs, and jobid are obtained from MP/FX system software.
-   my port number, parent port, and parent address are ignored.
-  */
-
-  starter_size = strtol((*argv)[4], NULL, 0);
-  (*argv)[7] = (*argv)[0];
-  *argc -= 7;
-  *argv += 7;
+  starter_size                = (size_t)iacpbl_option.szsmem.value;
+  iacp_starter_memory_size_cl = (size_t)iacpbl_option.szsmemcl.value;
+  iacp_starter_memory_size_dl = (size_t)iacpbl_option.szsmemdl.value;
 
   if(starter_size < STARTER_SIZE_DEFAULT)
     starter_size = STARTER_SIZE_DEFAULT;

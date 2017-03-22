@@ -1,7 +1,8 @@
 #!/bin/bash -x
-#PJM -L "rscunit=unit1,node=127,elapse=5:00"
+#PJM -L "rscunit=unit1,rscgrp=grp1,node=127,elapse=5:00"
 #PJM -j
 #PJM -S
+#PJM --no-stging
 
 fxlang_home=/opt/FJSVfxlang/1.2.1
 export PATH=${fxlang_home}/bin:${PATH}

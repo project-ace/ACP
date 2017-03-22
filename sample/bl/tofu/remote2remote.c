@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <unistd.h>
-#include "acp.h"
-#include "acpbl.h"
+#include <acp.h>
 
-int dstbuf __attribute__((aligned(256)));
-int srcbuf __attribute__((aligned(256)));
+int dstbuf;
+int srcbuf;
 
 acp_ga_t get_dst_ga(int rank, void *ptr)
 {

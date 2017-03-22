@@ -21,9 +21,12 @@ noinst_SCRIPTS = \
 
 atomic_DEPENDENCIES = $(LDADD)
 atomic_SOURCES = atomic.c acp.h
+atomic_LDADD = $(LDADD) -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop
 
 inifini_DEPENDENCIES = $(LDADD)
 inifini_SOURCES = inifini.c acp.h
+inifini_LDADD = $(LDADD) -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop
 
 remote2remote_DEPENDENCIES = $(LDADD)
 remote2remote_SOURCES = remote2remote.c acp.h
+remote2remote_LDADD = $(LDADD) -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop

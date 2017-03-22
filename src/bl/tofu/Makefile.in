@@ -139,7 +139,7 @@ am__uninstall_files_from_dir = { \
 am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am_libacpbl_tofu_la_OBJECTS = acpbl_tofu.lo acpbl_tofu_gma.lo \
-	acpbl_tofu_gmm.lo acpbl_tofu_thread.lo acpbl_tofu_sys.lo
+	acpbl_tofu_gmm.lo acpbl_tofu_thread.lo
 libacpbl_tofu_la_OBJECTS = $(am_libacpbl_tofu_la_OBJECTS)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
@@ -151,13 +151,12 @@ libacpbl_tofu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	-o $@
 am__libacpbl_tofu_mpi_la_SOURCES_DIST = acpbl_tofu.c acpbl_tofu.h \
 	acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c \
-	acpbl_tofu_sys.c acpbl.h acpbl_sync.h
+	acpbl.h acpbl_sync.h
 @HAVE_MPICC_TRUE@am_libacpbl_tofu_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu.lo \
 @HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_gma.lo \
 @HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_gmm.lo \
-@HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_thread.lo \
-@HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo
+@HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_thread.lo
 libacpbl_tofu_mpi_la_OBJECTS = $(am_libacpbl_tofu_mpi_la_OBJECTS)
 libacpbl_tofu_mpi_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
@@ -372,16 +371,16 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_tofu.la $(am__append_1)
 libacpbl_tofu_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
-libacpbl_tofu_la_SOURCES = acpbl_tofu.c acpbl_tofu.h acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c acpbl_tofu_sys.c acpbl.h acpbl_sync.h
+libacpbl_tofu_la_SOURCES = acpbl_tofu.c acpbl_tofu.h acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c acpbl.h acpbl_sync.h
 #libacpbl_tofu_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64
 libacpbl_tofu_la_LDFLAGS = -version-info $(libacpbl_tofu_version) -L$(top_builddir)/src/bl/common/
-libacpbl_tofu_la_LIBADD = -lacpbl_common -lc -lpthread
+libacpbl_tofu_la_LIBADD = -lacpbl_tofu_sys -lacpbl_common -lc -lpthread
 @HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
-@HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_SOURCES = acpbl_tofu.c acpbl_tofu.h acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c acpbl_tofu_sys.c acpbl.h acpbl_sync.h
+@HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_SOURCES = acpbl_tofu.c acpbl_tofu.h acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c acpbl.h acpbl_sync.h
 @HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
 #libacpbl_tofu_mpi_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64
 @HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_LDFLAGS = -version-info $(libacpbl_tofu_version) -L$(top_builddir)/src/bl/common/
-@HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_LIBADD = -lacpbl_common -lc -lpthread
+@HAVE_MPICC_TRUE@libacpbl_tofu_mpi_la_LIBADD = -lacpbl_tofu_sys -lacpbl_common -lc -lpthread
 all: all-am
 
 .SUFFIXES:
@@ -466,12 +465,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu_gmm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu_sys.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/acpbl_tofu_thread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_gma.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_gmm.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_sys.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_thread.Plo@am__quote@
 
 .c.o:
@@ -522,13 +519,6 @@ libacpbl_tofu_mpi_la-acpbl_tofu_thread.lo: acpbl_tofu_thread.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu_thread.c' object='libacpbl_tofu_mpi_la-acpbl_tofu_thread.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu_mpi_la-acpbl_tofu_thread.lo `test -f 'acpbl_tofu_thread.c' || echo '$(srcdir)/'`acpbl_tofu_thread.c
-
-libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo: acpbl_tofu_sys.c
-@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo -MD -MP -MF $(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_sys.Tpo -c -o libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo `test -f 'acpbl_tofu_sys.c' || echo '$(srcdir)/'`acpbl_tofu_sys.c
-@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_sys.Tpo $(DEPDIR)/libacpbl_tofu_mpi_la-acpbl_tofu_sys.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='acpbl_tofu_sys.c' object='libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo' libtool=yes @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libacpbl_tofu_mpi_la_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o libacpbl_tofu_mpi_la-acpbl_tofu_sys.lo `test -f 'acpbl_tofu_sys.c' || echo '$(srcdir)/'`acpbl_tofu_sys.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

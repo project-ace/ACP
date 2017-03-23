@@ -476,9 +476,6 @@ static int finalize_segbuf()
 static int add_fetch_crqtail(char *item, int peer)
 {
     acp_ga_t dst_crqga, dst_crq_tailga;
-    int myrank;
-
-    myrank = acp_rank();
 
     dst_crqga = iacp_query_starter_ga_cl(peer) + CRQ_TOP_OFFSET;
     dst_crq_tailga = dst_crqga + CRQ_OFFSET_TAIL;
@@ -486,6 +483,9 @@ static int add_fetch_crqtail(char *item, int peer)
     acp_add8(CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_TAIL, 
              dst_crq_tailga, 1LL, ACP_HANDLE_NULL);
 #ifdef DEBUG
+    int myrank;
+
+    myrank = acp_rank();
     fprintf(stderr, "%d: add_fetch_crqtail %d %lx %lx dst_crqga %lx CRQ_TOP_OFFSET %d starter_cl %lx starter_dl %lx starter %lx\n", 
             myrank, peer, CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_TAIL, dst_crq_tailga, dst_crqga, CRQ_TOP_OFFSET, iacp_query_starter_ga_cl(peer), iacp_query_starter_ga_dl(peer), acp_query_starter_ga(peer)); 
 #endif
@@ -512,6 +512,8 @@ static int get_crqhead(char *item, int peer)
     fprintf(stderr, "%d: get_crqhead : %lx %lx\n", 
             myrank, CON_SEGBUF_THISGA(item) + CON_SEGBUF_OFFSET_HEAD, dst_crq_headga);
 #endif
+
+    return 0;
 }
 
 static int check_crq_tail(char *item)

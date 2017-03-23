@@ -624,7 +624,7 @@ acp_atkey_t acp_register_memory(void* addr, size_t size, int color)
   int localtag;
   int head_padding = (uintptr_t)addr & 255;
   int tail_padding = (~((uintptr_t)addr + size) + 1) & 255;
-  addr -= head_padding;
+  addr = (void*)((uintptr_t)addr - head_padding);
   size += head_padding + tail_padding;
 
   // !! should be thread safed

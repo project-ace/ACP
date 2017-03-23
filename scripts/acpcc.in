@@ -216,7 +216,10 @@ case $NETDEV in
 		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_ib${MPIACP}"
 		;;
 	TOFU | tofu)
-		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_tofu${MPIACP}"
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_tofu${MPIACP} -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
+		;;
+	TOFU2 | tofu2)
+		LIBS="$LIBS $LIBS_ML ${LIBS_BL}_tofu2${MPIACP} -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
 		;;
 	*)
 		echo "${COMMAND}: Error: unsupported network device is given."

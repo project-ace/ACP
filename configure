@@ -5541,6 +5541,7 @@ if test "${have_fccpx}" = "yes" ; then
     CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
 
 
+    LIBS="$LIBS -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
   fi
   if test "${with_tofu2}" = "yes" ; then
     # reset CC and CFLAGS for FX cross compile
@@ -5552,6 +5553,7 @@ if test "${have_fccpx}" = "yes" ; then
     CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64'
 
 
+    LIBS="$LIBS -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
   fi
 else
 with_tofu=no
@@ -16859,7 +16861,7 @@ elif test "${with_tofu}" = 'yes'; then
 	NETDEV='TOFU'
 
 elif test "${with_tofu2}" = 'yes'; then
-	NETDEV='TOFU'
+	NETDEV='TOFU2'
 
 elif test "${ibverbs_libs}" = 'yes'; then
 	NETDEV='IB'

@@ -62,6 +62,7 @@ if test "${have_fccpx}" = "yes" ; then
     CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU -DFCC_SPARC64'
     AC_SUBST(CFLAGS)
     AC_SUBST(CXXFLAGS)
+    LIBS="$LIBS -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
   fi
   if test "${with_tofu2}" = "yes" ; then
     # reset CC and CFLAGS for FX cross compile
@@ -71,6 +72,7 @@ if test "${have_fccpx}" = "yes" ; then
     CXXFLAGS='-V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64'
     AC_SUBST(CFLAGS)
     AC_SUBST(CXXFLAGS)
+    LIBS="$LIBS -L/opt/FJSVpxtof/sparc64fx/lib64 -ltofucom -ltofutop"
   fi
 else
 with_tofu=no
@@ -163,7 +165,7 @@ if test x"$with_ndev" = x'udp'; then
 elif test "${with_tofu}" = 'yes'; then
 	AC_SUBST(NETDEV,'TOFU')
 elif test "${with_tofu2}" = 'yes'; then
-	AC_SUBST(NETDEV,'TOFU')
+	AC_SUBST(NETDEV,'TOFU2')
 elif test "${ibverbs_libs}" = 'yes'; then
 	AC_SUBST(NETDEV,'IB')
 else

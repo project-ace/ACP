@@ -15,7 +15,7 @@
 @SET_MAKE@
 
 #
-# Copyright (c) 2012-2016 ACE Project
+# Copyright (c) 2012-2017 ACE Project
 # $COPYRIGHT$
 #
 
@@ -96,6 +96,9 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@WITH_MACPRUN_TRUE@am__append_1 = macprun
+@WITH_MACPRUN_TRUE@am__append_2 = macprun
+@WITH_MACPRUN_TRUE@am__append_3 = macprun.in
 subdir = scripts
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/config/libtool.m4 \
@@ -276,11 +279,11 @@ htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
-libacpbl_ib_version = 2:0:0
-libacpbl_tofu2_version = 2:0:0
-libacpbl_tofu_version = 2:0:0
-libacpbl_udp_version = 2:0:0
-libacpml_version = 2:0:0
+libacpbl_ib_version = 2:1:0
+libacpbl_tofu2_version = 2:1:0
+libacpbl_tofu_version = 2:1:0
+libacpbl_udp_version = 2:1:0
+libacpml_version = 2:1:0
 libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
@@ -306,12 +309,13 @@ top_acp_srcdir = @top_acp_srcdir@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-bin_SCRIPTS = acprun macprun acpcc
-CLEANFILES = macprun acpcc acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
-EXTRA_DIST = macprun.in acpcc.in
+bin_SCRIPTS = acprun $(am__append_1) acpcc
+CLEANFILES = acprun $(am__append_2) acpcc acpcc.1 acpgcc.1 acpc++.1 \
+	acpcxx.1 acprun.1
+EXTRA_DIST = acprun.in $(am__append_3) acpcc.in
 
 # acp date for man
-ACP_DATE = 'Mar 14, 2017'
+ACP_DATE = 'Mar 24, 2017'
 man_MANS = acpcc.1 acpgcc.1 acpc++.1 acpcxx.1 acprun.1
 all: all-am
 
@@ -595,29 +599,45 @@ uninstall-man: uninstall-man1
 acprun: acprun.in
 	( cd $(top_builddir) && ./config.status --file=${subdir}/acprun:${subdir}/acprun.in ) \
 	&& chmod 755 acprun
-macprun: macprun.in
-	( cd $(top_builddir) && ./config.status --file=${subdir}/macprun:${subdir}/macprun.in ) \
-	&& chmod 755 macprun
+@WITH_MACPRUN_TRUE@macprun: macprun.in
+@WITH_MACPRUN_TRUE@	( cd $(top_builddir) && ./config.status --file=${subdir}/macprun:${subdir}/macprun.in ) \
+@WITH_MACPRUN_TRUE@	&& chmod 755 macprun
 acpcc: acpcc.in
 	( cd $(top_builddir) && ./config.status --file=${subdir}/acpcc:${subdir}/acpcc.in ) \
 	&& chmod 755 acpcc
 
 install-exec-hook-always:
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	(cd $(DESTDIR)$(bindir); rm -f acpgcc; $(LN_S) acpcc acpgcc)
-	(cd $(DESTDIR)$(bindir); rm -f acpfccpx; $(LN_S) acpcc acpfccpx)
-	(cd $(DESTDIR)$(bindir); rm -f acpc++; $(LN_S) acpcc acpc++)
-	(cd $(DESTDIR)$(bindir); rm -f acpcxx; $(LN_S) acpcc acpcxx)
-	(cd $(DESTDIR)$(bindir); rm -f acpFCCpx; $(LN_S) acpcc acpFCCpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpcc; $(LN_S) acpcc macpcc)
-	(cd $(DESTDIR)$(bindir); rm -f macpgcc; $(LN_S) acpcc macpgcc)
-	(cd $(DESTDIR)$(bindir); rm -f macpfccpx; $(LN_S) acpcc macpfccpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpc++; $(LN_S) acpcc macpc++)
-	(cd $(DESTDIR)$(bindir); rm -f macpg++; $(LN_S) acpcc macpg++)
-	(cd $(DESTDIR)$(bindir); rm -f macpcxx; $(LN_S) acpcc macpcxx)
-	(cd $(DESTDIR)$(bindir); rm -f macpgxx; $(LN_S) acpcc macpgxx)
-	(cd $(DESTDIR)$(bindir); rm -f macpFCCpx; $(LN_S) acpcc macpFCCpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpCC; $(LN_S) acpcc macpCC)
+	(cd $(DESTDIR)$(bindir); \
+	rm -f acpgcc; \
+	rm -f acpfccpx; \
+	rm -f acpc++; \
+	rm -f acpcxx; \
+	rm -f acpFCCpx; \
+	rm -f macpcc; \
+	rm -f macpgcc; \
+	rm -f macpfccpx; \
+	rm -f macpc++; \
+	rm -f macpg++; \
+	rm -f macpcxx; \
+	rm -f macpgxx; \
+	rm -f macpFCCpx; \
+	rm -f macpCC; \
+	$(LN_S) acpcc acpgcc; \
+	$(LN_S) acpcc acpc++; \
+	$(LN_S) acpcc acpcxx; \
+	$(LN_S) acpcc macpcc; \
+	$(LN_S) acpcc macpgcc; \
+	$(LN_S) acpcc macpc++; \
+	$(LN_S) acpcc macpg++; \
+	$(LN_S) acpcc macpcxx; \
+	$(LN_S) acpcc macpgxx; \
+	$(LN_S) acpcc macpCC)
+@HAVE_FCCPX_TRUE@	(cd $(DESTDIR)$(bindir); \
+@HAVE_FCCPX_TRUE@	$(LN_S) acpcc acpfccpx; \
+@HAVE_FCCPX_TRUE@	$(LN_S) acpcc acpFCCpx; \
+@HAVE_FCCPX_TRUE@	$(LN_S) acpcc macpfccpx; \
+@HAVE_FCCPX_TRUE@	$(LN_S) acpcc macpFCCpx)
 
 uninstall-local-always:
 	rm -f $(DESTDIR)$(bindir)/acpgcc \

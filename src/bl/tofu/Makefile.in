@@ -150,8 +150,8 @@ libacpbl_tofu_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_tofu_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
 am__libacpbl_tofu_mpi_la_SOURCES_DIST = acpbl_tofu.c acpbl_tofu.h \
-	acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c \
-	acpbl.h acpbl_sync.h
+	acpbl_tofu_gma.c acpbl_tofu_gmm.c acpbl_tofu_thread.c acpbl.h \
+	acpbl_sync.h
 @HAVE_MPICC_TRUE@am_libacpbl_tofu_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu.lo \
 @HAVE_MPICC_TRUE@	libacpbl_tofu_mpi_la-acpbl_tofu_gma.lo \

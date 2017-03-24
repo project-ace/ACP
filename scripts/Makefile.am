@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2012-2016 ACE Project
+# Copyright (c) 2012-2017 ACE Project
 # $COPYRIGHT$
 #
 
@@ -10,12 +10,14 @@ acprun: acprun.in
 CLEANFILES = acprun
 EXTRA_DIST = acprun.in
 
+if WITH_MACPRUN
 bin_SCRIPTS += macprun
 macprun: macprun.in
 	( cd $(top_builddir) && ./config.status --file=${subdir}/macprun:${subdir}/macprun.in ) \
 	&& chmod 755 macprun
-CLEANFILES = macprun
-EXTRA_DIST = macprun.in
+CLEANFILES += macprun
+EXTRA_DIST += macprun.in
+endif
 
 bin_SCRIPTS += acpcc
 acpcc: acpcc.in
@@ -26,20 +28,38 @@ EXTRA_DIST += acpcc.in
 
 install-exec-hook-always:
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	(cd $(DESTDIR)$(bindir); rm -f acpgcc; $(LN_S) acpcc acpgcc)
-	(cd $(DESTDIR)$(bindir); rm -f acpfccpx; $(LN_S) acpcc acpfccpx)
-	(cd $(DESTDIR)$(bindir); rm -f acpc++; $(LN_S) acpcc acpc++)
-	(cd $(DESTDIR)$(bindir); rm -f acpcxx; $(LN_S) acpcc acpcxx)
-	(cd $(DESTDIR)$(bindir); rm -f acpFCCpx; $(LN_S) acpcc acpFCCpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpcc; $(LN_S) acpcc macpcc)
-	(cd $(DESTDIR)$(bindir); rm -f macpgcc; $(LN_S) acpcc macpgcc)
-	(cd $(DESTDIR)$(bindir); rm -f macpfccpx; $(LN_S) acpcc macpfccpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpc++; $(LN_S) acpcc macpc++)
-	(cd $(DESTDIR)$(bindir); rm -f macpg++; $(LN_S) acpcc macpg++)
-	(cd $(DESTDIR)$(bindir); rm -f macpcxx; $(LN_S) acpcc macpcxx)
-	(cd $(DESTDIR)$(bindir); rm -f macpgxx; $(LN_S) acpcc macpgxx)
-	(cd $(DESTDIR)$(bindir); rm -f macpFCCpx; $(LN_S) acpcc macpFCCpx)
-	(cd $(DESTDIR)$(bindir); rm -f macpCC; $(LN_S) acpcc macpCC)
+	(cd $(DESTDIR)$(bindir); \
+	rm -f acpgcc; \
+	rm -f acpfccpx; \
+	rm -f acpc++; \
+	rm -f acpcxx; \
+	rm -f acpFCCpx; \
+	rm -f macpcc; \
+	rm -f macpgcc; \
+	rm -f macpfccpx; \
+	rm -f macpc++; \
+	rm -f macpg++; \
+	rm -f macpcxx; \
+	rm -f macpgxx; \
+	rm -f macpFCCpx; \
+	rm -f macpCC; \
+	$(LN_S) acpcc acpgcc; \
+	$(LN_S) acpcc acpc++; \
+	$(LN_S) acpcc acpcxx; \
+	$(LN_S) acpcc macpcc; \
+	$(LN_S) acpcc macpgcc; \
+	$(LN_S) acpcc macpc++; \
+	$(LN_S) acpcc macpg++; \
+	$(LN_S) acpcc macpcxx; \
+	$(LN_S) acpcc macpgxx; \
+	$(LN_S) acpcc macpCC)
+if HAVE_FCCPX
+	(cd $(DESTDIR)$(bindir); \
+	$(LN_S) acpcc acpfccpx; \
+	$(LN_S) acpcc acpFCCpx; \
+	$(LN_S) acpcc macpfccpx; \
+	$(LN_S) acpcc macpFCCpx)
+endif
 
 uninstall-local-always:
 	rm -f $(DESTDIR)$(bindir)/acpgcc \

@@ -1,10 +1,10 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 #
-# Copyright (c) 2014-2016 Kyushu University 
-# Copyright (c) 2014-2016 Institute of Systems, Information Technologies 
+# Copyright (c) 2014-2017 Kyushu University 
+# Copyright (c) 2014-2017 Institute of Systems, Information Technologies 
 #                         and Nanotechnologies 2014
-# Copyright (c) 2014-2016 FUJITSU LIMITED
+# Copyright (c) 2014-2017 FUJITSU LIMITED
 #
 # This software is released under the BSD License, see LICENSE. 
 
@@ -53,6 +53,8 @@ with_tofu2=no)
 AC_DEFUN([AC_PROG_FCCPX],
 [AC_CHECK_PROG(have_fccpx,fccpx,yes)])
 AC_PROG_FCCPX
+AM_CONDITIONAL([HAVE_FCCPX], [test "${have_fccpx}" = 'yes'])
+
 if test "${have_fccpx}" = "yes" ; then
   if test "${with_tofu}" = "yes" ; then
     # reset CC and CFLAGS for FX cross compile
@@ -114,10 +116,12 @@ case "${HAVE_MPICC}" in
       done
       mpi_cppflags="${incdir}"
     fi
+    with_macprun=yes
     ;;
   "mpifccpx")
     AC_PATH_PROG(MPICC,mpifccpx)
     mpi_cppflags="`mpifccpx -showme:compile ||:`"
+    with_macprun=no
     ;;
 esac
 if test x"${mpi_cppflags}" = x ; then 
@@ -129,6 +133,7 @@ fi
 
 AC_SUBST(have_mpi)
 AM_CONDITIONAL([HAVE_MPICC], [test "$have_mpi" = "yes"])
+AM_CONDITIONAL([WITH_MACPRUN], [test "${with_macprun}" = 'yes'])
 
 dnl
 dnl Check for Python.

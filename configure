@@ -659,6 +659,8 @@ PYTHON_EXEC_PREFIX
 PYTHON_PREFIX
 PYTHON_VERSION
 PYTHON
+WITH_MACPRUN_FALSE
+WITH_MACPRUN_TRUE
 HAVE_MPICC_FALSE
 HAVE_MPICC_TRUE
 have_mpi
@@ -689,6 +691,8 @@ HAVE_TOFU2_FALSE
 HAVE_TOFU2_TRUE
 HAVE_TOFU_FALSE
 HAVE_TOFU_TRUE
+HAVE_FCCPX_FALSE
+HAVE_FCCPX_TRUE
 have_fccpx
 LN_S
 am__fastdepCXX_FALSE
@@ -5527,6 +5531,15 @@ $as_echo "$have_fccpx" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
+fi
+
+
+ if test "${have_fccpx}" = 'yes'; then
+  HAVE_FCCPX_TRUE=
+  HAVE_FCCPX_FALSE='#'
+else
+  HAVE_FCCPX_TRUE='#'
+  HAVE_FCCPX_FALSE=
 fi
 
 
@@ -16395,6 +16408,7 @@ fi
       done
       mpi_cppflags="${incdir}"
     fi
+    with_macprun=yes
     ;;
   "mpifccpx")
     # Extract the first word of "mpifccpx", so it can be a program name with args.
@@ -16438,6 +16452,7 @@ fi
 
 
     mpi_cppflags="`mpifccpx -showme:compile ||:`"
+    with_macprun=no
     ;;
 esac
 if test x"${mpi_cppflags}" = x ; then
@@ -16456,6 +16471,14 @@ fi
 else
   HAVE_MPICC_TRUE='#'
   HAVE_MPICC_FALSE=
+fi
+
+ if test "${with_macprun}" = 'yes'; then
+  WITH_MACPRUN_TRUE=
+  WITH_MACPRUN_FALSE='#'
+else
+  WITH_MACPRUN_TRUE='#'
+  WITH_MACPRUN_FALSE=
 fi
 
 
@@ -17346,6 +17369,10 @@ if test -z "${am__fastdepCXX_TRUE}" && test -z "${am__fastdepCXX_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCXX\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
+if test -z "${HAVE_FCCPX_TRUE}" && test -z "${HAVE_FCCPX_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_FCCPX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 if test -z "${HAVE_TOFU_TRUE}" && test -z "${HAVE_TOFU_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_TOFU\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
@@ -17356,6 +17383,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_MPICC_TRUE}" && test -z "${HAVE_MPICC_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_MPICC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${WITH_MACPRUN_TRUE}" && test -z "${WITH_MACPRUN_FALSE}"; then
+  as_fn_error $? "conditional \"WITH_MACPRUN\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_PYTHON_TRUE}" && test -z "${HAVE_PYTHON_FALSE}"; then

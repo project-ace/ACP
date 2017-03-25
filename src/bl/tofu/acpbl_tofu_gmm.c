@@ -17,14 +17,11 @@
 #include "acp.h"
 #include "acpbl.h"
 #include "acpbl_tofu.h"
+#include "acpbl_tofu_sys.h"
 
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
 /*---------------------------------------------------------------------------*/
-extern int _acpblTofu_sys_register_memory(void *addr, uint64_t size, int color,
-					  int localtag);
-extern int _acpblTofu_sys_unregister_memory(int localtag);
-extern int _acpblTofu_sys_unregister_localtag(int localtag);
 
 
 /*---------------------------------------------------------------------------*/
@@ -34,10 +31,8 @@ extern int	sys_state;
 extern int	myrank_sys;
 extern uint64_t profile[];
 
-int	   ga_bitwidth_color, ga_bitwidth_localtag, ga_bitwidth_rank,
-	   ga_bitwidth_offset;
-uint64_t   ga_lsb_color,  ga_lsb_localtag,  ga_lsb_rank,  ga_lsb_offset;
-uint64_t   ga_mask_color, ga_mask_localtag, ga_mask_rank, ga_mask_offset;
+uint64_t   ga_lsb_color,  ga_lsb_rank,  ga_lsb_localtag,  ga_lsb_offset;
+uint64_t   ga_mask_color, ga_mask_rank, ga_mask_localtag, ga_mask_offset;
 uint32_t   max_num_localtag;
 localtag_t **localtag_table = NULL;
 int	   last_registered_localtag = NON; /* 0> registered but no ga 
@@ -51,18 +46,6 @@ int	   next_localtag;
 /*---------------------------------------------------------------------------*/
 #define ATKEY_GEN(_element,_lsb,_mask) \
   (((acp_ga_t)(_element) << (_lsb)) & (_mask))
-
-
-/*---------------------------------------------------------------------------*/
-/*** debug functions *********************************************************/
-/*---------------------------------------------------------------------------*/
-void _acpblTofu_dump_ga(acp_ga_t ga, int flag)
-{
-  if(flag)
-    printf("%d: ga: ", myrank_sys);
-  printf("0x%016lx (color=%ld, rank=%ld, localtag=%ld, offset=0x%lx)\n", ga,
-	 GA2COLOR(ga), GA2RANK(ga), GA2LOCALTAG(ga), GA2OFFSET(ga));
-}
 
 
 /*---------------------------------------------------------------------------*/
@@ -105,10 +88,11 @@ int _acpblTofu_atkey_free()
 int _acpblTofu_enable_localtag(int localtag)
 {
   int i, color_bit, rc;
+  int num_colors = _acpblTofu_sys_num_colors();
 
   color_bit = localtag_table[localtag]->color_bit;
   last_registered_localtag = NON;
-  for(i=0; i<NUM_COLORS; i++){
+  for(i=0; i<num_colors; i++){
     if(color_bit & 1){
       rc = _acpblTofu_sys_register_memory(localtag_table[localtag]->addr_head,
 					  (char *)(localtag_table[localtag]->addr_tail) - 

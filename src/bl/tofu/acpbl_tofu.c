@@ -22,6 +22,7 @@
 #include "acpbl.h"
 #include "acpbl_sync.h"
 #include "acpbl_tofu.h"
+#include "acpbl_tofu_sys.h"
 #include "acpbl_input.h"
 #include <sys/time.h>
 /*---------------------------------------------------------------------------*/
@@ -36,11 +37,6 @@ extern int  _acpblTofu_register_memory(void *addr, acp_size_t size,
 				       int color, int localtag, int type);
 extern int  _acpblTofu_unregister_memory(int localtag);
 extern int  _acpblTofu_enable_localtag(int localtag);
-extern int  _acpblTofu_sys_init(int rank);
-extern void _acpblTofu_sys_ga_init();
-extern int  _acpblTofu_sys_get_rank();
-extern int  _acpblTofu_sys_num_colors();
-extern int  _acpblTofu_sys_barrier();
 extern acp_atkey_t _acpblTofu_gen_atkey(int rank, int color, int localtag);
 
 size_t iacp_starter_memory_size_dl = 1024;
@@ -51,16 +47,16 @@ size_t iacp_starter_memory_size_cl = 1024;
 /*---------------------------------------------------------------------------*/
 extern int	  ga_bitwidth_color, ga_bitwidth_localtag, 
   		  ga_bitwidth_rank, ga_bitwidth_offset;
-extern uint64_t   ga_lsb_color,  ga_lsb_localtag,  ga_lsb_rank,  ga_lsb_offset;
-extern uint64_t   ga_mask_color, ga_mask_localtag, ga_mask_rank, ga_mask_offset;
+extern uint64_t   ga_lsb_color,  ga_lsb_rank,  ga_lsb_localtag,  ga_lsb_offset;
+extern uint64_t   ga_mask_color, ga_mask_rank, ga_mask_localtag, ga_mask_offset;
 extern int	  last_registered_localtag;
 extern localtag_t **localtag_table;
 extern uint32_t   max_num_localtag;
-extern tofu_trans_stat_t tofu_trans_stat_save;
-extern int 	  tofu_trans_stat_save_flag;
+//extern tofu_trans_stat_t tofu_trans_stat_save;
+//extern int 	  tofu_trans_stat_save_flag;
 extern volatile delegation_buff_t *delegation_buff; /* delegation buffer */
-extern int	  *rank_us_map;			    /* rank logical/physical map */
 
+int	  *rank_us_map;			    /* rank logical/physical map */
 int	 ACP_ERRNO;
 int	 myrank_sys = -1;			/* system defined rank */
 int	 myrank;				/* user defined rank */
@@ -174,18 +170,18 @@ int queue_free()
 int starter_init()
 {
   int rc;
-  char *str;
+  //char *str;
 
   switch(sys_state){
   case SYS_STAT_INITIALIZE:
     /*** acpbl sterter memory ***/
-    /** obtain starter size **/
-    str = getenv("ACPBL_TOFU_STARTER_SIZE");
-    if(str != NULL && str[0] != '\0'){
-      starter_size = atol(str);
-      if(starter_size < STARTER_SIZE_DEFAULT)
-	starter_size = STARTER_SIZE_DEFAULT;
-    }
+    ///** obtain starter size **/
+    //str = getenv("ACPBL_TOFU_STARTER_SIZE");
+    //if(str != NULL && str[0] != '\0'){
+    //  starter_size = atol(str);
+    //  if(starter_size < STARTER_SIZE_DEFAULT)
+	//starter_size = STARTER_SIZE_DEFAULT;
+    //}
     if(starter_size > (ga_mask_offset >> ga_lsb_offset))
       ERROR_RETURN("starter initialization: stater memory out of range",
 		   starter_size);
@@ -212,7 +208,7 @@ int starter_init()
     rc = _acpblTofu_enable_localtag(LOCALTAG_STARTER_DL);
     if(rc) return rc;
 
-    /*** acpch sterter memory ***/
+    /*** acpcl sterter memory ***/
     /** allocate memory **/
     rc = posix_memalign(&starter_cl, 256, iacp_starter_memory_size_cl);
     if(rc) ERROR_RETURN("starter_cl initialization: posix_memalign failed", rc);
@@ -253,11 +249,11 @@ int tofu_init(int rank)
   int rc;
 
   /** tofu initialization, num_procs is set in _acpblTofu_sys_init() **/
-  rc = _acpblTofu_sys_init(rank);
+  rc = _acpblTofu_sys_init(rank, &jobid, &num_procs);
   if(rc){ return rc; }
 
   /** ga intialization, should be done berefore atkey and ga init. **/
-  _acpblTofu_sys_ga_init();
+  _acpblTofu_sys_ga_init(&ga_lsb_color, &ga_lsb_rank, &ga_lsb_localtag, &ga_lsb_offset, &ga_mask_color, &ga_mask_rank, &ga_mask_localtag, &ga_mask_offset);
   max_num_localtag = ga_mask_localtag >> ga_lsb_localtag;
 
   /** initialize atkey **/
@@ -487,7 +483,7 @@ static inline acp_handle_t cq_enqueue_atomic8(int cmd, acp_ga_t dst,
 /*---------------------------------------------------------------------------*/
 int acp_init(int* argc, char*** argv)
 {
-  int rc;
+  int i, rc;
 
   iacpbl_interpret_option(argc, argv);
 
@@ -507,6 +503,15 @@ int acp_init(int* argc, char*** argv)
     printf("acp_init: rc = %d\n", rc);
     return rc;
   }
+
+  /*** create default logical rank to physical rank map ***/
+  rank_us_map = malloc(sizeof(int) * num_procs);
+  if (rank_us_map == NULL) {
+    printf("rank_us_map: malloc failed\n");
+    return -1;
+  }
+  for (i = 0; i < num_procs; i++)
+    rank_us_map[i] = i;
 
   /*** Initialize Middle Layer ***/
   if (iacp_init_dl()) return -1;

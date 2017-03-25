@@ -18,6 +18,7 @@
 #include "acpbl.h"
 #include "acpbl_sync.h"
 #include "acpbl_tofu.h"
+#include "acpbl_tofu_sys.h"
 
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
@@ -26,8 +27,7 @@ extern int _acpblTofu_copy(cq_t* command, int id);
 extern int _acpblTofu_atomic(cq_t* command, int id);
 extern int _acpblTofu_enable_localtag(int localtag);
 extern int _acpblTofu_reply_delegation_end(cq_t *command);
-extern int _acpblTofu_sys_read_status(tofu_trans_stat_t *tofu_trans_stat);
-extern int _acpblTofu_fence(cq_t *command);
+//extern int _acpblTofu_fence(cq_t *command);
 extern int _acpblTocu_complete_check(uint64_t index);
 
 /*---------------------------------------------------------------------------*/
@@ -38,8 +38,8 @@ extern volatile cq_t *cq;				/* command queue */
 extern volatile uint32_t cqwp, cqrp, cqcp, cqlk;	/* cq pointers */
 extern volatile dq_t *dq;				/* delegation queue */
 extern volatile uint32_t dqwp, dqrp, dqcp, dqlk;	/* dq pointers */
-extern uint64_t ga_mask_color, ga_mask_localtag, ga_mask_rank, ga_mask_offset;
-extern uint64_t ga_lsb_color,  ga_lsb_localtag,  ga_lsb_rank,  ga_lsb_offset;
+extern uint64_t ga_mask_color, ga_mask_rank, ga_mask_localtag, ga_mask_offset;
+extern uint64_t ga_lsb_color,  ga_lsb_rank,  ga_lsb_localtag,  ga_lsb_offset;
 extern volatile delegation_buff_t *delegation_buff;	/* delegation buffer */
 extern int	print_level;
 extern uint64_t profile[];
@@ -212,8 +212,8 @@ static inline void command_station(cq_t *command)
 	break;
       command->copy.base.run_stat = rc;
     }
-    else if(command->copy.base.cmd == CMD_FENCE)	/* fence command */
-      command->noarg.base.run_stat = _acpblTofu_fence(command);
+    //else if(command->copy.base.cmd == CMD_FENCE)	/* fence command */
+    //  command->noarg.base.run_stat = _acpblTofu_fence(command);
     else if(command->copy.base.cmd == CMD_SYNC)		/* sync command */
       command->noarg.base.run_stat = CMD_STAT_FINISHED;
     else if(command->copy.base.cmd == CMD_NEW_RANK)	/* fence command */
@@ -349,12 +349,12 @@ static void* communication_thread(void *param)
     if(tofu_trans_stat_save_flag)
       tofu_trans_stat = tofu_trans_stat_save;
 
-    rc = _acpblTofu_sys_read_status(&tofu_trans_stat);	/* tofu status */
+    rc = _acpblTofu_sys_read_status(&tofu_trans_stat.comm_id, &tofu_trans_stat.offset); /* tofu status */
 
     if(tofu_trans_stat_save_flag || rc){
       //    if(rc){					/* something received */
-      if(tofu_trans_stat.status != TOFU_SYS_SUCCEEDED)
-	_acpblTofu_die("tofu_sys_command failed", tofu_trans_stat.status);
+//      if(tofu_trans_stat.status != TOFU_SYS_SUCCEEDED)
+//	_acpblTofu_die("tofu_sys_command failed", tofu_trans_stat.status);
 
       //      printf("trans_stat: status = %s, comm_id = 0x%04x, localtag %d, offset = 0x%016lx\n",
       //	     tofu_trans_stat.status, tofu_trans_stat.comm_id,

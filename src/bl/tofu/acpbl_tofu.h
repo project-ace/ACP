@@ -34,7 +34,6 @@ typedef int acp_size_t;
 #define LOCALTAG_USER		(LOCALTAG_CQ + 5)
 
 /* color defines */
-#define NUM_COLORS		4
 #define COLOR_CQ		0
 #define COLOR_DLG_BUF		0
 #define COLOR_STARTER		0
@@ -58,7 +57,7 @@ typedef int acp_size_t;
 #define SYS_STAT_FINALIZE	4
 
 /** commannd queue, delegation command codes **/
-#define CMD_FENCE		0x01
+//#define CMD_FENCE		0x01
 #define CMD_SYNC		0x02
 #define CMD_COMPLETE		0x03
 
@@ -115,17 +114,6 @@ typedef int acp_size_t;
 #define MEMTYPE_USER		1
 #define NON			-1
 #define NOT_ENABLED		0
-
-/*** Tofu system definitions ***/
-#define TOFU_SYS_SUCCEEDED	0
-#define TOFU_SYS_FAILED		-1
-
-#define TOFU_SYS_STAT_TRANSEND	1
-#define TOFU_SYS_STAT_RECEIVED	2
-#define TOFU_SYS_STAT_TRANSERR	-1
-
-#define TOFU_SYS_FLAG_NOTIFY	1
-#define TOFU_SYS_FLAG_CONTINUE	2
 
 /*** debug ***/
 #define PRINT_INFO		0x0001

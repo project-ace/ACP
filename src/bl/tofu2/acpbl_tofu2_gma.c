@@ -19,6 +19,7 @@
 #include "acpbl.h"
 #include "acpbl_sync.h"
 #include "acpbl_tofu2.h"
+#include "acpbl_tofu2_sys.h"
 
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
@@ -27,19 +28,6 @@ extern int _acpblTofu_register_memory(void *addr, acp_size_t size, int color,
 				      int localtag, int type);
 extern int _acpblTofu_enable_localtag(int localtag);
 extern acp_atkey_t _acpblTofu_gen_atkey(int rank, int color, int localtag);
-extern int _acpblTofu_sys_armw_data(int flags, acp_ga_t remote, acp_ga_t local, 
-				    int cmd, uint64_t write_val, uint64_t comp_val,
-				    int length, int id);
-extern int _acpblTofu_sys_get_data(int flags, acp_ga_t remote, acp_ga_t local, 
-				   int length, int id);
-extern int _acpblTofu_sys_put_data(int flags, acp_ga_t remote, acp_ga_t local, 
-				   int length, int id);
-extern int _acpblTofu_sys_put_data_imd(int flags, acp_ga_t remote, void *local, 
-				       int length, int id);
-extern int _acpblTofu_sys_put_data_imd2(int flags0, acp_ga_t remote0, 
-					void *local0, int length0, int id0,
-					int flags1, acp_ga_t remote1, 
-					void *local1, int length1, int id1);
 
 
 /*---------------------------------------------------------------------------*/
@@ -408,11 +396,11 @@ int _acpblTofu_atomic(cq_t* command, int id)
 
 }
 
-int _acpblTofu_fence(cq_t *command)
-{
-  _acpblTofu_sys_fence(GA2RANK(command->fence.ga_dst), command->fence.base.comm_id);
-  return CMD_STAT_EXECUTING;
-}
+//int _acpblTofu_fence(cq_t *command)
+//{
+//  _acpblTofu_sys_fence(GA2RANK(command->fence.ga_dst), command->fence.base.comm_id);
+//  return CMD_STAT_EXECUTING;
+//}
 
 int _acpblTofu_newrank(cq_t *command)
 {

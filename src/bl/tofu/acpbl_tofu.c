@@ -25,6 +25,8 @@
 #include "acpbl_tofu_sys.h"
 #include "acpbl_input.h"
 #include <sys/time.h>
+
+
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
 /*---------------------------------------------------------------------------*/
@@ -39,8 +41,6 @@ extern int  _acpblTofu_unregister_memory(int localtag);
 extern int  _acpblTofu_enable_localtag(int localtag);
 extern acp_atkey_t _acpblTofu_gen_atkey(int rank, int color, int localtag);
 
-size_t iacp_starter_memory_size_dl = 1024;
-size_t iacp_starter_memory_size_cl = 1024;
 
 /*---------------------------------------------------------------------------*/
 /*** variables ***************************************************************/
@@ -67,7 +67,9 @@ int	 sys_state = SYS_STAT_FREE;
 void	 *starter = NULL;
 void	 *starter_dl = NULL;
 void	 *starter_cl = NULL;
-size_t	 starter_size;
+size_t starter_size;
+size_t iacp_starter_memory_size_dl;
+size_t iacp_starter_memory_size_cl;
 
 volatile cq_t *cq = NULL;			/* command queue */
 volatile uint32_t cqwp, cqrp, cqcp, cqlk;	/* command queue pointers */

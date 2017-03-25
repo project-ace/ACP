@@ -22,11 +22,10 @@
 #include "acpbl.h"
 #include "acpbl_sync.h"
 #include "acpbl_tofu2.h"
+#include "acpbl_tofu2_sys.h"
 #include "acpbl_input.h"
 #include <sys/time.h>
 
-size_t iacp_starter_memory_size_dl = 64 * 1024 * 1024;
-size_t iacp_starter_memory_size_cl = 1024;//64 * 1024 * 1024;
 
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
@@ -40,11 +39,6 @@ extern int  _acpblTofu_register_memory(void *addr, acp_size_t size,
 				       int color, int localtag, int type);
 extern int  _acpblTofu_unregister_memory(int localtag);
 extern int  _acpblTofu_enable_localtag(int localtag);
-extern int  _acpblTofu_sys_init(int rank);
-extern void _acpblTofu_sys_ga_init();
-extern int  _acpblTofu_sys_get_rank();
-extern int  _acpblTofu_sys_num_colors();
-extern int  _acpblTofu_sys_barrier();
 extern acp_atkey_t _acpblTofu_gen_atkey(int rank, int color, int localtag);
 
 
@@ -58,11 +52,11 @@ extern uint64_t   ga_mask_color, ga_mask_localtag, ga_mask_rank, ga_mask_offset;
 extern int	  last_registered_localtag;
 extern localtag_t **localtag_table;
 extern uint32_t   max_num_localtag;
-extern tofu_trans_stat_t tofu_trans_stat_save;
-extern int 	  tofu_trans_stat_save_flag;
+//extern tofu_trans_stat_t tofu_trans_stat_save;
+//extern int 	  tofu_trans_stat_save_flag;
 extern volatile delegation_buff_t *delegation_buff; /* delegation buffer */
-extern int	  *rank_us_map;			    /* rank logical/physical map */
 
+int	  *rank_us_map;			    /* rank logical/physical map */
 int	 ACP_ERRNO;
 int	 myrank_sys = -1;			/* system defined rank */
 int	 myrank;				/* user defined rank */
@@ -73,7 +67,9 @@ int	 sys_state = SYS_STAT_FREE;
 void	 *starter = NULL;
 void	 *starter_dl = NULL;
 void	 *starter_cl = NULL;
-size_t	 starter_size;
+size_t starter_size;
+size_t iacp_starter_memory_size_dl;
+size_t iacp_starter_memory_size_cl;
 
 volatile cq_t *cq = NULL;			/* command queue */
 volatile uint32_t cqwp, cqrp, cqcp, cqlk;       /* command queue pointers */
@@ -83,6 +79,7 @@ volatile uint32_t dqwp, dqrp, dqcp, dqlk;	/* delegation queue pointers */
 int	 in_error_cleanup = 0;
 int	 print_level = 0;
 uint64_t profile[10];
+
 
 /*---------------------------------------------------------------------------*/
 /*** macros ******************************************************************/
@@ -254,11 +251,11 @@ int tofu_init(int rank)
   int rc;
 
   /** tofu initialization, num_procs is set in _acpblTofu_sys_init() **/
-  rc = _acpblTofu_sys_init(rank);
-  if(rc){ POINT(); return rc; }
+  rc = _acpblTofu_sys_init(rank, &jobid, &num_procs);
+  if (rc) { POINT(); return rc; }
 
   /** ga intialization, should be done berefore atkey and ga init. **/
-  _acpblTofu_sys_ga_init();
+  _acpblTofu_sys_ga_init(&ga_lsb_color, &ga_lsb_rank, &ga_lsb_localtag, &ga_lsb_offset, &ga_mask_color, &ga_mask_rank, &ga_mask_localtag, &ga_mask_offset);
   max_num_localtag = ga_mask_localtag >> ga_lsb_localtag;
 
   /** initialize atkey **/
@@ -366,18 +363,18 @@ static inline void set_props_order(acp_handle_t handle,
   }
 }
 
-static inline acp_handle_t cq_enqueue_fence(acp_ga_t dst)
-{
-  int p = cq_lock();
-  cq[p].fence.props             = CMD_PROP_HANDLE_NULL;	/* ACP_HANDLE_NULL */
-  cq[p].fence.order		= 0;
-  cq[p].fence.base.jobid	= jobid;
-  cq[p].fence.base.cmd		= CMD_FENCE;
-  cq[p].fence.base.run_stat	= CMD_STAT_QUEUED;
-  cq[p].fence.base.comm_id	= p;
-  cq[p].fence.ga_dst		= dst;
-  return cq_unlock();
-}
+ // static inline acp_handle_t cq_enqueue_fence(acp_ga_t dst)
+ // {
+ //   int p = cq_lock();
+ //   cq[p].fence.props             = CMD_PROP_HANDLE_NULL;	/* ACP_HANDLE_NULL */
+ //   cq[p].fence.order		= 0;
+ //   cq[p].fence.base.jobid	= jobid;
+ //   cq[p].fence.base.cmd		= CMD_FENCE;
+ //   cq[p].fence.base.run_stat	= CMD_STAT_QUEUED;
+ //   cq[p].fence.base.comm_id	= p;
+ //   cq[p].fence.ga_dst		= dst;
+ //   return cq_unlock();
+ // }
 
 static inline acp_handle_t cq_enqueue_noarg(int cmd, acp_handle_t order)
 {
@@ -553,7 +550,7 @@ static inline acp_handle_t cq_enqueue_atomic8(int cmd, acp_ga_t dst,
 /*---------------------------------------------------------------------------*/
 int acp_init(int* argc, char*** argv)
 {
-  int rc;
+  int i, rc;
 
   iacpbl_interpret_option(argc, argv);
 
@@ -573,6 +570,15 @@ int acp_init(int* argc, char*** argv)
     dprintf("acp_init: rc = %d\n", rc);
     return rc;
   }
+
+  /*** create default logical rank to physical rank map ***/
+  rank_us_map = malloc(sizeof(int) * num_procs);
+  if (rank_us_map == NULL) {
+    printf("rank_us_map: malloc failed\n");
+    return -1;
+  }
+  for (i = 0; i < num_procs; i++)
+    rank_us_map[i] = i;
 
   /*** Initialize Middle Layer ***/
   if (iacp_init_dl()) return -1;

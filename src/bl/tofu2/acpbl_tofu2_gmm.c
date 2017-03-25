@@ -17,14 +17,11 @@
 #include "acp.h"
 #include "acpbl.h"
 #include "acpbl_tofu2.h"
+#include "acpbl_tofu2_sys.h"
 
 /*---------------------------------------------------------------------------*/
 /*** external functions ******************************************************/
 /*---------------------------------------------------------------------------*/
-extern int _acpblTofu_sys_register_memory(void *addr, uint64_t size, int color,
-					  int localtag);
-extern int _acpblTofu_sys_unregister_memory(int localtag);
-extern int _acpblTofu_sys_unregister_localtag(int localtag);
 
 
 /*---------------------------------------------------------------------------*/

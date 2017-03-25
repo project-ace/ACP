@@ -150,8 +150,8 @@ libacpbl_tofu2_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_CFLAGS) $(CFLAGS) $(libacpbl_tofu2_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
 am__libacpbl_tofu2_mpi_la_SOURCES_DIST = acpbl_tofu2.c acpbl_tofu2.h \
-	acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c \
-	acpbl.h acpbl_sync.h
+	acpbl_tofu2_sys.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c \
+	acpbl_tofu2_thread.c acpbl.h acpbl_sync.h
 @HAVE_MPICC_TRUE@am_libacpbl_tofu2_mpi_la_OBJECTS =  \
 @HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2.lo \
 @HAVE_MPICC_TRUE@	libacpbl_tofu2_mpi_la-acpbl_tofu2_gma.lo \
@@ -372,12 +372,12 @@ top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I./tofu2 -I$(top_srcdir)/src/include
 lib_LTLIBRARIES = libacpbl_tofu2.la $(am__append_1)
 libacpbl_tofu2_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
-libacpbl_tofu2_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl.h acpbl_sync.h
+libacpbl_tofu2_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_sys.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl.h acpbl_sync.h
 #libacpbl_tofu2_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64
 libacpbl_tofu2_la_LDFLAGS = -version-info $(libacpbl_tofu2_version) -L$(top_builddir)/src/bl/common/
 libacpbl_tofu2_la_LIBADD = -lacpbl_tofu2_sys -lacpbl_common -lc -lpthread
 @HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_DEPENDENCIES = $(top_builddir)/src/bl/common/libacpbl_common.a
-@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl.h acpbl_sync.h
+@HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_SOURCES = acpbl_tofu2.c acpbl_tofu2.h acpbl_tofu2_sys.h acpbl_tofu2_gma.c acpbl_tofu2_gmm.c acpbl_tofu2_thread.c acpbl.h acpbl_sync.h
 @HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_CPPFLAGS = $(AM_CPPFLAGS) -DMPIACP $(MPI_CPPFLAGS)
 #libacpbl_tofu2_mpi_la_CFLAGS = -V -Kfast,noswp,noeval -KPIC -Xg -DACPBL_TOFU2 -DFCC_SPARC64
 @HAVE_MPICC_TRUE@libacpbl_tofu2_mpi_la_LDFLAGS = -version-info $(libacpbl_tofu2_version) -L$(top_builddir)/src/bl/common/

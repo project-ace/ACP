@@ -56,30 +56,6 @@ typedef int acp_size_t;
 #define SYS_STAT_RESET		3
 #define SYS_STAT_FINALIZE	4
 
-/** commannd queue, delegation command codes **/
-//#define CMD_FENCE		0x01
-#define CMD_SYNC		0x02
-#define CMD_COMPLETE		0x03
-
-#define CMD_NEW_RANK		0x04
-#define CMD_RANK_TABLE		0x05
-
-#define CMD_COPY		0x0C
-
-#define CMD_CAS4		0x10
-#define CMD_SWAP4		0x14
-#define CMD_ADD4		0x18
-#define CMD_XOR4		0x1C
-#define CMD_OR4			0x20
-#define CMD_AND4		0x24
-
-#define CMD_CAS8		0x40
-#define CMD_SWAP8		0x44
-#define CMD_ADD8		0x48
-#define CMD_XOR8		0x4C
-#define CMD_OR8			0x80
-#define CMD_AND8		0x84
-
 /** command running status **/
 #define CMD_STAT_FREE		0x00
 #define CMD_STAT_QUEUED		0x01
@@ -150,19 +126,6 @@ typedef struct {		/** base **/
   uint16_t	comm_id;	/* initiater handle 	will be delegated */
 } base_t;
 
-struct cmd_type01 {		/** fence **/
-  uint16_t	props;		/* properties		no delegated */
-				/* bit15-14: 11 ACP_HANDLE_NULL,
-					     10 ACP_HANDLE_CONT,
-					     01 ACP_HANDLE_ALL,
-					     00 ORDER specified
-				   bit0:     delegate to 0: SRC, 1: DST */    
-  uint16_t	reserve;	/* reserve		no delegated */
-  uint32_t	order;		/* order 		no delegated */
-  base_t	base;		/* command base */
-  acp_ga_t	ga_dst;
-};
-
 struct cmd_type02 {		/** noarg **/
   uint16_t	props;		/* properties		no delegated */
   uint16_t	reserve;	/* reserve		no delegated */
@@ -232,7 +195,6 @@ struct cmd_type44 {		/** atomic8 **/
 };
 
 typedef union {
-  struct cmd_type01 fence;
   struct cmd_type02 noarg;
   struct cmd_type04 newrank;
   struct cmd_type0C copy;

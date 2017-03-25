@@ -31,4 +31,27 @@ extern int      _acpblTofu_sys_read_status(int* comm_id, uint64_t* offset);
 #define TOFU_SYS_FLAG_NOTIFY	1
 #define TOFU_SYS_FLAG_CONTINUE	2
 
+/** commannd queue, delegation command codes **/
+#define CMD_SYNC        0x02
+#define CMD_COMPLETE    0x03
+
+#define CMD_NEW_RANK    0x04
+#define CMD_RANK_TABLE  0x05
+
+#define CMD_COPY        0x0C
+
+#define CMD_CAS4        0x10
+#define CMD_SWAP4       0x14
+#define CMD_ADD4        0x18
+#define CMD_XOR4        0x1C
+#define CMD_OR4         0x20
+#define CMD_AND4        0x24
+
+#define CMD_CAS8        0x40
+#define CMD_SWAP8       0x44
+#define CMD_ADD8        0x48
+#define CMD_XOR8        0x4C
+#define CMD_OR8         0x80
+#define CMD_AND8        0x84
+
 #endif /* acpbl_tofu_sys.h */

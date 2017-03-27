@@ -17,6 +17,9 @@ See http://ace-project.kyushu-u.ac.jp/index.html for more details.
 Current version supports mechanisms for connecting Multiple MPI applications.
 See README.MultiMPI for more details.
 
+It needs an external library is to install and to use ACP library on Tofu
+interconnect. See README.Tofu for more details.
+
 
 1. Installation
 ---------------
@@ -97,12 +100,20 @@ use "-smemsize size" or "--acp-startermemsize=size" (byte unit) option as follow
 
   shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 hello_world_acp   
 
+To use ACP data library functions such as acp_malloc(), specify the maximum
+heap size with "-smemsize-dl size" or "--acp-startermemsize-dl=size" (byte unit)
+option as follows:
+
+  shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize-dl 268435456 hello_world_acp
+
+Heap memory will be allocated dynamically on access when the network device is
+udp, and be allocated statically at initialization otherwize.
+
 Instead of ssh command, if your system supports pjrsh command,  (Fujitsu CX400 system supports pjrsh instead of ssh)
 use "-ssh pjrsh" option as follows:
 
   shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 -ssh pjrsh hello_world_acp   
 
-Other options:
 For understanding or debugging the inside of acprun command execution,
 use -debug option as follows:
 
@@ -111,7 +122,6 @@ use -debug option as follows:
 Notice:
   1.  Other "--acp-*" options are parsed as errors in regard to invalid option,
       even though that option is used as user program option.
-  2.  Tofu network device may not supported in this version.
 ===========================================================================
 
 Copyright (c) 2014      Kyushu University 

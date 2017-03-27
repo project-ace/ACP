@@ -19,9 +19,12 @@ VERSION            = "@VERSION@"
 STARTER_MEMSIZE    = 1024
 STARTER_MEMSIZE_CL = 1024
 STARTER_MEMSIZE_DL = 1024
+LOW_THRESHOLD      = 128
+HIGH_THRESHOLD     = 131072
+ETHERNET_SPEED     = 1000
 PORTID_START       = 44256
 TASKID             = 100
-LST_ENVNETWORK     = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu" ]
+LST_ENVNETWORK     = [ "UDP", "udp", "INFINIBAND", "inifiniband", "IB", "ib", "TOFU", "tofu", "TOFU2", "tofu2" ]
 
 FLG_DEBUG          = False # or True
 DEBUGLEVEL         = 1000  # change to >200
@@ -83,6 +86,24 @@ OPTDEF = [ [ "-n",                    "NPROCS",     "BLKVAL" ],
            [ "-offsetrank",           "OFFSETRANK", "BLKVAL" ],
            [ "--acp-offsetrank",      "OFFSETRANK", "EQVAL"  ],
            #
+           [ "-mhooksmall",           "MHOOKSMALL", "NONE"   ],
+           [ "--acp-malloc-hook-small","MHOOKSMALL", "NONE"   ],
+           #
+           [ "-mhooklarge",           "MHOOKLARGE", "NONE"   ],
+           [ "--acp-malloc-hook-large","MHOOKLARGE", "NONE"   ],
+           #
+           [ "-mhookhuge",            "MHOOKHUGE",  "NONE"   ],
+           [ "--acp-malloc-hook-huge","MHOOKHUGE",  "NONE"   ],
+           #
+           [ "-mhooklow",             "MHOOKLOW",   "BLKVAL" ],
+           [ "--acp-malloc-hook-low", "MHOOKLOW",   "EQVAL"  ],
+           #
+           [ "-mhookhigh",            "MHOOKHIGH",  "BLKVAL" ],
+           [ "--acp-malloc-hook-high","MHOOKHIGE",  "EQVAL"  ],
+           #
+           [ "-ethspeed",             "ETHSPEED",   "BLKVAL" ],
+           [ "--acp-ethernet-speed",  "ETHSPEED",   "EQVAL"  ],
+           #
            [ "-h",                    "HELP",       "NONE"   ],
            [ "-help",                 "HELP",       "NONE"   ],
            [ "--acp-help",            "HELP",       "NONE"   ],
@@ -129,6 +150,12 @@ class Acprun:
         self.starter_memsize_cl = STARTER_MEMSIZE_CL
         self.starter_memsize_dl = STARTER_MEMSIZE_DL
         self.flg_multirun    = False
+        self.flg_mhooksmall  = False
+        self.flg_mhooklarge  = False
+        self.flg_mhookhuge   = False
+        self.mhooklow        = LOW_THRESHOLD
+        self.mhookhigh       = HIGH_THRESHOLD
+        self.ethspeed        = ETHERNET_SPEED
         self.nprocs          = 1
         self.lst_taskid      = [ TASKID ]
         self.nodefile        = ""
@@ -170,11 +197,17 @@ class Acprun:
         print( "    : -startermemsize    STARTER_MEMORY_SIZE            or --acp-startermemsize=STARTER_MEMORY_SIZE    (default: %d Bytes) "             % STARTER_MEMSIZE )
         print( "    : -startermemsize-cl STARTER_MEMORY_SIZE(Comm.Lib.) or --acp-startermemsize-cl=STARTER_MEMORY_SIZE (default: %d Bytes) "             % STARTER_MEMSIZE_CL )
         print( "    : -startermemsize-dl STARTER_MEMORY_SIZE(Data Lib.) or --acp-startermemsize-dl=STARTER_MEMORY_SIZE (default: %d Bytes) "             % STARTER_MEMSIZE_DL )
-        print( "    : -envnet ENVNETWORK                                or --acp-envnet=ENVNETWORK                     (default: %s. specify UDP or IB)" % ENVNETWORK )
+        print( "    : -envnet ENVNETWORK                                or --acp-envnet=ENVNETWORK                     (default: %s)"                    % ENVNETWORK )
         print( "    : -ssh/-rsh REMOTESHELL                             or --acp-remoteshell=REMOTESHELL               (default: %s. )"                  % REMOTESHELL )
         print( "    : -multirun                                         or --acp-multirun                              (default: False)" )
         print( "    : -portfile PORTFILE                                or --acp-portfile=PORTFILE                     (default: meaningful with -multirun option)" )
         print( "    : -offsetrank OFFSET_OF_RANK                        or --acp-portfile=OFFSET_OF_RANK               (default: meaningful with -multirun option)" )
+        print( "    : -mhooksmall                                       or --acp-malloc-hook-small                     (default: False)" )
+        print( "    : -mhooklarge                                       or --acp-malloc-hook-large                     (default: False)" )
+        print( "    : -mhookhuge                                        or --acp-malloc-hook-huge                      (default: False)" )
+        print( "    : -mhooklow                                         or --acp-malloc-hook-low=LOW_THRESHOLD         (default: %d Bytes) "             % LOW_THRESHOLD )
+        print( "    : -mhookhigh                                        or --acp-malloc-hook-high=HIGH_THRESHOLD       (default: %d Bytes) "             % HIGH_THRESHOLD )
+        print( "    : -ethspeed                                         or --acp-ethernet-speed=ETEHRNET_SPEED         (default: %d Mbps) "              % ETHERNET_SPEED )
         print( "    : -debug                                            or --acp-debug                                 (default: debug is False)" )
         print( "    : -v/-version                                       or --acp-version" )
         print( "    : -h/-help                                          or --acp-help" )
@@ -307,6 +340,33 @@ class Acprun:
                         self.offsetrank      = int( optval )
                     if self.flg_envnetwork  == "":
                         raise ErrorInvalidOptionArgument( "Argument: OFFSETRANK value is invalid" )
+                elif flgopt == "MHOOKSMALL":
+                    self.flg_mhooksmall      = True
+                elif flgopt == "MHOOKLARGE":
+                    self.flg_mhooklarge      = True
+                elif flgopt == "MHOOKHUGE":
+                    self.flg_mhookhuge       = True
+                elif flgopt == "MHOOKLOW":
+                    if   flgval == "BLKVAL":
+                        self.mhooklow        = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.mhooklow        = int( optval )
+                    if self.mhooklow < 0:
+                        raise ErrorInvalidOptionArgument( "Argument: LOW_THRESHOLD value < 0" )
+                elif flgopt == "MHOOKHIGH":
+                    if   flgval == "BLKVAL":
+                        self.mhookhigh       = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.mhookhigh       = int( optval )
+                    if self.mhookhigh < 0:
+                        raise ErrorInvalidOptionArgument( "Argument: HIGH_THRESHOLD value < 0" )
+                elif flgopt == "ETHSPEED":
+                    if   flgval == "BLKVAL":
+                        self.ethspeed        = int( optarg )
+                    elif flgval == "EQVAL":
+                        self.ethspeed        = int( optval )
+                    if self.ethspeed <= 0:
+                        raise ErrorInvalidOptionArgument( "Argument: ETHERNET_SPEED value <= 0" )
                 elif flgopt == "HELP":
                     self.print_help()
                     sys.exit( "help:" )
@@ -347,8 +407,17 @@ class Acprun:
                 print( " %s: opt: flg_debug      = %s" % (self.myname, self.flg_debug) )
                 print( " %s: opt: debuglevel     = %s" % (self.myname, self.debuglevel) )
                 if ( self.flg_multirun ):
-                    print( " %s: opt: portfile   = %s" % (self.myname, self.portfile) )
-                    print( " %s: opt: offsetrank = %s" % (self.myname, self.offsetrank) )
+                    print( " %s: opt: portfile       = %s" % (self.myname, self.portfile) )
+                    print( " %s: opt: offsetrank     = %s" % (self.myname, self.offsetrank) )
+                print( " %s: opt: flg_mhooksmall = %s" % (self.myname, self.flg_mhooksmall) )
+                print( " %s: opt: flg_mhooklarge = %s" % (self.myname, self.flg_mhooklarge) )
+                print( " %s: opt: flg_mhookhuge  = %s" % (self.myname, self.flg_mhookhuge) )
+                if ( self.flg_mhooksmall ) or ( self.flg_mhooklarge ):
+                    print( " %s: opt: mhooklow       = %s" % (self.myname, self.mhooklow) )
+                if ( self.flg_mhooklarge ) or ( self.flg_mhookhuge  ):
+                    print( " %s: opt: mhookhigh      = %s" % (self.myname, self.mhookhigh) )
+                if ( self.flg_envnetwork == "UDP" ) or ( self.flg_envnetwork == "udp" ):
+                    print( " %s: opt: ethspeed       = %s" % (self.myname, self.ethspeed) )
 #
     #########################################################
     def set_nprocs_acp( self ):
@@ -438,6 +507,8 @@ class Acprun:
              ( self.flg_envnetwork == "infiniband" ) or ( self.flg_envnetwork == "ib"   ):
             self.get_array_rport_rhostip_ib()
         elif ( self.flg_envnetwork == "TOFU"       ) or ( self.flg_envnetwork == "tofu" ):
+            self.get_array_rport_rhostip_tofu()
+        elif ( self.flg_envnetwork == "TOFU2"      ) or ( self.flg_envnetwork == "tofu2" ):
             self.get_array_rport_rhostip_tofu()
         else:
             sys.exit( "Error: %s: Network %s: not supported.\n" % (self.myname, self.flg_envnetwork) )
@@ -536,6 +607,20 @@ class Acprun:
                   ipp,                    self.lst_nprocs_acp[ ipp ], self.lst_taskid[ ipp ],  \
                   self.lst_lport [ ipp ], self.lst_rport [ ipp ],     self.lst_rhostip[ ipp ], \
                   self.starter_memsize,   self.starter_memsize_cl,    self.starter_memsize_dl )
+            if ( self.flg_mhooksmall ):
+                comm = comm + " --acp-malloc-hook-small 1"
+            if ( self.flg_mhooklarge ):
+                comm = comm + " --acp-malloc-hook-large 1"
+            if ( self.flg_mhookhuge ):
+                comm = comm + " --acp-malloc-hook-huge 1"
+            if ( self.flg_mhooksmall ) or ( self.flg_mhooklarge ) or ( self.flg_mhookhuge ):
+                comm = comm + " --acp-malloc-hook-low %s" % ( self.mhooklow )
+                if ( self.mhooklow > self.mhookhigh ):
+                    comm = comm + " --acp-malloc-hook-high %s" % ( self.mhooklow )
+                else:
+                    comm = comm + " --acp-malloc-hook-high %s" % ( self.mhookhigh )
+            if ( self.flg_envnetwork == "UDP" ) or ( self.flg_envnetwork == "udp" ):
+                comm = comm + " --acp-ethernet-speed %s" % ( self.ethspeed )
             #if ( self.flg_debug ):
             #    comm = comm + " --acp-debug"
             if (( not ( self.flg_multirun ) ) and ( self.flg_localmode )):

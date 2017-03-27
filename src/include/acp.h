@@ -3338,8 +3338,6 @@ extern acp_set_it_t acp_begin_set(acp_set_t set);
  */
 extern void acp_clear_set(acp_set_t set);
 
-extern acp_list_t acp_collapse_set(acp_set_t set);
-
 /**
  * @JP
  * @brief セット生成
@@ -3852,8 +3850,6 @@ extern acp_multiset_it_t acp_begin_multiset(acp_multiset_t set);
  * @ENDL
  */
 extern void acp_clear_multiset(acp_multiset_t set);
-
-extern acp_set_t acp_collapse_multiset(acp_multiset_t set);
 
 /**
  * @JP

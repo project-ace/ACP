@@ -106,9 +106,6 @@ option as follows:
 
   shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize-dl 268435456 hello_world_acp
 
-Heap memory will be allocated dynamically on access when the network device is
-udp, and be allocated statically at initialization otherwize.
-
 Instead of ssh command, if your system supports pjrsh command,  (Fujitsu CX400 system supports pjrsh instead of ssh)
 use "-ssh pjrsh" option as follows:
 
@@ -120,8 +117,10 @@ use -debug option as follows:
   shell$ acprun -np 2 -machinefile nodefile -ndev ib -smemsize 4096 -ssh pjrsh -debug hello_world_acp   
 
 Notice:
-  1.  Other "--acp-*" options are parsed as errors in regard to invalid option,
-      even though that option is used as user program option.
+  1.  When the network device is udp, a memory page for the heap memory of
+      ACP data library will be allocated dynamically on a memory access.
+      Otherwise, entire memory pages for the heap memory is allocated
+      statically at initialization.
 ===========================================================================
 
 Copyright (c) 2014      Kyushu University 

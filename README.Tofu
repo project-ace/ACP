@@ -17,7 +17,7 @@ See http://ace-project.kyushu-u.ac.jp/index.html for more details.
 
 1. Installation
 ---------------
- A. Install acpbl_tofu_sys library
+A. Install acpbl_tofu_sys library
   Place following file and symbolic links to a local directory accessible from
   compute nodes.
 
@@ -35,7 +35,7 @@ See http://ace-project.kyushu-u.ac.jp/index.html for more details.
   acpbl_tofu_sys library.
 
 
- B. Install ACP
+B. Install ACP
   Add "--with-tofu" of "--with-tofu2" option to the configure command.
 
   shell$ ./configure --with-tofu --prefix=/where/to/install
@@ -102,6 +102,10 @@ Options:
       --acp-malloc-hook-low     mallok hook low threshold
       --acp-malloc-hook-high    mallok hook high threshold
 
+Notice:
+  1.  Current version does not support multiple processes per node.
+      Make sure not to specify the number of processes different from that
+      of nodes.
 ===========================================================================
 
 Copyright (c) 2014      Kyushu University 

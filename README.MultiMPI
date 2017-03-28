@@ -14,12 +14,12 @@ This is similar to MPI-Spawn except spawning dynamical processes.
 
 1. Installation
 ---------------
- A. MPI
+A. MPI
   Install MPI correctly.
   Check PATH and LD_LIBRARY_PATH shell environment variables.
   Currently, OpenMPI 1.6.3 and OpenMPI 1.10.2 are tested.
 
- B. ACP
+B. ACP
   Sources of Multi-MPI ACP are inside of the ACP library.
   To install this library, add "--with-mpi" option to the configure command ACP.
 

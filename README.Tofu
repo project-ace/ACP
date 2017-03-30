@@ -18,18 +18,14 @@ See http://ace-project.kyushu-u.ac.jp/index.html for more details.
 1. Installation
 ---------------
 A. Install acpbl_tofu_sys library
-  Place following file and symbolic links to a local directory accessible from
-  compute nodes.
+  Place following file and symbolic links to the directory that the library
+  files of ACP will be installed, such as /where/to/install/lib.
 
     libacpbl_tofu_sys.so
     libacpbl_tofu_sys.so.#
     libacpbl_tofu_sys.so.#.#.#
 
-  To obtain these files or to use pre-installed files, contact your system
-  administrator.
-
-  Confirm that the path is specifid in both of the environment variables
-  LIBRARY_PATH and LD_LIBRARY_PATH.
+  To obtain these files, contact your system administrator.
 
   For Tofu interconnect 2, install or use acpbl_tofu2_sys library instead of
   acpbl_tofu_sys library.
@@ -41,6 +37,8 @@ B. Install ACP
   shell$ ./configure --with-tofu --prefix=/where/to/install
   [...lots of output...]
   shell$ make all install
+
+  Make sure that the install directory is accessible from compute nodes.
 
 
 2. Compiling user ACP Applications

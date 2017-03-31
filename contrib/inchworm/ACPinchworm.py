@@ -1,7 +1,6 @@
-#!/home/tknose/repo/pypy2-v5.6.0-src/pypy-c
+#!/usr/bin/python
 # coding: utf-8
 
-#!/usr/bin/python# !/usr/bin/python
 import sys,os
 import math
 import IRKE_COMMON

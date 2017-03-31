@@ -29,8 +29,8 @@ MONITOR_MPI_COMMUNICATION = False
 def main():
 
     global TOKEN
-    global MIN_ASSEMBY_LENGTH
-    global MIN_ASSEMBY_COVERAGE
+    global MIN_ASSEMBLY_LENGTH
+    global MIN_ASSEMBLY_COVERAGE
     global MIN_CONNECTIVITY_RATIO
     global MIN_SEED_ENTROPY
     global MIN_SEED_COVERAGE
@@ -67,7 +67,7 @@ def main():
     parser.add_argument('--min_seed_entropy', action='store', dest='min_seed_entropy')
     parser.add_argument('--min_seed_coverage', action='store', dest='min_seed_coverage')
     parser.add_argument('--max_test_kmers', action='store', dest='max_test_kmers')
-    parser.add_argument('--write_kmer_files', action='store', dest='write_kmer_files')
+    parser.add_argument('--write_kmer_files')
     parser.add_argument('--keep_tmp_files')
     parser.add_argument('--no_prune_error_kmers')
     parser.add_argument('--min_ratio_non_error', action='store', dest='min_ratio_non_error')
@@ -123,8 +123,8 @@ def main():
     if args.max_test_kmers:
         MAX_TEST_KMERS = int(args.max_test_kmers)
 
-    #if args.write_kmer_files:
-    #    WRITE_KMER_FILES = True
+    if args.write_kmer_files:
+        WRITE_KMER_FILES = True
 
     if args.keep_tmp_files:
         KEEP_TMP_FILES = True
@@ -136,12 +136,13 @@ def main():
     if args.no_prune_error_kmers:
         prune_error_kmers = False
 
+    min_ratio_non_error = 0.05
     if prune_error_kmers and args.min_ratio_non_error:
         min_ratio_non_error = float(args.min_ratio_non_error)
 
     ACP.init('udp') # ACP must be initialized before creating DistributedKmerCounter
 
-    kcounter = DistributedKmerCounter(kmer_length)
+    kcounter = DistributedKmerCounter(kmer_length, DOUBLE_STRANDED_MODE)
     read_file(args.fasta_filename, kcounter, kmer_length)
 
     if args.token:
@@ -151,10 +152,9 @@ def main():
 
     # next phase
 
-    prune_error_kmers = False # avoid k-mer pruning now...
     # k-kmer pruning
     if prune_error_kmers:
-        do_prune_error_kmers(kcounter, 0)
+        do_prune_error_kmers(kcounter, min_ratio_non_error)
 
     do_assembly(kcounter, kmer_length)
     
@@ -259,9 +259,10 @@ class Segment():
         self.prettybuffer[key] = value
 
 class DistributedKmerCounter():
-    def __init__(self, kmer_length): # collective
+    def __init__(self, kmer_length, ds_mode): # collective
         # key=64bit value=64bit
         self.kmer_length = kmer_length
+        self.ds_mode = ds_mode
 
         self.multiset = ACP.SingleNodeMultiset()
         my_multiset_ga = self.multiset.multiset.ga
@@ -269,7 +270,7 @@ class DistributedKmerCounter():
 
         self.ga_buffer    = Segment(ctypes.c_ulonglong, ACP.procs())
 
-        self.size = 0
+        self.addcount = 0
 
         ACP.sync()
 
@@ -321,6 +322,9 @@ class DistributedKmerCounter():
                 self.remotelock.append(ACP.Lock(self.ga_buffer[rank]))
 
         print self.remotelock
+
+    def size(self):
+        return self.multiset.size()
 
     def get_kmer_string(self, kmer_val):
         return decode_kmer_from_intval(kmer_val, self.kmer_length)
@@ -381,9 +385,13 @@ class DistributedKmerCounter():
         ckmerstr = kmerstr_to_colored_kmer(decode_kmer_from_intval(ck,  self.kmer_length-2))
         #print "add_kmer(%s, %d): central_kmer = %s, node = %d" % (kmerstr, count, ckmerstr, node)
         #print "add_kmer(%s, %d) node = %d" % (kmerstr, count, node)
-        self.size = self.size + 1
-        if self.size % 1000 == 0:
-            print "added %d kmers" % (self.size,)
+
+        if self.ds_mode:
+            kmer = self.get_DS_kmer(kmer, self.kmer_length)
+
+        self.addcount = self.addcount + 1
+        if self.addcount % 1000 == 0:
+            print "added %d kmers" % (self.addcount,)
         self.remotemultiset[node].increment(kmer, count)
 
     def find_kmer(self, kmer):
@@ -497,6 +505,31 @@ class DistributedKmerCounter():
         ck = self.get_central_kmer(kmer)
         node = self.get_node_for_central_kmer(ck)
         return self.remotemultiset[node].delete(kmer)
+
+    def prune_kmer_extensions(self, min_ratio_non_error):
+        deletion_list = []
+        for kmer_val in self.multiset.items():
+            count = self.multiset[kmer_val]
+            if count == 0:
+                continue
+            candidates = self.get_forward_kmer_candidates(kmer_val)
+            dominant_count = 0
+            for i in range(len(candidates)):
+                if candidates[i][1]:
+                    candidate_count = candidates[i][1]
+                    if dominant_count == 0:
+                        dominant_count = candidate_count
+                    elif dominant_count > 0 and float(candidate_count)/float(dominant_count) < min_ratio_non_error:
+                        kmer_candidate = self.find_kmer( candidates[i][0] )
+                        deletion_list.append(kmer_candidate)
+                        # kmer_candidate->second = 0; // disable when encountered in further iterations.
+
+        if len(deletion_list) > 0:
+            for kmer in deletion_list:
+                self.prune_kmer(kmer)
+            return True
+        else:
+            return False
 
     def dump(self):
         self.multiset.dump()

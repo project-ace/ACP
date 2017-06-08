@@ -1,4 +1,4 @@
-.TH "doc/src/acp.h" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
+.TH "doc/src/acp.h" 3 "Thu Jun 8 2017" "Version 3.0.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -44,7 +44,10 @@ doc/src/acp.h \- A header file for ACP\&.
 .RI "struct \fBacp_set_it_t\fP"
 .br
 .ti -1c
-.RI "struct \fBacp_set_ib_t\fP"
+.RI "struct \fBacp_multiset_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_multiset_it_t\fP"
 .br
 .ti -1c
 .RI "struct \fBacp_map_t\fP"
@@ -224,6 +227,9 @@ doc/src/acp.h \- A header file for ACP\&.
 .RI "typedef struct chitem * \fBacp_ch_t\fP"
 .br
 .ti -1c
+.RI "typedef struct segbufitem * \fBacp_segbuf_t\fP"
+.br
+.ti -1c
 .RI "typedef \fBacp_wsditem\fP * \fBacp_wsd_t\fP"
 .br
 .in -1c
@@ -350,6 +356,58 @@ doc/src/acp.h \- A header file for ACP\&.
 .br
 .RI "Query for the completion of GMA\&. "
 .ti -1c
+.RI "acp_segbuf_t \fBacp_create_src_segbuf\fP (int dst_rank, void *buf, size_t segsize, size_t segnum)"
+.br
+.RI "Creates the source side endpoint of a pair of segmented buffers\&. "
+.ti -1c
+.RI "acp_segbuf_t \fBacp_create_dst_segbuf\fP (int dst_rank, void *buf, size_t segsize, size_t segnum)"
+.br
+.RI "Creates the destination side endpoint of a pair of segmented buffers\&. "
+.ti -1c
+.RI "int \fBacp_connect_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Connect the pair of segmented buffer\&. "
+.ti -1c
+.RI "int \fBacp_isconnected_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query if the pair of segmented buffer are connected\&. "
+.ti -1c
+.RI "int \fBacp_ready_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Notify to the source side that one segment has become ready to be overwritten\&. "
+.ti -1c
+.RI "int \fBacp_ack_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Acknowledge the destination side that one segment has become available to retrieve\&. "
+.ti -1c
+.RI "int \fBacp_isready_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query if there is any segments that are ready to be overwritten\&. "
+.ti -1c
+.RI "int \fBacp_isacked_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query if there is any segments that are available to be retrieved\&. "
+.ti -1c
+.RI "int64_t \fBacp_query_segbuf_head\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query the head index of the segmented buffer\&. "
+.ti -1c
+.RI "int64_t \fBacp_query_segbuf_tail\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query the tail index of the segmented buffer\&. "
+.ti -1c
+.RI "int64_t \fBacp_query_segbuf_sent\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Query the index that represents the point where data has been already sent\&. "
+.ti -1c
+.RI "int \fBacp_disconnect_segbuf\fP (acp_segbuf_t segbuf)"
+.br
+.RI "Disconnect a segmented buffer\&. "
+.ti -1c
+.RI "int \fBacp_free_segbuf\fP (volatile acp_segbuf_t segbuf)"
+.br
+.RI "Free the endpoint of a segmented buffer\&. "
+.ti -1c
 .RI "acp_ch_t \fBacp_create_ch\fP (int sender, int receiver)"
 .br
 .RI "Creates an endpoint of a channel to transfer messages from sender to receiver\&. "
@@ -374,7 +432,7 @@ doc/src/acp.h \- A header file for ACP\&.
 .br
 .RI "Waits for the completion of the nonblocking operation\&. "
 .ti -1c
-.RI "int \fBacp_waitall_ch\fP (acp_request_t *, int, size_t *)"
+.RI "int \fBacp_waitall_ch\fP (acp_request_t *request, int, size_t *)"
 .br
 .ti -1c
 .RI "\fBacp_wsd_t\fP \fBacp_create_ws\fP (size_t size)"
@@ -795,11 +853,111 @@ doc/src/acp.h \- A header file for ACP\&.
 .ti -1c
 .RI "\fBacp_element_t\fP \fBacp_dereference_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
-.RI "Query of the global address of a reference of set tyep iterator\&. "
+.RI "Query of the key of a reference of set tyep iterator\&. "
 .ti -1c
 .RI "\fBacp_set_it_t\fP \fBacp_increment_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
 .RI "Increment an iterater of a set data\&. "
+.ti -1c
+.RI "void \fBacp_assign_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Multiset type data assignment\&. "
+.ti -1c
+.RI "void \fBacp_assign_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Multiet type data assignment\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_begin_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the local head iterator of a set\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_begin_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the head iterator of a multiset\&. "
+.ti -1c
+.RI "void \fBacp_clear_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Multiset elimination\&. "
+.ti -1c
+.RI "\fBacp_multiset_t\fP \fBacp_create_multiset\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "Multiet creation\&. "
+.ti -1c
+.RI "void \fBacp_destroy_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Multiset destruction\&. "
+.ti -1c
+.RI "int \fBacp_empty_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for local multiset empty\&. "
+.ti -1c
+.RI "int \fBacp_empty_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for multiset empty\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_end_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the tail iterator of a multiset\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_end_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the tail iterator of a multiset\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_find_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Search for the key in multiset that matches with key\&. "
+.ti -1c
+.RI "int \fBacp_insert_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Insert a multiset element\&. "
+.ti -1c
+.RI "void \fBacp_merge_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Merge the local keys\&. "
+.ti -1c
+.RI "void \fBacp_merge_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Merge the keys\&. "
+.ti -1c
+.RI "void \fBacp_move_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Move the local keys\&. "
+.ti -1c
+.RI "void \fBacp_move_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Move the keys\&. "
+.ti -1c
+.RI "void \fBacp_remove_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Erase a multiset element\&. "
+.ti -1c
+.RI "void \fBacp_remove_all_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Erase a multiset element\&. "
+.ti -1c
+.RI "uint64_t \fBacp_retrieve_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Retrieve the map\&. "
+.ti -1c
+.RI "size_t \fBacp_size_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query of the number ot local keys in the multiset\&. "
+.ti -1c
+.RI "size_t \fBacp_size_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query of the data size in the multiset\&. "
+.ti -1c
+.RI "void \fBacp_swap_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Swap multiset type data\&. "
+.ti -1c
+.RI "\fBacp_element_t\fP \fBacp_dereference_multiset_it\fP (\fBacp_multiset_it_t\fP it)"
+.br
+.RI "Query of the key of a reference of multiset tyep iterator\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_increment_multiset_it\fP (\fBacp_multiset_it_t\fP it)"
+.br
+.RI "Increment an iterater of a multiset data\&. "
 .ti -1c
 .RI "void \fBacp_assign_local_map\fP (\fBacp_map_t\fP map1, \fBacp_map_t\fP map2)"
 .br

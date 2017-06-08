@@ -1,9 +1,9 @@
 /*
  * Advanced Communication Primitives Library Header
  * 
- * Copyright (c) 2014-2016 FUJITSU LIMITED
- * Copyright (c) 2014-2016 Kyushu University
- * Copyright (c) 2014-2016 Institute of Systems, Information Technologies
+ * Copyright (c) 2014-2017 FUJITSU LIMITED
+ * Copyright (c) 2014-2017 Kyushu University
+ * Copyright (c) 2014-2017 Institute of Systems, Information Technologies
  *                         and Nanotechnologies 2014
  *
  * This software is released under the BSD License, see LICENSE.
@@ -1315,7 +1315,7 @@ extern acp_request_t acp_nbrecv_ch(acp_ch_t ch, void * buf, size_t size);
  */
 extern size_t acp_wait_ch(acp_request_t request);
 
-extern int acp_waitall_ch(acp_request_t *, int, size_t *);
+extern int acp_waitall_ch(acp_request_t *request, int, size_t *);
 
 #ifdef __cplusplus
 }

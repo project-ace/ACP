@@ -1,4 +1,4 @@
-.TH "set" 3 "Wed Dec 28 2016" "Version 2.1.0" "ACP Library" \" -*- nroff -*-
+.TH "set" 3 "Thu Jun 8 2017" "Version 3.0.0" "ACP Library" \" -*- nroff -*-
 .ad l
 .nh
 .SH NAME
@@ -13,7 +13,10 @@ set \- ACP Middle Layer Dara Library Set
 .RI "struct \fBacp_set_it_t\fP"
 .br
 .ti -1c
-.RI "struct \fBacp_set_ib_t\fP"
+.RI "struct \fBacp_multiset_t\fP"
+.br
+.ti -1c
+.RI "struct \fBacp_multiset_it_t\fP"
 .br
 .in -1c
 .SS "Functions"
@@ -106,17 +109,132 @@ set \- ACP Middle Layer Dara Library Set
 .ti -1c
 .RI "\fBacp_element_t\fP \fBacp_dereference_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
-.RI "Query of the global address of a reference of set tyep iterator\&. "
+.RI "Query of the key of a reference of set tyep iterator\&. "
 .ti -1c
 .RI "\fBacp_set_it_t\fP \fBacp_increment_set_it\fP (\fBacp_set_it_t\fP it)"
 .br
 .RI "Increment an iterater of a set data\&. "
+.ti -1c
+.RI "void \fBacp_assign_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Multiset type data assignment\&. "
+.ti -1c
+.RI "void \fBacp_assign_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Multiet type data assignment\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_begin_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the local head iterator of a set\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_begin_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the head iterator of a multiset\&. "
+.ti -1c
+.RI "void \fBacp_clear_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Multiset elimination\&. "
+.ti -1c
+.RI "\fBacp_multiset_t\fP \fBacp_create_multiset\fP (int num_ranks, const int *ranks, int num_slots, int rank)"
+.br
+.RI "Multiet creation\&. "
+.ti -1c
+.RI "void \fBacp_destroy_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Multiset destruction\&. "
+.ti -1c
+.RI "int \fBacp_empty_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for local multiset empty\&. "
+.ti -1c
+.RI "int \fBacp_empty_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for multiset empty\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_end_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the tail iterator of a multiset\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_end_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query for the tail iterator of a multiset\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_find_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Search for the key in multiset that matches with key\&. "
+.ti -1c
+.RI "int \fBacp_insert_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Insert a multiset element\&. "
+.ti -1c
+.RI "void \fBacp_merge_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Merge the local keys\&. "
+.ti -1c
+.RI "void \fBacp_merge_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Merge the keys\&. "
+.ti -1c
+.RI "void \fBacp_move_local_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Move the local keys\&. "
+.ti -1c
+.RI "void \fBacp_move_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Move the keys\&. "
+.ti -1c
+.RI "void \fBacp_remove_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Erase a multiset element\&. "
+.ti -1c
+.RI "void \fBacp_remove_all_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Erase a multiset element\&. "
+.ti -1c
+.RI "uint64_t \fBacp_retrieve_multiset\fP (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+.br
+.RI "Retrieve the map\&. "
+.ti -1c
+.RI "size_t \fBacp_size_local_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query of the number ot local keys in the multiset\&. "
+.ti -1c
+.RI "size_t \fBacp_size_multiset\fP (\fBacp_multiset_t\fP set)"
+.br
+.RI "Query of the data size in the multiset\&. "
+.ti -1c
+.RI "void \fBacp_swap_multiset\fP (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+.br
+.RI "Swap multiset type data\&. "
+.ti -1c
+.RI "\fBacp_element_t\fP \fBacp_dereference_multiset_it\fP (\fBacp_multiset_it_t\fP it)"
+.br
+.RI "Query of the key of a reference of multiset tyep iterator\&. "
+.ti -1c
+.RI "\fBacp_multiset_it_t\fP \fBacp_increment_multiset_it\fP (\fBacp_multiset_it_t\fP it)"
+.br
+.RI "Increment an iterater of a multiset data\&. "
 .in -1c
 .SH "Detailed Description"
 .PP 
-ACP Middle Layer Data Library Set 
+ACP Middle Layer Data Library Set
+.PP
+ACP Middle Layer Data Library Multiset 
 .SH "Function Documentation"
 .PP 
+.SS "void acp_assign_local_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Multiset type data assignment\&. Among the keys of set2, copy the keys that are allocated in the caller process\&. Keys of the destination set (set1) are destroyed\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of destination multiset data\&. 
+.br
+\fIset2\fP A reference of source multiset data\&. 
+.RE
+.PP
+
 .SS "void acp_assign_local_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 
 .PP
@@ -130,6 +248,19 @@ Set type data assignment\&. Among the keys of set2, copy the keys that are alloc
 .RE
 .PP
 
+.SS "void acp_assign_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Multiet type data assignment\&. Copy keys of set2\&. Keys of the destination set (set1) are destroyed\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of destination multiset data\&. 
+.br
+\fIset2\fP A reference of source multiset data\&. 
+.RE
+.PP
+
 .SS "void acp_assign_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 
 .PP
@@ -140,6 +271,24 @@ Set type data assignment\&. Copy keys of set2\&. Keys of the destination set (se
 \fIset1\fP A reference of destination set data\&. 
 .br
 \fIset2\fP A reference of source set data\&. 
+.RE
+.PP
+
+.SS "\fBacp_multiset_it_t\fP acp_begin_local_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for the local head iterator of a set\&. Among the keys of set, query for the first key of the keys that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The head iterator of the multiset\&. 
 .RE
 .PP
 
@@ -161,6 +310,24 @@ Query for the local head iterator of a set\&. Among the keys of set, query for t
 .RE
 .PP
 
+.SS "\fBacp_multiset_it_t\fP acp_begin_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for the head iterator of a multiset\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The head iterator of the multiset\&. 
+.RE
+.PP
+
 .SS "\fBacp_set_it_t\fP acp_begin_set (\fBacp_set_t\fP set)"
 
 .PP
@@ -179,6 +346,17 @@ Query for the head iterator of a set\&.
 .RE
 .PP
 
+.SS "void acp_clear_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Multiset elimination\&. Set the size of the multiset to be zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset data\&. 
+.RE
+.PP
+
 .SS "void acp_clear_set (\fBacp_set_t\fP set)"
 
 .PP
@@ -187,6 +365,30 @@ Set elimination\&. Set the size of the set to be zero\&.
 \fBParameters:\fP
 .RS 4
 \fIset\fP A reference of set data\&. 
+.RE
+.PP
+
+.SS "\fBacp_multiset_t\fP acp_create_multiset (int num_ranks, const int * ranks, int num_slots, int rank)"
+
+.PP
+Multiet creation\&. Creates a multiset type data on any process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fInum_ranks\fP A process number for assigning buckets 
+.br
+\fIranks\fP An array of rank number for assigning buckets 
+.br
+\fInum_slots\fP A number of bucket slot for one process 
+.br
+\fIrank\fP The rank number where has the control information of a multiset 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember ga == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP A reference of created set data\&. 
 .RE
 .PP
 
@@ -214,10 +416,28 @@ Set creation\&. Creates a set type data on any process\&.
 .RE
 .PP
 
+.SS "\fBacp_element_t\fP acp_dereference_multiset_it (\fBacp_multiset_it_t\fP it)"
+
+.PP
+Query of the key of a reference of multiset tyep iterator\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP The iterator of multiset type data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember\fP ga The global address of the key referenced by the specified iterator 
+.br
+\fImember\fP size The size of the key referenced by the specified iterator 
+.RE
+.PP
+
 .SS "\fBacp_element_t\fP acp_dereference_set_it (\fBacp_set_it_t\fP it)"
 
 .PP
-Query of the global address of a reference of set tyep iterator\&. 
+Query of the key of a reference of set tyep iterator\&. 
 .PP
 \fBParameters:\fP
 .RS 4
@@ -226,7 +446,20 @@ Query of the global address of a reference of set tyep iterator\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fIacp_ga_t\fP The global address of a reference of set type iterator 
+\fImember\fP ga The global address of the key referenced by the specified iterator 
+.br
+\fImember\fP size The size of the key referenced by the specified iterator 
+.RE
+.PP
+
+.SS "void acp_destroy_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Multiset destruction\&. Destroies a multiset type data\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset data\&. 
 .RE
 .PP
 
@@ -238,6 +471,24 @@ Set destruction\&. Destroies a set type data\&.
 \fBParameters:\fP
 .RS 4
 \fIset\fP A reference of set data\&. 
+.RE
+.PP
+
+.SS "int acp_empty_local_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for local multiset empty\&. Query if, among the keys of multiset, the number of keys that are allocated in the caller process is zero\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Empty 
+.br
+\fI0\fP There is a multiset data 
 .RE
 .PP
 
@@ -259,6 +510,24 @@ Query for local set empty\&. Query if, among the keys of set, the number of keys
 .RE
 .PP
 
+.SS "int acp_empty_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for multiset empty\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Empty 
+.br
+\fI0\fP There is a multiset data 
+.RE
+.PP
+
 .SS "int acp_empty_set (\fBacp_set_t\fP set)"
 
 .PP
@@ -277,6 +546,24 @@ Query for set empty\&.
 .RE
 .PP
 
+.SS "\fBacp_multiset_it_t\fP acp_end_local_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for the tail iterator of a multiset\&. Among the keys of multiset, query for the last key of the keys that are allocated in the caller process\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIoterhwise\fP The iterator that points to the behind of the last element 
+.RE
+.PP
+
 .SS "\fBacp_set_it_t\fP acp_end_local_set (\fBacp_set_t\fP set)"
 
 .PP
@@ -285,6 +572,24 @@ Query for the tail iterator of a set\&. Among the keys of set, query for the las
 \fBParameters:\fP
 .RS 4
 \fIset\fP A reference of set type data\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIoterhwise\fP The iterator that points to the behind of the last element 
+.RE
+.PP
+
+.SS "\fBacp_multiset_it_t\fP acp_end_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query for the tail iterator of a multiset\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data\&. 
 .RE
 .PP
 \fBReturn values:\fP
@@ -313,6 +618,26 @@ Query for the tail iterator of a set\&.
 .RE
 .PP
 
+.SS "\fBacp_multiset_it_t\fP acp_find_multiset (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+
+.PP
+Search for the key in multiset that matches with key\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data 
+.br
+\fIkey\fP Key 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIiterator\fP An iterator of the key that matches with key\&. 
+.br
+\fIiterator\fP The end of the iterator\&. 
+.RE
+.PP
+
 .SS "\fBacp_set_it_t\fP acp_find_set (\fBacp_set_t\fP set, \fBacp_element_t\fP key)"
 
 .PP
@@ -330,6 +655,24 @@ Search for the key in set that matches with key\&.
 \fIiterator\fP An iterator of the key that matches with key\&. 
 .br
 \fIiterator\fP The end of the iterator\&. 
+.RE
+.PP
+
+.SS "\fBacp_multiset_it_t\fP acp_increment_multiset_it (\fBacp_multiset_it_t\fP it)"
+
+.PP
+Increment an iterater of a multiset data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIit\fP A reference of multiset type iterator\&. 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fImember elem == ACP_GA_NULL\fP Fail 
+.br
+\fIotherwise\fP The next iterator of the specified one\&. 
 .RE
 .PP
 
@@ -351,6 +694,26 @@ Increment an iterater of a set data\&.
 .RE
 .PP
 
+.SS "int acp_insert_multiset (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+
+.PP
+Insert a multiset element\&. Insert the key to the multiset or increment the counter value of the key if the key already exists in the multiset
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of multiset type data 
+.br
+\fIkey\fP An inserting key 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI1\fP Success 
+.br
+\fI0\fP Fail 
+.RE
+.PP
+
 .SS "int acp_insert_set (\fBacp_set_t\fP set, \fBacp_element_t\fP key)"
 
 .PP
@@ -365,11 +728,22 @@ Insert a set element\&.
 .PP
 \fBReturn values:\fP
 .RS 4
-\fImember success == 1\fP Success 
+\fI1\fP Success 
 .br
-\fImember success == 0\fP Fail 
+\fI0\fP Fail 
+.RE
+.PP
+
+.SS "void acp_merge_local_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Merge the local keys\&. Among the keys of set2, merge the keys that are allocated in the caller process to set1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of the destination multiset type data 
 .br
-\fImember it\fP An iterator for the iserted key 
+\fIset2\fP A reference of the source multiset type data 
 .RE
 .PP
 
@@ -386,6 +760,19 @@ Merge the local keys\&. Among the keys of set2, merge the keys that are allocate
 .RE
 .PP
 
+.SS "void acp_merge_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Merge the keys\&. Merge set2 to set1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of the destination multiset type data 
+.br
+\fIset2\fP A reference of the source multiset type data 
+.RE
+.PP
+
 .SS "void acp_merge_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 
 .PP
@@ -396,6 +783,19 @@ Merge the keys\&. Merge set2 to set1\&.
 \fIset1\fP A reference of the destination set type data 
 .br
 \fIset2\fP A reference of the source set type data 
+.RE
+.PP
+
+.SS "void acp_move_local_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Move the local keys\&. Among the keys of set2, move the keys that are allocated in the caller process to set1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of the destination multiset type data 
+.br
+\fIset2\fP A reference of the source multiset type data 
 .RE
 .PP
 
@@ -412,6 +812,19 @@ Move the local keys\&. Among the keys of set2, move the keys that are allocated 
 .RE
 .PP
 
+.SS "void acp_move_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Move the keys\&. Move the keys of set2 to set1\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of the destination multiset type data 
+.br
+\fIset2\fP A reference of the source multiset type data 
+.RE
+.PP
+
 .SS "void acp_move_set (\fBacp_set_t\fP set1, \fBacp_set_t\fP set2)"
 
 .PP
@@ -422,6 +835,32 @@ Move the keys\&. Move the keys of set2 to set1\&.
 \fIset1\fP A reference of the destination set type data 
 .br
 \fIset2\fP A reference of the source set type data 
+.RE
+.PP
+
+.SS "void acp_remove_all_multiset (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+
+.PP
+Erase a multiset element\&. Delete the key of multiset that matches with key, regardless of the counter value of the key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP multiset 
+.br
+\fIkey\fP key 
+.RE
+.PP
+
+.SS "void acp_remove_multiset (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+
+.PP
+Erase a multiset element\&. Delete the key of multiset that matches with key, or decrement the counter value of the key if the value is equal or greater than two\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP multiset 
+.br
+\fIkey\fP key 
 .RE
 .PP
 
@@ -438,6 +877,42 @@ Erase a set element\&. Delete the key of set that matches with key\&.
 .RE
 .PP
 
+.SS "uint64_t acp_retrieve_multiset (\fBacp_multiset_t\fP set, \fBacp_element_t\fP key)"
+
+.PP
+Retrieve the map\&. From multiset, retrieve the counter value of the stored key that matches with the specified key\&.
+.PP
+\fBParameters:\fP
+.RS 4
+\fImap\fP A reference of the multiset data 
+.br
+\fIkey\fP key 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fI0\fP No matching key\&. 
+.br
+\fICounter\fP value\&. 
+.RE
+.PP
+
+.SS "size_t acp_size_local_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query of the number ot local keys in the multiset\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of the multiset data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP Numbers of keys 
+.RE
+.PP
+
 .SS "size_t acp_size_local_set (\fBacp_set_t\fP set)"
 
 .PP
@@ -445,12 +920,28 @@ Query of the number ot local keys in the set\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIset\fP A referenc of the set data 
+\fIset\fP A reference of the set data 
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
 \fIsize_t\fP Numbers of keys 
+.RE
+.PP
+
+.SS "size_t acp_size_multiset (\fBacp_multiset_t\fP set)"
+
+.PP
+Query of the data size in the multiset\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset\fP A reference of the multiset data 
+.RE
+.PP
+\fBReturn values:\fP
+.RS 4
+\fIsize_t\fP The data size in the multiset 
 .RE
 .PP
 
@@ -461,12 +952,25 @@ Query of the data size in the set\&.
 .PP
 \fBParameters:\fP
 .RS 4
-\fIset\fP A referenc of the set data 
+\fIset\fP A reference of the set data 
 .RE
 .PP
 \fBReturn values:\fP
 .RS 4
 \fIsize_t\fP The data size in the set 
+.RE
+.PP
+
+.SS "void acp_swap_multiset (\fBacp_multiset_t\fP set1, \fBacp_multiset_t\fP set2)"
+
+.PP
+Swap multiset type data\&. 
+.PP
+\fBParameters:\fP
+.RS 4
+\fIset1\fP A reference of multiset data to be swapped\&. 
+.br
+\fIset2\fP Another reference of multiset data to be swapped\&. 
 .RE
 .PP
 

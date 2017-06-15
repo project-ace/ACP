@@ -1,3 +1,8 @@
+2017-06-15  ACE Project  <http://ace-project.kyushu-u.ac.jp>
+
+	* version 3.0.0
+	* New facility: Added support for Tofu and Tofu2 interconnect
+
 2016-12-14  ACE Project  <http://ace-project.kyushu-u.ac.jp>
 
 	* version 2.1.0
